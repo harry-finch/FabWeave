@@ -163,6 +163,8 @@
     controls.zoomToCursor = true;
     controls.addEventListener('change', render);
     controls.addEventListener('start', () => (userMoved = true));
+    // Mesure du coût d'un rendu en développement (pas dans le build).
+    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__fabweaveView = { renderer, scene, camera, controls };
     const ro = new ResizeObserver(() => {
       const { clientWidth: w, clientHeight: h } = host;
       if (!w || !h) return;

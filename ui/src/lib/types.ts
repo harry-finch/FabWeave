@@ -54,7 +54,7 @@ export interface PrinterProfile {
 }
 
 export interface FilamentProfile {
-  filament: { id: string; name: string; type: string };
+  filament: { id: string; name: Text; type: string };
 }
 
 export interface Bounds {

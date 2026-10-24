@@ -37,6 +37,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-10 | `modulate_z(tracé, fonction)` : déformation non planaire d'un tracé plat | v0.2 | prévu |
 | API-11 | Subdivision et discrétisation adaptative (tolérance de corde) | v0.2 / v0.5 | prévu |
 | API-12 | Essuyage (*wipe*), pause (insertion d'objet, ruban de renfort) | v0.3 | prévu |
+| API-13 | Remplissage natif d'un contour fermé (zigzag croisé d'une couche à l'autre, ou concentrique) : fonds pleins | v0.2 | prévu |
 
 ## Moteur : physique et G-code (ENG)
 
@@ -72,8 +73,9 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | PRF-04 | Bibliothèque de filaments : PLA, PETG (faits en v0.1), TPU, ASA, PETG-CF | v0.3 | en cours |
 | PRF-05 | Cône de dégagement de la buse (angle, hauteur) | v0.3 | prévu |
 | PRF-06 | Facteur d'étirement des ponts par filament | v0.2 | prévu |
-| PRF-07 | Édition, duplication, import / export des profils dans l'application ; origine de chaque valeur | v0.3 | prévu |
+| PRF-07 | Édition, duplication, import / export des profils (filaments et imprimantes) dans l'application ; origine de chaque valeur ; profils livrés jamais écrasés | v0.3 | prévu |
 | PRF-08 | Plateau rond (delta), origine au centre | v0.3 | prévu |
+| PRF-10 | Import de profils filament et imprimante depuis PrusaSlicer (`.ini`), OrcaSlicer et Bambu Studio (`.json`) ; rapport des valeurs reprises, ignorées, manquantes ; gabarits « à relire » | v0.3 | prévu |
 
 ## Catalogue de modèles (CAT)
 
@@ -82,6 +84,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | Id | Modèle | Origine | Ce qu'il teste | Jalon | État |
 | --- | --- | --- | --- | --- | --- |
 | CAT-01 | Vase à ondulations (texture *ripple*) | FullControl « Ripple Texture Demo » | Spirale continue, largeur variable | v0.1 | fait |
+| CAT-23 | *Ajout* : option « Fond » des vases (aucun, 1 ou 2 couches pleines sous la spirale, API-13), d'abord sur CAT-01 | Fablab | Remplissage d'un contour, passage du fond à la spirale | v0.2 | prévu |
 | CAT-02 | Tamis micro-maillage (ponts tendus) | Recherche FabWeave | Déplacements, rétractions, ponts | v0.2 | prévu |
 | CAT-03 | Entretoise non planaire | FullControl « Nonplanar Spacer » | Z variable, plafond de vitesse Z | v0.2 | prévu |
 | CAT-04 | Ressort hélicoïdal non planaire | Recherche FabWeave | Z continu, oscillation radiale | v0.2 | prévu |
@@ -137,11 +140,13 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | UI-01 | Curseurs générés depuis l'en-tête, calcul en direct (le dernier gagne) | v0.1 | fait |
 | UI-02 | Mesures et messages à droite, champ fautif souligné | v0.1 | fait |
 | UI-03 | Export G-code nommé d'après le modèle, l'imprimante et le filament | v0.1 | fait |
-| UI-04 | Reprise du dernier modèle et des valeurs, FR / EN, thèmes (faits) ; annuler / rétablir | v0.1 | en cours |
+| UI-04 | Reprise du dernier modèle et des valeurs, FR / EN, thèmes ; annuler / rétablir (même champ fusionné, geste = une étape) | v0.1 | fait |
 | UI-05 | Catalogue : catégories, recherche, étiquettes, fiche du modèle | v0.2 | prévu |
 | UI-06 | Ouvrir / glisser-déposer un `.weave` ; « Mes modèles » | v0.2 | prévu |
-| UI-07 | Revenir aux valeurs par défaut du modèle : tout (fait), un curseur | v0.1 | en cours |
+| UI-07 | Revenir aux valeurs par défaut du modèle : toutes, ou une par son ↺ | v0.1 | fait |
 | UI-08 | Placement sur le plateau, copies multiples | v0.3 | prévu |
+| UI-09 | Calcul au relâchement quand le premier calcul d'un geste dépasse 60 ms (barre d'état orange) | v0.1 | fait |
+| UI-10 | Mesures et dimensions dans l'unité d'affichage (mm, pouces) | v0.1 | fait |
 
 ## Bureau, outils et projets (DESK)
 

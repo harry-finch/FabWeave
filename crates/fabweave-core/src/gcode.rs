@@ -111,7 +111,7 @@ fn scope(
     s.push_constant("printer_model", p.printer.model.clone());
     s.push_constant("printer_name", p.printer.name.clone());
     s.push_constant("filament_type", f.filament.material.clone());
-    s.push_constant("filament_name", f.filament.name.clone());
+    s.push_constant("filament_name", f.filament.name.get("fr").to_string());
     s.push_constant("model_name", model_name.to_string());
     s.push_constant("nozzle_high_flow", p.nozzle.high_flow);
     s.push_constant("nozzle_abrasive", p.nozzle.abrasive);
@@ -230,7 +230,8 @@ impl State {
         if percent == 0 {
             line!(g, "M107");
         } else {
-            line!(g, "M106 S{}", (f64::from(percent) * 2.55).round() as u32);
+            // Arrondi exact en entiers (50 % → 128, et non 127 par 50 × 2,55 flottant).
+            line!(g, "M106 S{}", (u32::from(percent) * 255 + 50) / 100);
         }
         self.fan = Some(percent);
     }
@@ -257,7 +258,7 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         line!(g, "; param {k} = {}", param_text(v));
     }
     line!(g, "; printer = {}", p.printer.name);
-    line!(g, "; filament = {}", f.filament.name);
+    line!(g, "; filament = {}", f.filament.name.get("fr"));
     g.push('\n');
     g.push_str(&start);
     g.push('\n');
@@ -442,6 +443,135 @@ p
         assert!(g.contains("; estimated printing time (normal mode) = "));
         assert!(g.contains("; printer_model = MK4S\n"));
         assert!(g.contains("M104 S210 ; température après la première couche"));
+    }
+
+    /// Lignes du parcours (entre les deux repères), valeurs de `E` masquées
+    /// sur les mouvements imprimés.
+    fn path_lines(body: &str, printer_src: &str) -> Vec<String> {
+        let src = format!("[meta]\nname = \"t\"\ncategory = \"t\"\n---\n{body}");
+        let mut w = crate::Workbench::default();
+        w.set_printer(printer_src).unwrap();
+        w.set_filament(crate::testing::PLA).unwrap();
+        w.load_model(&src).unwrap();
+        let ev = w.evaluate(&serde_json::Map::new());
+        let g = w.gcode(&ev).unwrap();
+        let start = g.find("; --- FabWeave : parcours ---").unwrap();
+        let end = g.find("; --- FabWeave : fin du parcours ---").unwrap();
+        g[start..end]
+            .lines()
+            .skip(1)
+            .map(|l| {
+                let moves = l.contains(" X") || l.contains(" Y") || l.contains(" Z");
+                if moves && l.contains(" E") {
+                    l.split(' ')
+                        .map(|p| if p.starts_with('E') { "E*" } else { p })
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                } else {
+                    l.to_string()
+                }
+            })
+            .collect()
+    }
+
+    #[test]
+    fn travels_fan_temperatures_and_feedrates_follow_the_state() {
+        let lines = path_lines(
+            "let p = new_path();
+p.travel_to(0, 0, 0.2);
+p.print_to(10, 0, 0.2, 0.45, 0.2);
+p.print_to(10, 1, 0.2, 0.45, 0.2);
+p.travel_to(10.5, 1, 0.2);
+p.print_to(20, 1, 0.2, 0.45, 0.2);
+p.travel_to(20, 20, 0.4);
+p.set_fan(50);
+p.print_to(30, 20, 0.4, 0.45, 0.2);
+p.reset_fan();
+p.print_to(30, 30, 0.4, 0.45, 0.2);
+p.print_to(40, 30, 0.6, 0.45, 0.2);
+p",
+            crate::testing::MK4S,
+        );
+        // Encombrement 40 × 30 centré sur le plateau 250 × 210 : décalage (105, 90).
+        let expected = [
+            // Déplacement initial : rétraction, montée, déplacement, descente.
+            "G1 E-0.7 F2100",
+            "G1 Z0.4 F720",
+            "G1 X105 Y90 F10800",
+            "G1 Z0.2 F720",
+            // Première couche : filament détendu, ventilateur coupé, 20 mm/s.
+            "G1 E0.7 F2100",
+            "M107",
+            "G1 X115 E* F1200",
+            "G1 Y91 E*",
+            // Déplacement court (0,5 mm < 1,5 mm) : ni rétraction ni saut.
+            "G1 X115.5 F10800",
+            "G1 X125 E* F1200",
+            // Déplacement long : rétraction, saut au-dessus du plus haut des deux Z.
+            "G1 E-0.7 F2100",
+            "G1 Z0.6 F720",
+            "G1 Y110 F10800",
+            "G1 Z0.4 F720",
+            // Deuxième couche : température de croisière une seule fois,
+            // ventilateur du script (50 %), vitesse nominale 40 mm/s.
+            "G1 E0.7 F2100",
+            "M104 S210 ; température après la première couche",
+            "M106 S128",
+            "G1 X135 E* F2400",
+            // Retour au ventilateur du filament (100 %).
+            "M106 S255",
+            "G1 Y120 E*",
+            "G1 X145 Z0.6 E*",
+        ];
+        assert_eq!(lines, expected);
+    }
+
+    #[test]
+    fn core_one_templates_render_chamber_and_park() {
+        let src = "[meta]\nname = \"t\"\ncategory = \"t\"\n---\nlet p = new_path();\np.travel_to(0, 0, 0.2);\np.print_to(10, 0, 0.2, 0.45, 0.2);\np";
+        let mut w = crate::Workbench::default();
+        w.set_printer(crate::testing::CORE_ONE).unwrap();
+        w.set_filament(crate::testing::PETG).unwrap();
+        w.load_model(src).unwrap();
+        let g = w.gcode(&w.evaluate(&serde_json::Map::new())).unwrap();
+        assert!(g.contains("M862.3 P \"COREONE\""));
+        assert!(g.contains("M141 S35 ; set nominal chamber temp"));
+        assert!(g.contains("M104 T0 S130\n"));
+        // Plateau à 85 °C : pas de ventilateur pendant la chauffe.
+        assert!(!g.contains("M106 S70"));
+        assert!(g.contains("M572 S0.053 ; pressure advance"));
+        assert!(g.contains("G1 Z1.2 F720 ; Move print head up"));
+        assert!(g.contains("; filament_type = PETG\n"));
+    }
+
+    #[test]
+    fn template_errors_block_the_export() {
+        let mut p = printer();
+        p.gcode.end = "M104 S{temperatur}".into();
+        let src = "[meta]\nname = \"t\"\ncategory = \"t\"\n---\nlet p = new_path();\np.print_to(10, 0, 0.2, 0.45, 0.2);\np.print_to(0, 0, 0.2, 0.45, 0.2);\np";
+        let m = model::parse(src).unwrap();
+        let eng = script::ScriptEngine::new(script::Limits::default());
+        let c = eng.compile(&m).unwrap();
+        let params = IndexMap::new();
+        let ctx = script::PrinterContext {
+            nozzle_diameter: 0.4,
+            layer_height: 0.2,
+            first_layer_height: 0.2,
+        };
+        let path = eng.run(&c, &params, &ctx).path.unwrap();
+        let fi = filament();
+        let pl = plan::plan(&path, &p, &fi).0.unwrap();
+        let e = emit(&Job {
+            model: &m,
+            params: &params,
+            path: &path,
+            plan: &pl,
+            printer: &p,
+            filament: &fi,
+        })
+        .unwrap_err();
+        assert_eq!(e[0].code, "profile.template_error");
+        assert_eq!(e[0].field.as_deref(), Some("gcode.end"));
     }
 
     #[test]

@@ -158,6 +158,7 @@ const fr = {
     engine: 'Moteur {v}',
     computing: 'Calcul…',
     computed: 'Calcul {ms} ms',
+    deferred: 'Calcul au relâchement',
   },
   alerts: {
     info: '{n} remarque',

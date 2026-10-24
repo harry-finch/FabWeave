@@ -6,7 +6,7 @@ version = 1
 
 [filament]
 id = "generic_petg"
-name = "PETG générique"
+name = { fr = "PETG générique", en = "Generic PETG" }
 type = "PETG"
 diameter = 1.75
 density = 1.27

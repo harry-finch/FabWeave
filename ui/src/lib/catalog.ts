@@ -15,9 +15,6 @@ export interface SourceFile {
   text: string;
 }
 
-/** Nom affiché d'un profil : premier `name = "…"` du fichier (le moteur fait foi). */
-export const profileName = (f: SourceFile) => /^name\s*=\s*"([^"]*)"/m.exec(f.text)?.[1] ?? f.id;
-
 export const MODEL_FILES: SourceFile[] = raw(
   import.meta.glob('../../../models/**/*.weave', { query: '?raw', import: 'default', eager: true }),
 ).map((f) => ({ id: id(f.path, '.weave'), text: f.text }));

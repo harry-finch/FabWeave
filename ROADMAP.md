@@ -25,7 +25,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 
 Dépôt Git, consignes, feuille de route, inventaire des fonctions, décisions d'architecture (ADR-0001 à 0003).
 
-## v0.1 — Tranche verticale (jalon 1) · *en cours : étapes 1 et 2 validées (24/10/2026), vase imprimé sur la CORE One*
+## v0.1 — Tranche verticale (jalon 1) · *en cours : étapes 1 à 4 faites (1 et 2 validées le 24/10/2026), vase imprimé sur la CORE One ; point d'arrêt ⏸ logo*
 
 **But** : choisir un modèle, bouger ses curseurs, voir le parcours en 3D et imprimer le G-code exporté sur une machine du fablab, de bout en bout.
 
@@ -37,7 +37,7 @@ Dépôt Git, consignes, feuille de route, inventaire des fonctions, décisions d
 3. **Physique et G-code** : section de boudin (stade), `E` relatif, centrage sur le plateau, vitesse nominale × facteur, plafonds de débit volumétrique et de vitesse Z (comptés), première couche ralentie, ventilateur, rétraction et saut en Z sur les déplacements, gabarits de démarrage et de fin avec variables, machine à états (pas de commande redondante), commentaires de métadonnées (temps, filament en mm / g). Profils **Prusa MK4S** et **Prusa Core One** (gabarits de démarrage et de fin d'après les profils officiels, source citée), deux profils filament (PLA, PETG).
 4. **Interface** (squelette déjà en place : kit, worker, curseurs, vue 3D en lignes, mesures, messages, export) : liste de modèles simple ; à gauche le modèle et ses curseurs générés depuis l'en-tête ; au centre la vue 3D en lignes colorées (orbite, déplacement, zoom, cadrer `F`, plateau dessiné) ; à droite l'imprimante, le filament, les mesures (points, longueur, temps estimé, filament, débit max atteint) et les messages ; **Exporter le G-code** (action principale). Reprise du dernier modèle et des valeurs ; FR / EN ; thème clair.
 5. **Identité** : couleur et symbole du logo, planche de variantes.
-   ⏸ Choix du logo par l'utilisateur.
+   ⏸ Choix du logo par l'utilisateur : planche `branding/explorations/planche.html` (4 symboles, 4 couleurs).
 6. **Modèle étalon** : le **vase à ondulations** (port de « Ripple Texture Demo » de FullControl, CAT-01) : spirale continue, Z continu, largeur variable.
 
 Critères d'acceptation :
@@ -56,6 +56,7 @@ Critères d'acceptation :
 - **API haut niveau en Rust natif** (rapide, et moins d'erreurs pour une IA) : segments, arcs, cercles, polygones, spirales et hélices, ondes polaires, zigzags, copies (translation, rotation, miroir, répétition en Z), modulation en Z d'un tracé plat, subdivision, `bridge_to`, essuyage.
 - **Modèles de l'utilisateur** : ouvrir ou glisser-déposer un `.weave`, « Mes modèles » mémorisés localement, erreurs du script montrées avec la ligne ; rechargement à chaud du dossier `models/` en développement.
 - **Pour l'IA** : `docs/WEAVE_FORMAT.md` (spécification), `docs/PROMPT_MODELE_IA.md` (prompt système prêt à copier, avec deux exemples complets) et `fabweave-cli check | export | stats` pour qu'un agent vérifie son fichier sans ouvrir l'application.
+- **Fond des vases** : option « Fond » (aucun, 1 ou 2 couches) sur les vases du catalogue, à commencer par le vase à ondulations : couches pleines qui épousent le contour de la base (branches, ondulations comprises), puis la spirale démarre au-dessus sans couture. Repose sur une primitive native de **remplissage d'un contour fermé** (lignes en zigzag croisées d'une couche à l'autre, ou anneaux concentriques), réutilisable par les autres modèles.
 - **Catalogue de départ** d'environ dix modèles (liste `CAT` de [FEATURES.md](docs/FEATURES.md)), dont le tamis à ponts tendus, l'entretoise et le ressort non planaires ; ports de FullControl cités avec leur source.
 
 Critères d'acceptation :
@@ -72,7 +73,11 @@ Critères d'acceptation :
 - **Bibliothèque** : Prusa MK4S et Core One (livrées en v0.1), **Bambu Lab A1, P1 et X1**, plus « Marlin générique ».
 - **Dialectes** : Prusa (Buddy), Bambu Lab, Marlin, Klipper ; avance de pression (`M572`, `M900`, `SET_PRESSURE_ADVANCE`), contrôles de modèle et de buse (`M862.x`), ligne de purge hors pièce, vignette intégrée au G-code (écran des Prusa).
 - **Bambu Lab** (étude en début de jalon) : G-code brut lancé depuis la carte SD, ou paquet `.gcode.3mf` (G-code de plaque, sommes MD5, métadonnées de plaque et de filament, vignette) comme le fait l'outil `bambox`, que le firmware contrôle avant d'imprimer. Choix consigné dans une ADR.
-- **Édition dans l'application** : dupliquer un profil, modifier, importer / exporter, mémorisé par poste ; chaque valeur dit son origine (profil livré, modifié).
+- **Édition dans l'application** : dupliquer un profil, modifier, importer / exporter, mémorisé par poste ; chaque valeur dit son origine (profil livré, modifié, importé). Les profils livrés ne sont jamais écrasés : une modification crée une copie.
+  - **Filaments** : modifier chaque paramètre (températures, refroidissement, rétraction, débit volumétrique max, vitesse nominale, multiplicateur de débit, densité, facteur des ponts), créer un filament à partir d'un autre, importer un fichier de filament.
+  - **Imprimantes** : importer un profil d'imprimante (plateau, buse, vitesses, gabarits de démarrage et de fin), le vérifier et le corriger avant usage.
+  - **Import depuis les trancheurs** : profils filament et imprimante de PrusaSlicer (`.ini`), OrcaSlicer et Bambu Studio (`.json`) convertis en TOML FabWeave ; les valeurs reprises, ignorées ou manquantes sont listées, et les gabarits de G-code sont signalés « à relire » (leurs variables diffèrent des nôtres).
+  - Valeurs vérifiées à l'import comme à l'édition : hors domaine → erreur ou avertissement à code stable, jamais corrigées en silence.
 - **Placement** : position et rotation sur le plateau, copies multiples en grille, plateau dessiné à sa forme réelle, dépassement surligné et bloquant.
 - Diamètre de buse : avertissement si le modèle recommande une autre buse.
 - **Adhésion au plateau** : bordure (*brim*) ou radeau (*raft*) ajoutés par le moteur, au choix de l'utilisateur et non du modèle (le `.weave` reste muet là-dessus). Bordure : boucles décalées autour de l'empreinte de la première couche (nombre de tours ou largeur, écart à la pièce) ; radeau : couches de base et d'interface sous la pièce, qui la rehausse d'autant, avec écart en Z pour le décollage. Emprise et hauteur ajoutées prises en compte dans le contrôle du volume d'impression ; le modèle peut seulement recommander une adhésion (`[meta]`).

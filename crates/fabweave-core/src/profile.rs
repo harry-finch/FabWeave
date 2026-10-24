@@ -8,6 +8,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::issue::{line_col, Issue};
+use crate::model::Text;
 use crate::template::TemplateEngine;
 
 pub const PRINTER_FORMAT: &str = "fabweave.printer";
@@ -101,7 +102,8 @@ pub struct PrinterProfile {
 #[serde(deny_unknown_fields)]
 pub struct FilamentInfo {
     pub id: String,
-    pub name: String,
+    /// Nom affiché : chaîne, ou table par langue.
+    pub name: Text,
     /// Matière (`PLA`, `PETG`, `FLEX`…), écrite dans le G-code.
     #[serde(rename = "type")]
     pub material: String,

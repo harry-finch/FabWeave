@@ -26,6 +26,20 @@ pub fn read_model(source: &str) -> String {
     }
 }
 
+/// Profil sans le charger (liste des imprimantes et filaments) : `kind` vaut
+/// `printer` ou `filament`. JSON : `{ ok, profile }` ou `{ ok, issues }`.
+#[wasm_bindgen]
+pub fn read_profile(kind: &str, source: &str) -> String {
+    let r = match kind {
+        "printer" => fabweave_core::profile::parse_printer(source).map(|p| json!(p)),
+        _ => fabweave_core::profile::parse_filament(source).map(|f| json!(f)),
+    };
+    match r {
+        Ok(p) => json!({ "ok": true, "profile": p }).to_string(),
+        Err(e) => issues_json(&e),
+    }
+}
+
 /// Parcours calculé, prêt à dessiner.
 #[wasm_bindgen]
 pub struct Frame {

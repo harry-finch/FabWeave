@@ -8,7 +8,10 @@
   //   n'en faire qu'une étape d'annulation.
   // Les longueurs sont reçues et rendues en mm ; l'affichage suit `ui.units`.
   // `invalid` souligne le champ en rouge (erreur du moteur sur ce champ).
-  import { Info } from '@lucide/svelte';
+  // `onreset` (FabWeave) : quand la valeur diffère de la valeur proposée
+  // (`modified`), un ↺ discret à côté du libellé y revient ; son infobulle
+  // (`resetHint`) donne la valeur proposée.
+  import { Info, RotateCcw } from '@lucide/svelte';
   import { tip } from '../lib/tip';
   import { ui } from '../lib/ui.svelte';
   import { i18n, intlLocale } from '../lib/i18n.svelte';
@@ -31,6 +34,9 @@
     disabled = false,
     onbegin,
     onend,
+    modified = false,
+    onreset,
+    resetHint,
   }: {
     label: string;
     value: number;
@@ -48,6 +54,9 @@
     disabled?: boolean;
     onbegin?: () => void;
     onend?: () => void;
+    modified?: boolean;
+    onreset?: () => void;
+    resetHint?: string;
   } = $props();
 
   const uid = `nf-${Math.random().toString(36).slice(2, 9)}`;
@@ -146,6 +155,19 @@
     {#if hint}
       <span class="hint" use:tip={hint} tabindex="-1"><Info size={11} /></span>
     {/if}
+    {#if modified && onreset}
+      <button
+        class="reset"
+        type="button"
+        aria-label={resetHint}
+        use:tip={resetHint}
+        onpointerdown={(e) => e.stopPropagation()}
+        onclick={(e) => {
+          e.preventDefault();
+          onreset();
+        }}><RotateCcw size={11} /></button
+      >
+    {/if}
   </label>
   <input
     id={uid}
@@ -227,6 +249,19 @@
 
   .bad {
     border-color: var(--danger) !important;
+  }
+
+  .reset {
+    display: inline-flex;
+    flex: none;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+  }
+
+  .reset:hover {
+    color: var(--text-primary);
   }
 
   .unit {

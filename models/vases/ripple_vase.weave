@@ -13,7 +13,7 @@ recommended_nozzle = [0.4, 0.5, 0.6]
 
 [params.inner_radius]
 type = "float"
-label = { fr = "Rayon intérieur", en = "Inner radius" }
+label = { fr = "Rayon de base", en = "Base radius" }
 unit = "mm"
 help = { fr = "Rayon du cercle de base ; les branches, les ondulations et le renflement s'ajoutent vers l'extérieur.", en = "Radius of the base circle; tips, ripples and bulge add outwards." }
 default = 15
@@ -107,7 +107,7 @@ step = 0.5
 
 [params.ripple_segments]
 type = "int"
-label = { fr = "Points par onde", en = "Points/ripple" }
+label = { fr = "Points/onde", en = "Points/ripple" }
 help = { fr = "2 : zigzag. Davantage : onde lisse, mais beaucoup plus de points.", en = "2: zigzag. More: smooth wave, but many more points." }
 advanced = true
 default = 2
@@ -127,7 +127,7 @@ step = 0.1
 
 [params.height_factor]
 type = "float"
-label = { fr = "Hauteur couche", en = "Layer height" }
+label = { fr = "Pas vertical", en = "Rise per turn" }
 unit = "×"
 help = { fr = "Montée par tour, en multiple du diamètre de buse.", en = "Rise per turn, as a multiple of the nozzle diameter." }
 advanced = true
@@ -138,7 +138,7 @@ step = 0.05
 
 [params.first_layer_boost]
 type = "float"
-label = { fr = "Surplus 1er tour", en = "First turn extra" }
+label = { fr = "Surplus départ", en = "Start extra" }
 unit = "%"
 help = { fr = "Surcroît de matière ajouté progressivement sur le premier tour : la buse s'éloigne du plateau en spirale, il faut combler l'écart.", en = "Extra material added progressively over the first turn: the nozzle spirals away from the bed and the gap must be filled." }
 advanced = true

@@ -17,9 +17,8 @@
   import { labelled, t } from './lib/i18n.svelte';
   import { text } from './lib/text';
   import { toAlerts } from './lib/issues';
-  import { fmtDuration, num, numTrim } from './lib/format';
+  import { fmtDuration, fmtLength, lengthUnit, num, numTrim } from './lib/format';
   import { tip } from './lib/tip';
-  import { FILAMENT_FILES, PRINTER_FILES, profileName } from './lib/catalog';
 
   let viewport = $state<ReturnType<typeof Viewport>>();
 
@@ -63,12 +62,26 @@
   function keydown(e: KeyboardEvent) {
     const el = e.target as HTMLElement | null;
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+    if (ui.help) return;
+    const mod = e.metaKey || e.ctrlKey;
+    if (mod && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) store.redo();
+      else store.undo();
+      return;
+    }
+    if (mod && e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      store.redo();
+      return;
+    }
+    if (mod || e.altKey) return;
     if (e.key === '?') ui.help = true;
     if (e.key === 'f' || e.key === 'F') viewport?.refit();
   }
 
-  const size = (b: { min: number[]; max: number[] }) =>
-    `${numTrim(b.max[0] - b.min[0], 1)} × ${numTrim(b.max[1] - b.min[1], 1)} × ${numTrim(b.max[2], 1)} mm`;
+  /** Dimensions « L × l × h » dans l'unité d'affichage. */
+  const dims = (v: number[], mmDecimals: number) => `${v.map((x) => fmtLength(x, ui.units, mmDecimals)).join(' × ')} ${lengthUnit(ui.units)}`;
 </script>
 
 <svelte:window onkeydown={keydown} />
@@ -108,7 +121,15 @@
               <RotateCcw size={14} />
             </button>
           {/snippet}
-          <ParamsPanel params={store.model.params} values={store.current} {issues} onchange={(id, v) => store.setValue(id, v)} />
+          <ParamsPanel
+            params={store.model.params}
+            values={store.current}
+            {issues}
+            onchange={(id, v) => store.setValue(id, v)}
+            onreset={(id) => store.reset(id)}
+            onbegin={() => store.begin()}
+            onend={() => store.end()}
+          />
         </Section>
       {/if}
     </aside>
@@ -121,12 +142,12 @@
       <Section id="machine" title={t('machine.section')} step={3}>
         <Field label={t('machine.printer')}>
           <select class="input select" value={store.printerId} onchange={(e) => store.select('printer', (e.currentTarget as HTMLSelectElement).value)}>
-            {#each PRINTER_FILES as f (f.id)}<option value={f.id}>{profileName(f)}</option>{/each}
+            {#each store.printers as p (p.id)}<option value={p.id}>{p.profile?.printer.name ?? p.id}</option>{/each}
           </select>
         </Field>
         <Field label={t('machine.filament')}>
           <select class="input select" value={store.filamentId} onchange={(e) => store.select('filament', (e.currentTarget as HTMLSelectElement).value)}>
-            {#each FILAMENT_FILES as f (f.id)}<option value={f.id}>{profileName(f)}</option>{/each}
+            {#each store.filaments as f (f.id)}<option value={f.id}>{f.profile ? text(f.profile.filament.name) : f.id}</option>{/each}
           </select>
         </Field>
         {#if store.printer}
@@ -134,7 +155,7 @@
             <dt>{t('machine.nozzle')}</dt>
             <dd class="tabular">{numTrim(store.printer.nozzle.diameter, 2)} mm</dd>
             <dt>{t('machine.bed')}</dt>
-            <dd class="tabular">{num(store.printer.bed.size[0])} × {num(store.printer.bed.size[1])} × {num(store.printer.bed.max_height)} mm</dd>
+            <dd class="tabular">{dims([store.printer.bed.size[0], store.printer.bed.size[1], store.printer.bed.max_height], 0)}</dd>
           </dl>
         {/if}
       </Section>
@@ -145,7 +166,7 @@
           <dt>{t('metrics.filament')}</dt>
           <dd class="tabular">{stats ? `${num(stats.filament_length / 1000, 2)} m · ${num(stats.filament_mass, 1)} g` : '—'}</dd>
           <dt>{t('metrics.size')}</dt>
-          <dd class="tabular">{stats ? size(stats.bounds) : '—'}</dd>
+          <dd class="tabular">{stats ? dims([stats.bounds.max[0] - stats.bounds.min[0], stats.bounds.max[1] - stats.bounds.min[1], stats.bounds.max[2]], 1) : '—'}</dd>
           <dt><span use:tip={t('metrics.printLengthHint')}>{t('metrics.printLength')}</span></dt>
           <dd class="tabular">{stats ? `${num(stats.print_length / 1000, 1)} m` : '—'}</dd>
           <dt><span use:tip={t('metrics.maxFlowHint')}>{t('metrics.maxFlow')}</span></dt>
@@ -168,11 +189,15 @@
   <StatusBar state={store.status} version={store.version}>
     {#if store.status === 'ready'}
       <span class="sep"></span>
-      <span class="tabular">{store.computing ? t('status.computing') : store.frame ? t('status.computed', { ms: num(store.frame.ms) }) : ''}</span>
+      {#if store.deferred}
+        <span class="deferred">{t('status.deferred')}</span>
+      {:else}
+        <span class="tabular">{store.computing ? t('status.computing') : store.frame ? t('status.computed', { ms: num(store.frame.ms) }) : ''}</span>
+      {/if}
     {/if}
     {#snippet right()}
       {#if store.printer && store.filament}
-        <span>{store.printer.printer.name} · {store.filament.filament.name}</span>
+        <span>{store.printer.printer.name} · {text(store.filament.filament.name)}</span>
       {/if}
     {/snippet}
   </StatusBar>
@@ -192,6 +217,8 @@
       <dd>{t('help.keys.help')}</dd>
       <dt><kbd>F</kbd></dt>
       <dd>{t('help.keys.fit')}</dd>
+      <dt><kbd>⌘Z / ⇧⌘Z</kbd></dt>
+      <dd>{t('help.keys.undo')}</dd>
       <dt><kbd>🖱</kbd></dt>
       <dd>{t('help.keys.orbit')}</dd>
     </dl>
@@ -246,6 +273,10 @@
 
   .select {
     width: 100%;
+  }
+
+  .deferred {
+    color: var(--warning);
   }
 
   .sub {

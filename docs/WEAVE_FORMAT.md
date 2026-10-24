@@ -92,7 +92,7 @@ path
 | Clé | Types | Obligatoire | Rôle |
 | --- | --- | --- | --- |
 | `type` | — | oui | `"float"`, `"int"` ou `"bool"` |
-| `label` | texte | oui | Libellé **court : 16 caractères au plus** (la colonne fait 100 px). Le détail va dans `help`. |
+| `label` | texte | oui | Libellé **court : 14 caractères au plus** (la colonne fait 100 px et accueille aussi ⓘ et ↺). Le détail va dans `help`. |
 | `unit` | chaîne | non | Unité affichée. `"mm"` : longueur (affichée en pouces si l'utilisateur le demande) ; `"°"` : angle ; sinon texte libre court (`"%"`, `"mm/s"`, `"×"`). |
 | `help` | texte | non | Infobulle : une ou deux phrases concrètes, vocabulaire d'atelier. |
 | `advanced` | booléen | non | `true` : rangé derrière « ▸ Avancé ». Garder visibles les 5 à 10 réglages qui changent la forme. |

@@ -82,6 +82,11 @@ export class EngineClient {
     return this.#call({ kind: 'read', text });
   }
 
+  /** Profil sans le charger (listes des imprimantes et des filaments). */
+  readProfile(kind: 'printer' | 'filament', text: string): Promise<string> {
+    return this.#call({ kind: 'read-profile', profile: kind, text });
+  }
+
   /** G-code ; en cas de refus, l'erreur porte le JSON des messages bloquants. */
   gcode(values: string): Promise<string> {
     return this.#call({ kind: 'gcode', values });

@@ -160,6 +160,7 @@ const en: Shape<typeof fr> = {
     engine: 'Engine {v}',
     computing: 'Computing…',
     computed: 'Computed in {ms} ms',
+    deferred: 'Computing on release',
   },
   alerts: {
     info: '{n} note',

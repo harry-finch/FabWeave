@@ -1,6 +1,6 @@
 # ADR-0003 : Vue 3D en WebGL avec three.js
 
-Status: Proposed
+Status: Accepted
 Date: 2026-10-24
 
 ## Context
@@ -28,3 +28,7 @@ Dépendance d'environ 150 Ko compressés (après élagage). three.js est très r
 ## Validation
 
 v0.1 : orbite fluide (60 images/s) sur un parcours de 200 000 segments en lignes, sur l'ordinateur d'atelier. v0.4 : même objectif en volumétrique. À revoir si le volumétrique n'atteint pas 30 images/s.
+
+### Mesure (24/10/2026, Apple M4, vue web Chromium de l'application)
+
+Vase à ondulations réglé à 200 196 points (12 points par ondulation, 100 ondulations) : **200 195 segments** en `LineSegments` à couleur par sommet. Rendu synchrone (`render` puis lecture d'un pixel pour attendre le GPU) sur 60 images en orbite : **1,9 ms** en médiane, 4,7 ms au plus, très loin des 16,7 ms d'une image à 60 images/s. Mesure faite panneau masqué (canevas 600 × 300) : le coût des lignes dépend surtout du nombre de sommets, pas de la taille du canevas. Accès de mesure : `window.__fabweaveView` en développement seulement.

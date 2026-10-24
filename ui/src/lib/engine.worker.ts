@@ -1,12 +1,13 @@
 // Web Worker du moteur : charge le WebAssembly de `fabweave-wasm` et répond
 // aux demandes du fil principal. Le calcul ne bloque jamais l'interface.
 
-import init, { Engine, engine_version, read_model } from '../wasm/fabweave.js';
+import init, { Engine, engine_version, read_model, read_profile } from '../wasm/fabweave.js';
 
 type Request =
   | { kind: 'compute'; id: number; values: string }
   | { kind: 'load'; id: number; target: 'model' | 'printer' | 'filament'; text: string }
   | { kind: 'read'; id: number; text: string }
+  | { kind: 'read-profile'; id: number; profile: 'printer' | 'filament'; text: string }
   | { kind: 'gcode'; id: number; values: string };
 
 let engine: Engine | null = null;
@@ -47,6 +48,8 @@ onmessage = async (ev: MessageEvent<Request>) => {
       post({ kind: 'result', id: req.id, ok: true, value: fn.call(e, req.text) });
     } else if (req.kind === 'read') {
       post({ kind: 'result', id: req.id, ok: true, value: read_model(req.text) });
+    } else if (req.kind === 'read-profile') {
+      post({ kind: 'result', id: req.id, ok: true, value: read_profile(req.profile, req.text) });
     } else if (req.kind === 'gcode') {
       post({ kind: 'result', id: req.id, ok: true, value: e.gcode(req.values) });
     }

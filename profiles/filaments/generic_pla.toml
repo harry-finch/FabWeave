@@ -7,7 +7,7 @@ version = 1
 
 [filament]
 id = "generic_pla"
-name = "PLA générique"
+name = { fr = "PLA générique", en = "Generic PLA" }
 type = "PLA"
 diameter = 1.75
 density = 1.24
