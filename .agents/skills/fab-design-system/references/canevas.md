@@ -1,10 +1,10 @@
 # Canevas, schémas et dessins techniques
 
-Le centre de l'écran montre le travail : un canevas éditable (FabVents), un schéma de coupe (FabSpeed), un aperçu de parcours (FabCAM). Mêmes règles visuelles que le reste de l'interface.
+Le centre de l'écran montre le travail : un canevas éditable (FabVents), un schéma de coupe (FabSpeed), un aperçu de parcours (FabCAM), une vue 3D du parcours (FabWeave). Mêmes règles visuelles que le reste de l'interface.
 
 ## Couleurs : uniquement des jetons
 
-Le code de dessin (Canvas 2D, SVG) ne contient **aucune couleur en dur**. Pour un Canvas 2D :
+Le code de dessin (Canvas 2D, SVG, WebGL) ne contient **aucune couleur en dur**. Pour un Canvas 2D :
 
 ```ts
 // Jetons lus au montage et à chaque changement de thème.
@@ -56,6 +56,10 @@ En SVG inline, utiliser directement `fill="var(--scene-flute)"` ou des classes s
 ## Étiquettes sur le canevas
 
 Pastille `--tooltip-bg`, texte `--tooltip-text` 600 11 px dans la police de l'interface, rayon 3 px, hauteur 18 px, padding 6 px, décalée de 10 px en haut à droite du point : valeur cible d'un contrôleur (« 4,5 mm », « 30° »), cote de la règle (« 42,3 mm · 15° »).
+
+## Vue 3D (WebGL)
+
+FabWeave montre le parcours de la buse en 3D avec **three.js** (WebGL 2, ADR-0003 de FabWeave, composant `Viewport.svelte`) : plateau à la taille de la machine, grille de 10 mm, parcours en lignes dégradées selon la hauteur, déplacements en retrait, Z vers le haut. **Rendu à la demande** seulement : pas de boucle d'animation, un changement de caméra, de scène ou de taille demande une image par `requestAnimationFrame`, une seule en attente. Les couleurs sont lues dans les jetons `--view-*` (fond, plateau, bord, grille) et `--path-*` (bas et haut du dégradé, déplacements), définis dans les deux thèmes, convertis en `THREE.Color` et **relus au changement de thème** comme pour un Canvas 2D ; plateau et parcours restent neutres. La vue se **cadre seule** sur chaque calcul tant que l'utilisateur ne l'a pas bougée (orbite, déplacement, zoom vers le curseur) ; changer de modèle rétablit le cadrage automatique, et **`F`** (ou le bouton `Focus` en haut à droite de la vue) recadre.
 
 ## Schémas (SVG)
 

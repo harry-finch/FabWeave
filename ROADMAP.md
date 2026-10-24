@@ -25,7 +25,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 
 Dépôt Git, consignes, feuille de route, inventaire des fonctions, décisions d'architecture (ADR-0001 à 0003).
 
-## v0.1 — Tranche verticale (jalon 1) · *faite, en validation de jalon* (étapes 1, 2 et logo validés le 24/10/2026 ; vase imprimé sur la CORE One)
+## v0.1 — Tranche verticale (jalon 1) · *validée* (24/10/2026 ; vase imprimé sur la CORE One)
 
 **But** : choisir un modèle, bouger ses curseurs, voir le parcours en 3D et imprimer le G-code exporté sur une machine du fablab, de bout en bout.
 
@@ -47,9 +47,18 @@ Critères d'acceptation :
 - Un modèle de 50 000 points se recalcule pendant le déplacement d'un curseur sans saccade visible (ou passe en calcul au relâchement, signalé dans la barre d'état).
 - ⏸ **Validation de jalon** : le vase imprimé sur la MK4S ou la Core One du fablab.
 
-## v0.2 — Catalogue et format complet (jalon 2)
+## v0.2 — Catalogue et format complet (jalon 2) · *en cours*
 
 **But** : le catalogue devient le cœur de l'application, et le format `.weave` est assez riche et assez documenté pour qu'une IA externe produise des modèles valides du premier coup.
+
+Étapes et points d'arrêt :
+
+1. **Format et API** : paramètres `choice`, messages du modèle (`warn`, `fail`), annotations, ponts, API native de points inspirée de FullControl (formes, transformations, modulation), mesure du gain.
+   ⏸ Validation de l'API et de la spécification (avant d'écrire le catalogue et le prompt pour IA).
+2. **Pour l'IA** : `fabweave-cli check | export | stats`, `docs/PROMPT_MODELE_IA.md`, essai de génération de trois modèles à partir du seul prompt.
+3. **Interface du catalogue** : catégories, recherche, vignettes, fiche du modèle, annotations dans la vue 3D, ouverture et glisser-déposer de `.weave`, « Mes modèles ».
+4. **Catalogue de départ** d'environ dix modèles.
+5. ⏸ Validation de jalon : trois modèles imprimés.
 
 - **Catalogue** : arbre par catégories, recherche, étiquettes, vignettes rendues par l'application, fiche du modèle (description, auteur, source et licence, buse recommandée, temps et matière estimés avec les profils courants).
 - **Format v1 complet** : paramètres `choice` (liste), unités, pas, groupes et `advanced = true` (« ▸ Avancé »), libellés et infobulles FR / EN, avertissements et erreurs émis par le script avec un code (`warn("model.thin_wall", …)`), annotations 3D (`note(x, y, z, "texte")`, comme les repères « Start », « End » de FullControl), points de départ et de fin.

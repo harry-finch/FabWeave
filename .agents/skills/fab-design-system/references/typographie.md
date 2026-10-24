@@ -37,6 +37,7 @@ Le titre de section est le marqueur le plus reconnaissable de la famille : petit
 ## Longueur des textes
 
 - Libellé de champ : 1 à 2 mots, tronqué avec `…` si besoin (largeur 100 px), le texte complet dans l'infobulle ⓘ.
+- Libellé de propriété quand ⓘ et ↺ partagent la colonne de 100 px (`NumField` avec retour à la valeur proposée) : **14 caractères au plus**, sans compter sur la troncature (« Rayon de base », « Pas vertical », « Surplus départ » dans FabWeave).
 - Segment : 1 mot court. Trois segments doivent tenir dans un panneau de 264 px (« Centre / Entiers / Découper », pas « Par le centre / Trous entiers »).
 - Infobulle : 1 à 3 phrases, 280 px de large au plus.
 - Message du moteur : 1 phrase, avec le nombre et la valeur (« 3 nervures plus fines que le minimum (la plus fine : 0,8 mm). »).

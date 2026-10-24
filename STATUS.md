@@ -1,6 +1,6 @@
 # État du projet
 
-**Jalon** : **v0.1 — tranche verticale**, toutes les étapes faites ; **en validation de jalon**. Étapes 1 et 2 et logo validés (24/10/2026), vase à ondulations **imprimé avec succès sur la CORE One**. Voir [ROADMAP.md](ROADMAP.md).
+**Jalon** : **v0.1 validée** le 24/10/2026 (vase imprimé sur la CORE One). **v0.2 en cours** (catalogue et format complet), étape 1 : format et API. Voir [ROADMAP.md](ROADMAP.md).
 
 | Élément | État |
 | --- | --- |

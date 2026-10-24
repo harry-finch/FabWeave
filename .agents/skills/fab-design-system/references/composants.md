@@ -55,6 +55,8 @@ Comportements (tous obligatoires) :
 - `min` / `max` bornent la saisie au domaine physique (une largeur ≥ 0) ; les limites métier sont signalées par le moteur, jamais bridées ici ;
 - `invalid` : le moteur signale une erreur sur ce champ (souligné rouge).
 
+Facultatif, **retour à la valeur proposée** (FabWeave, même geste que le ↺ de la cellule de résultat de FabSpeed) : quand la valeur diffère de la valeur proposée par le modèle ou le moteur (`modified`) et qu'`onreset` est fourni, un ↺ (`RotateCcw` 11 px, muted, survol primary) suit le libellé et ⓘ. Son infobulle et son `aria-label` (`resetHint`) donnent la valeur proposée (« Valeur du modèle : 60 mm ») ; il arrête `pointerdown` pour qu'un clic ne lance pas le défilement du libellé. Avec ⓘ et ↺ dans la colonne, le libellé tient en 14 caractères (voir [typographie.md](typographie.md)).
+
 ## `Field` — propriété non numérique
 
 Même colonne de libellé (100 px) ; contrôle dans `1fr` : `Segmented` à deux options, sélecteur, case à cocher, bouton. Case à cocher : `accent-color: var(--accent)`, texte `--fs-sm` secondary à droite.

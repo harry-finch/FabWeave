@@ -15,10 +15,13 @@ Elle n'est jamais utilisée pour un bouton, une sélection, un état ou un graph
 | --- | --- | --- | --- | --- |
 | FabSpeed | `#D954DC` magenta | `#C03FC4` | Pivot et deux anneaux d'arcs interrompus (rotation) | `FabSpeed/branding/fabspeed-logo.svg` (variante 01C-B) |
 | FabVents | `#B5D93A` chartreuse | `#6F8C12` | Perforations hexagonales dont la taille croît vers le centre | `FabVents/ui/public/fabvents-logo.svg` |
+| FabWeave | `#58B5F5` bleu FabCAM | `#438ABA` (3:1 sur `#e6e6e6`) | Deux cercles ondulés entrelacés, 3 ondes, dessus-dessous alternés | `FabWeave/branding/fabweave-logo.svg` |
 | FabCAM | `#58B5F5` (logo) | — | — | `FabCAM/logo/FabCAM_A_optical_precision/A0_baseline_app-icon.svg` |
 | KiPartManager | `#E8B954` (logo) | — | — | `KiPartManager/src/kipartmanager/ui/branding/source/app_icon.svg` |
 
 Attention : le bleu de FabCAM est proche de `--accent` et l'ambre de KiPartManager proche de `--warning`. C'est acceptable tant que la règle d'usage ci-dessus est tenue (logo et liseré seulement), mais **pour une nouvelle application, choisir une teinte qui ne se confond avec aucune couleur de sens** : ni bleu (accent), ni vert (succès), ni orange / ambre (avertissement), ni rouge (erreur), ni cyan (information). Restent libres : magenta, chartreuse (déjà pris), violet, rose corail, turquoise profond, or pâle… Vérifier aussi l'écart avec les identités existantes.
+
+Exception assumée : **FabWeave reprend volontairement le bleu de FabCAM** (choix de l'utilisateur, 24/10/2026), parce que les deux applications génèrent du G-code. La règle « une teinte distincte pour une nouvelle application » est levée dans ce seul cas, ce qui reste admissible parce que l'identité ne sert qu'au logo et au liseré : les symboles et les noms suffisent à distinguer les deux applications. Une autre reprise de teinte demande le même accord explicite de l'utilisateur.
 
 Choisir l'identité :
 
