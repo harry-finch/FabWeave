@@ -1,23 +1,16 @@
 # Identité visuelle
 
-**En cours de choix** (v0.1, étape 5). Le logo actuel de l'interface (`ui/public/logo.svg` : tuile de la famille et disque violet) et la couleur d'identité violette (`--identity` : `#A27DFF`, `#7A52D9` en thème clair) sont **provisoires**.
+**Retenue le 24/10/2026** (v0.1, étape 5) : `fabweave-logo.svg`.
 
-## Explorations
+- **Tuile** commune à la famille Fab : carré arrondi graphite `#181f2a`, bord `#354759`, viewBox 128 × 128.
+- **Symbole** : deux cercles ondulés entrelacés, 3 ondes chacun en opposition de phase, dessus-dessous alternés aux 6 croisements. Deux couches du vase à ondulations vues de dessus : le parcours qui se tisse. Variante « G — Entrelacs, 3 ondes » de [explorations/planche.html](explorations/planche.html), générée par `python3 branding/explorations/generate.py` (formes pleines, coordonnées arrondies au centième).
+- **Couleur d'identité** : bleu FabCAM `#58B5F5` (FabCAM et FabWeave génèrent du G-code), `#438ABA` en thème clair (3:1 sur la barre claire). Contraste du symbole sur la tuile : 7,4:1. Proche du bleu d'action `--accent` (`#4b9cf5`, ΔE 18) : acceptable parce que l'identité ne sert qu'au logo et au liseré de 2 px, jamais à un état, une sélection ou une action.
 
-[explorations/planche.html](explorations/planche.html) : quatre variantes de symbole sur la tuile commune de la famille (graphite `#181f2a`, bord `#354759`), de 128 à 16 px, sur fond sombre et clair, en monochrome et dans la barre d'application, et quatre couleurs candidates comparées aux couleurs de sens et aux identités de la famille. Généré par `python3 branding/explorations/generate.py` (formes pleines, contours en arcs SVG exacts).
-
-| Variante | Idée |
+| Fichier | Usage |
 | --- | --- |
-| A — Ondes tissées | Trois couches ondulées décalées d'une demi-onde, en silhouette de vase |
-| B — Spirale | Le parcours continu du mode vase, d'un seul trait |
-| C — Treillis | Bandes croisées dessus-dessous : le tamis, le tissage |
-| D — Buse | Une buse qui trace une onde : le G-code direct |
+| `fabweave-logo.svg` | Source |
+| `ui/public/logo.svg` | Barre d'application (24 px) |
+| `ui/public/favicon.svg`, `favicon.ico` (16, 32, 48), `favicon-32.png`, `apple-touch-icon.png` (180) | Onglets et raccourcis ; PNG rendus directement à chaque taille depuis le SVG (ImageMagick, densité 0,75 × taille) |
+| `--identity` dans `ui/src/app.css` | Liseré supérieur, deux thèmes |
 
-| Couleur | Sombre / clair | Contraste sur la tuile | Couleurs les plus proches (ΔE) |
-| --- | --- | --- | --- |
-| Violet | `#A27DFF` / `#8F6EE0` | 5,5:1 | FabSpeed 30, accent 40 |
-| Rose corail | `#FF8BA0` / `#BF6878` | 7,5:1 | erreur 27, FabSpeed 60 |
-| Or pâle | `#E6CF73` / `#918248` | 10,7:1 | KiPartManager 14, attention 26 |
-| Turquoise profond | `#2FB8A6` / `#269385` | 6,7:1 | succès 23, information 25 |
-
-Une fois le choix fait : `branding/fabweave-logo.svg` (source), `ui/public/logo.svg` et `favicon.svg`, `--identity` dans les deux thèmes de `ui/src/app.css`, et ce fichier mis à jour (variante, date, couleurs).
+Premier tour d'explorations (ondes, spirale, treillis, buse ; violet, rose corail, or pâle, turquoise) : historique Git, commit `189f292`. Icônes des installeurs : générées depuis le SVG avec l'application de bureau (v0.6).

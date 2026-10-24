@@ -51,9 +51,9 @@
   /* Fond neutre très léger (étiquettes, pastilles). */
   --neutral-tint: rgb(255 255 255 / 0.05);
 
-  /* Identité de l'application (logo, liseré) : jamais pour un état.
-     Provisoire (violet) jusqu'au choix du logo (v0.1, étape 5). */
-  --identity: #a27dff;
+  /* Identité de l'application (logo, liseré) : jamais pour un état ni une
+     action. Bleu FabCAM : la famille des générateurs de G-code (24/10/2026). */
+  --identity: #58b5f5;
 
   /* Rails : sélecteurs segmentés (bouton actif en relief) et jauges. */
   --segment-track: #161616;
@@ -140,8 +140,8 @@
   --success-border: rgb(18 128 92 / 0.45);
   --neutral-tint: rgb(0 0 0 / 0.05);
 
-  /* Identité assombrie pour rester visible sur fond clair (provisoire). */
-  --identity: #7a52d9;
+  /* Identité assombrie pour rester visible sur fond clair (3:1 sur la barre). */
+  --identity: #438aba;
 
   --view-bg: #f0f0f0;
   --view-bed: #dcdee1;

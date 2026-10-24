@@ -1,14 +1,19 @@
 """Planche de variantes du logo FabWeave (skill fab-design-system, identite-et-logo.md).
 
+Deuxième tour (24/10/2026) : deux cercles ondulés entrelacés, en bleu FabCAM
+(les deux applications génèrent du G-code). Le premier tour (ondes, spirale,
+treillis, buse ; quatre couleurs) est dans l'historique Git (commit 189f292).
+
 Produit, dans ce dossier :
 - `fabweave-<variante>.svg` : tuile commune de la famille + symbole d'une couleur ;
-- `planche.html` : variantes à 128, 64, 48, 32, 24 et 16 px (rendu vectoriel natif à
-  chaque taille), sur fond sombre et clair, en monochrome, couleurs candidates
-  comparées aux couleurs de sens et aux identités de la famille, barre
-  d'application en situation.
+- `planche.html` : variantes à 128, 64, 48, 32, 24 et 16 px (rendu vectoriel natif
+  à chaque taille), sur fond sombre et clair, en monochrome, et dans la barre
+  d'application, avec la couleur et sa variante claire.
 
-Les symboles sont des formes pleines : bandes dont le contour est fait d'arcs
-SVG exacts (`A`), coordonnées arrondies au millième. Lancer :
+Un anneau ondulé suit r(θ) = R + A·sin(nθ + φ). Les bandes sont des polygones
+denses aux coordonnées arrondies au centième ; aux croisements, le brin du
+dessous est coupé net à distance `gap` du brin du dessus (dessus-dessous alternés).
+Lancer :
     python3 branding/explorations/generate.py
 """
 
@@ -22,226 +27,199 @@ TILE = (
     'M31 4 L97 4 C111.912 4 124 16.088 124 31 L124 97 C124 111.912 111.912 124 97 124 '
     'L31 124 C16.088 124 4 111.912 4 97 L4 31 C4 16.088 16.088 4 31 4 Z'
 )
+STEPS = 720  # points par anneau
 
 
 def f(v: float) -> str:
-    s = f"{v:.3f}".rstrip('0').rstrip('.')
+    s = f"{v:.2f}".rstrip('0').rstrip('.')
     return '0' if s == '-0' else s
 
 
-# --- Bandes à contour d'arcs exacts -------------------------------------------
-# Repère SVG (y vers le bas). Un arc : centre (cx, cy), rayon r, angles phi0 → phi1
-# en degrés, mesurés depuis +x vers +y (sens horaire à l'écran). phi croissant :
-# sens horaire, drapeau `sweep` = 1.
+class Ring:
+    """Anneau ondulé : centre, rayon moyen, amplitude, nombre d'ondes, phase (°)."""
+
+    def __init__(self, cx: float, cy: float, r: float, amp: float, n: int, phase: float):
+        self.cx, self.cy, self.r, self.amp, self.n = cx, cy, r, amp, n
+        self.phase = math.radians(phase)
+
+    def radius(self, th: float) -> float:
+        return self.r + self.amp * math.sin(self.n * th + self.phase)
+
+    def point(self, th: float) -> tuple[float, float]:
+        rr = self.radius(th)
+        return (self.cx + rr * math.cos(th), self.cy + rr * math.sin(th))
+
+    def normal(self, th: float) -> tuple[float, float]:
+        e = 1e-5
+        (x0, y0), (x1, y1) = self.point(th - e), self.point(th + e)
+        dx, dy = x1 - x0, y1 - y0
+        n = math.hypot(dx, dy)
+        return (dy / n, -dx / n)
+
+    def samples(self, a: float, b: float) -> list[float]:
+        k = max(2, int(abs(b - a) / (2 * math.pi) * STEPS))
+        return [a + (b - a) * i / k for i in range(k + 1)]
+
+    def polyline(self) -> list[tuple[float, float]]:
+        return [self.point(th) for th in self.samples(0, 2 * math.pi)]
 
 
-class Arc:
-    def __init__(self, cx: float, cy: float, r: float, a0: float, a1: float):
-        self.cx, self.cy, self.r, self.a0, self.a1 = cx, cy, r, a0, a1
-
-    def point(self, a: float, r: float | None = None) -> tuple[float, float]:
-        r = self.r if r is None else r
-        return (self.cx + r * math.cos(math.radians(a)), self.cy + r * math.sin(math.radians(a)))
-
-    @property
-    def cw(self) -> bool:
-        return self.a1 > self.a0
-
-
-def arc_cmd(arc: Arc, r: float, forward: bool) -> str:
-    a0, a1 = (arc.a0, arc.a1) if forward else (arc.a1, arc.a0)
-    sweep = 1 if a1 > a0 else 0
+def offset(ring: Ring, ths: list[float], d: float) -> list[tuple[float, float]]:
     out = []
-    # Arcs de plus de 179° coupés en deux (drapeau grand arc sans ambiguïté).
-    steps = max(1, math.ceil(abs(a1 - a0) / 179))
-    for k in range(1, steps + 1):
-        a = a0 + (a1 - a0) * k / steps
-        x, y = arc.point(a, r)
-        out.append(f"A {f(r)} {f(r)} 0 0 {sweep} {f(x)} {f(y)}")
-    return ' '.join(out)
+    for th in ths:
+        (x, y), (nx, ny) = ring.point(th), ring.normal(th)
+        out.append((x + nx * d, y + ny * d))
+    return out
 
 
-def band(arcs: list[Arc], t: float) -> str:
-    """Contour plein d'un trait d'épaisseur `t` qui suit une chaîne d'arcs
-    tangents, extrémités rondes."""
-    h = t / 2
-    left = [a.r + h if a.cw else a.r - h for a in arcs]
-    right = [a.r - h if a.cw else a.r + h for a in arcs]
-    first, last = arcs[0], arcs[-1]
-    x, y = first.point(first.a0, left[0])
-    d = [f"M {f(x)} {f(y)}"]
-    for a, r in zip(arcs, left):
-        d.append(arc_cmd(a, r, True))
-    ex, ey = last.point(last.a1, right[-1])
-    d.append(f"A {f(h)} {f(h)} 0 0 1 {f(ex)} {f(ey)}")
-    for a, r in zip(reversed(arcs), reversed(right)):
-        d.append(arc_cmd(a, r, False))
-    sx, sy = first.point(first.a0, left[0])
-    d.append(f"A {f(h)} {f(h)} 0 0 1 {f(sx)} {f(sy)}")
-    d.append('Z')
-    return ' '.join(d)
+def poly(pts: list[tuple[float, float]]) -> str:
+    return 'M ' + ' L '.join(f"{f(x)} {f(y)}" for x, y in pts) + ' Z'
 
 
-def wave(x0: float, y0: float, half: float, amp: float, count: int, up_first: bool) -> list[Arc]:
-    """Onde faite d'arcs tangents alternés : `count` demi-ondes de corde `half`
-    et de flèche `amp`, à partir de (x0, y0) sur la ligne de base."""
-    r = (half * half / 4 + amp * amp) / (2 * amp)
-    theta = math.degrees(2 * math.asin(half / 2 / r))
-    arcs = []
-    up = up_first
-    for i in range(count):
-        mx = x0 + half * (i + 0.5)
-        if up:  # bosse vers le haut : centre en dessous, sens horaire
-            cy = y0 + (r - amp)
-            arcs.append(Arc(mx, cy, r, -90 - theta / 2, -90 + theta / 2))
-        else:  # creux vers le bas : centre au-dessus, sens antihoraire
-            cy = y0 - (r - amp)
-            arcs.append(Arc(mx, cy, r, 90 + theta / 2, 90 - theta / 2))
-        up = not up
-    return arcs
+def closed_band(ring: Ring, t: float) -> str:
+    ths = ring.samples(0, 2 * math.pi)[:-1]
+    # Contour extérieur et intérieur parcourus en sens opposés : l'intérieur est vide.
+    return poly(offset(ring, ths, t / 2)) + ' ' + poly(list(reversed(offset(ring, ths, -t / 2))))
 
 
-def spiral(cx: float, cy: float, r0: float, e: float, halves: int) -> list[Arc]:
-    """Spirale de demi-cercles à deux centres : le rayon croît de `e` à chaque
-    demi-tour (pas de 2e par tour)."""
-    arcs = []
-    for k in range(halves):
-        r = r0 + k * e
-        if k % 2 == 0:
-            arcs.append(Arc(cx, cy, r, 180, 360))  # moitié haute, de gauche à droite
-        else:
-            arcs.append(Arc(cx - e, cy, r, 0, 180))  # moitié basse, de droite à gauche
-    return arcs
+def open_band(ring: Ring, a: float, b: float, t: float) -> str:
+    """Brin de θ = a à θ = b (a < b), bouts coupés net."""
+    ths = ring.samples(a, b)
+    return poly(offset(ring, ths, t / 2) + list(reversed(offset(ring, ths, -t / 2))))
 
 
-def capsule(x0: float, y0: float, x1: float, y1: float, t: float) -> str:
-    """Segment épais à bouts ronds de (x0, y0) à (x1, y1)."""
-    dx, dy = x1 - x0, y1 - y0
-    n = math.hypot(dx, dy)
-    nx, ny = -dy / n * t / 2, dx / n * t / 2
-    h = t / 2
-    return (
-        f"M {f(x0 + nx)} {f(y0 + ny)} L {f(x1 + nx)} {f(y1 + ny)} "
-        f"A {f(h)} {f(h)} 0 0 0 {f(x1 - nx)} {f(y1 - ny)} L {f(x0 - nx)} {f(y0 - ny)} "
-        f"A {f(h)} {f(h)} 0 0 0 {f(x0 + nx)} {f(y0 + ny)} Z"
-    )
+def dist_to_polyline(p: tuple[float, float], line: list[tuple[float, float]]) -> float:
+    best = math.inf
+    px, py = p
+    for (x0, y0), (x1, y1) in zip(line, line[1:]):
+        if abs(x0 - px) > best + 2 and abs(x1 - px) > best + 2:
+            continue
+        dx, dy = x1 - x0, y1 - y0
+        L = dx * dx + dy * dy
+        u = 0.0 if L == 0 else max(0.0, min(1.0, ((px - x0) * dx + (py - y0) * dy) / L))
+        best = min(best, math.hypot(px - x0 - u * dx, py - y0 - u * dy))
+    return best
+
+
+def crossings(a: Ring, b: Ring) -> list[float]:
+    """Paramètres θ sur `a` où `a` traverse `b` (passe d'un côté à l'autre)."""
+
+    def side(th: float) -> float:
+        x, y = a.point(th)
+        ang = math.atan2(y - b.cy, x - b.cx)
+        return math.hypot(x - b.cx, y - b.cy) - b.radius(ang)
+
+    # Décalé d'un demi-pas : un croisement ne tombe jamais pile sur un échantillon.
+    half = math.pi / STEPS
+    ths = [th + half for th in a.samples(0, 2 * math.pi)]
+    out = []
+    for t0, t1 in zip(ths, ths[1:]):
+        s0, s1 = side(t0), side(t1)
+        if s0 * s1 < 0:
+            lo, hi = t0, t1
+            for _ in range(40):
+                mid = (lo + hi) / 2
+                if side(lo) * side(mid) <= 0:
+                    hi = mid
+                else:
+                    lo = mid
+            out.append((lo + hi) / 2)
+    return out
+
+
+def theta_on(ring: Ring, p: tuple[float, float]) -> float:
+    """θ du point de `ring` le plus proche de `p`."""
+    th = math.atan2(p[1] - ring.cy, p[0] - ring.cx)
+    cand = [th + (k - 300) * 0.001 for k in range(601)]
+    return min(cand, key=lambda x: math.dist(ring.point(x), p))
+
+
+def cut(under: Ring, th: float, over_line: list[tuple[float, float]], t: float, gap: float) -> tuple[float, float]:
+    """Intervalle de θ retiré au brin du dessous autour du croisement `th` : ses
+    bouts (bords et axe) restent à `gap` au moins du bord du brin du dessus."""
+    need = t / 2 + gap
+
+    def clear(x: float) -> bool:
+        (px, py), (nx, ny) = under.point(x), under.normal(x)
+        return all(dist_to_polyline((px + nx * s * t / 2, py + ny * s * t / 2), over_line) >= need for s in (-1, 0, 1))
+
+    step = 0.004
+    d0 = step
+    while not clear(th - d0):
+        d0 += step
+    d1 = step
+    while not clear(th + d1):
+        d1 += step
+    return (th - d0, th + d1)
+
+
+def interlace(a: Ring, b: Ring, t: float, gap: float) -> list[tuple[str, str]]:
+    """Deux anneaux entrelacés : dessus-dessous alternés le long de `a`."""
+    ths_a = sorted(crossings(a, b))
+    line_a, line_b = a.polyline(), b.polyline()
+    cuts: dict[str, list[tuple[float, float]]] = {'a': [], 'b': []}
+    for k, th in enumerate(ths_a):
+        if k % 2 == 0:  # a dessus, b coupé
+            cuts['b'].append(cut(b, theta_on(b, a.point(th)), line_a, t, gap))
+        else:  # b dessus, a coupé
+            cuts['a'].append(cut(a, th, line_b, t, gap))
+    out = []
+    for name, ring in (('a', a), ('b', b)):
+        holes = sorted(cuts[name])
+        if not holes:
+            out.append((f"ring-{name}", closed_band(ring, t)))
+            continue
+        # Brins entre deux coupes, en faisant le tour (θ modulo 2π).
+        for k, (_, e0) in enumerate(holes):
+            s1 = holes[(k + 1) % len(holes)][0]
+            if k + 1 == len(holes):
+                s1 += 2 * math.pi
+            out.append((f"ring-{name}-{k + 1}", open_band(ring, e0, s1, t)))
+    return out
 
 
 # --- Variantes ----------------------------------------------------------------
 
 
-def v_ondes() -> list[tuple[str, str]]:
-    """Trois couches ondulées décalées d'une demi-onde, dont les largeurs
-    dessinent un vase : la paroi du vase à ondulations, qui se tisse d'elle-même."""
-    t, half, amp, s = 9.0, 13.0, 4.0, 23.0
-    out = []
-    for i, (n, up) in enumerate([(4, True), (6, False), (4, True)]):
-        y = 64 + (i - 1) * s
-        width = n * half
-        out.append((f"layer-{i + 1}", band(wave(64 - width / 2, y, half, amp, n, up), t)))
-    return out
+def v_maillons() -> list[tuple[str, str]]:
+    """Deux anneaux ondulés passés l'un dans l'autre, comme deux maillons."""
+    return interlace(Ring(47.5, 64, 25, 3.4, 6, 0), Ring(80.5, 64, 25, 3.4, 6, 180), t=8.5, gap=5)
 
 
-def v_spirale() -> list[tuple[str, str]]:
-    """Parcours continu du mode vase : spirale de demi-cercles."""
-    t, e, r0 = 9.0, 9.0, 5.0
-    arcs = spiral(0, 0, r0, e, 5)
-    # Centrage de l'encombrement sur (64, 64).
-    xs = [a.cx + s * (a.r + t / 2) for a in arcs for s in (-1, 1)]
-    ys = [a.cy + s * (a.r + t / 2) for a in arcs for s in (-1, 1)]
-    dx = 64 - (min(xs) + max(xs)) / 2
-    dy = 64 - (min(ys) + max(ys)) / 2
-    for a in arcs:
-        a.cx += dx
-        a.cy += dy
-    return [('spiral', band(arcs, t))]
+def v_couronne4() -> list[tuple[str, str]]:
+    """Deux anneaux ondulés concentriques en opposition de phase, tressés :
+    deux couches successives du vase à ondulations vues de dessus (4 ondes)."""
+    return interlace(Ring(64, 64, 30, 12, 4, 0), Ring(64, 64, 30, 12, 4, 180), t=8.5, gap=4.5)
 
 
-def v_treillis() -> list[tuple[str, str]]:
-    """Bandes croisées à 45°, dessus-dessous alternés : le tamis à ponts tendus."""
-    t, gap = 10.0, 5.0
-    c, s = math.cos(math.radians(45)), math.sin(math.radians(45))
-
-    def rot(x: float, y: float) -> tuple[float, float]:
-        x, y = x - 64, y - 64
-        return (64 + x * c - y * s, 64 + x * s + y * c)
-
-    lines = [-13.0, 13.0]
-    half_len = 36.0
-    out = []
-    # Croisements : (u, v) ; la bande « horizontale » i passe dessus quand i + j est pair.
-    for i, v in enumerate(lines):  # bandes horizontales (avant rotation)
-        cuts = [u for j, u in enumerate(lines) if (i + j) % 2 == 1]
-        pts = [-half_len] + [x for u in cuts for x in (u - t / 2 - gap, u + t / 2 + gap)] + [half_len]
-        for k in range(0, len(pts), 2):
-            a, b = rot(64 + pts[k], 64 + v), rot(64 + pts[k + 1], 64 + v)
-            out.append((f"h{i + 1}-{k // 2 + 1}", capsule(*a, *b, t)))
-    for j, u in enumerate(lines):  # bandes verticales
-        cuts = [v for i, v in enumerate(lines) if (i + j) % 2 == 0]
-        pts = [-half_len] + [y for v in cuts for y in (v - t / 2 - gap, v + t / 2 + gap)] + [half_len]
-        for k in range(0, len(pts), 2):
-            a, b = rot(64 + u, 64 + pts[k]), rot(64 + u, 64 + pts[k + 1])
-            out.append((f"v{j + 1}-{k // 2 + 1}", capsule(*a, *b, t)))
-    return out
-
-
-def v_buse() -> list[tuple[str, str]]:
-    """Une buse qui dépose une onde."""
-    # Bloc de chauffe (rectangle arrondi) puis cône jusqu'à la pointe ; décalé
-    # de 6 vers le bas pour centrer l'ensemble buse + onde.
-    dy = 6
-    nozzle = (
-        f"M 48 {16 + dy} L 80 {16 + dy} A 3 3 0 0 1 83 {19 + dy} L 83 {33 + dy} A 3 3 0 0 1 80 {36 + dy} L 75.5 {36 + dy} "
-        f"L 68.8 {53 + dy} A 2 2 0 0 1 66.9 {54.3 + dy} L 61.1 {54.3 + dy} A 2 2 0 0 1 59.2 {53 + dy} L 52.5 {36 + dy} "
-        f"L 48 {36 + dy} A 3 3 0 0 1 45 {33 + dy} L 45 {19 + dy} A 3 3 0 0 1 48 {16 + dy} Z"
-    )
-    t, half, amp = 8.5, 16.0, 6.0
-    n = 5
-    bead = band(wave(64 - n * half / 2, 79 + dy, half, amp, n, False), t)
-    return [('nozzle', nozzle), ('bead', bead)]
+def v_entrelacs3() -> list[tuple[str, str]]:
+    """Même tresse à 3 ondes très marquées : un entrelacs en forme de nœud."""
+    return interlace(Ring(64, 64, 29, 13, 3, 90), Ring(64, 64, 29, 13, 3, 270), t=9, gap=4.5)
 
 
 VARIANTS = {
-    'ondes': ('A — Ondes tissées', 'Trois couches décalées d’une demi-onde : la paroi du vase à ondulations.', v_ondes),
-    'spirale': ('B — Spirale', 'Le parcours continu du mode vase, d’un seul trait.', v_spirale),
-    'treillis': ('C — Treillis', 'Bandes croisées dessus-dessous : le tamis à ponts tendus, le tissage.', v_treillis),
-    'buse': ('D — Buse', 'Une buse qui trace une onde : le G-code direct.', v_buse),
+    'maillons': ('E — Maillons', 'Deux anneaux ondulés passés l’un dans l’autre.', v_maillons),
+    'couronne-4': ('F — Couronne tressée, 4 ondes', 'Deux anneaux ondulés en opposition de phase, dessus-dessous : deux couches successives du vase vues de dessus.', v_couronne4),
+    'entrelacs-3': ('G — Entrelacs, 3 ondes', 'La même tresse à 3 ondes très marquées : un nœud d’entrelacs.', v_entrelacs3),
 }
 
-# Couleurs candidates (thème sombre, thème clair) : teintes libres dans la famille.
-COLORS = {
-    'violet': ('Violet', '#A27DFF'),
-    'corail': ('Rose corail', '#FF8BA0'),
-    'or': ('Or pâle', '#E6CF73'),
-    'turquoise': ('Turquoise profond', '#2FB8A6'),
-}
-SEMANTIC = {
-    'accent (bleu)': '#4b9cf5',
-    'succès (vert)': '#3fb67a',
-    'attention (orange)': '#e8a33c',
-    'erreur (rouge)': '#ef5b5b',
-    'information (cyan)': '#4fc3d9',
-    'FabSpeed': '#D954DC',
-    'FabVents': '#B5D93A',
-    'FabCAM': '#58B5F5',
-    'KiPartManager': '#E8B954',
-}
+BLUE = '#58B5F5'  # bleu de FabCAM : la famille des générateurs de G-code
+ACCENT = '#4b9cf5'
 
 
-def svg(variant: str, color: str, size: int | None = 128, mono: bool = False) -> str:
-    _, _, fn = VARIANTS[variant]
-    tile_fill, tile_stroke, sym = ('#000000', '#ffffff', '#ffffff') if mono else ('#181f2a', '#354759', color)
+def svg(variant: str, size: int | None = 128, mono: bool = False, shapes: list[tuple[str, str]] | None = None) -> str:
+    tile_fill, tile_stroke, sym = ('#000000', '#ffffff', '#ffffff') if mono else ('#181f2a', '#354759', BLUE)
     attrs = f'width="{size}" height="{size}" ' if size else ''
-    shapes = '\n    '.join(f'<path id="{i}" d="{d}"/>' for i, d in fn())
+    body = '\n    '.join(f'<path id="{i}" d="{d}"/>' for i, d in (shapes or VARIANTS[variant][2]()))
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" {attrs}viewBox="0 0 128 128">\n'
         f'  <title>FabWeave — variante {variant}</title>\n'
         f'  <path d="{TILE}" fill="{tile_fill}" stroke="{tile_stroke}" stroke-width="3.6"/>\n'
-        f'  <g id="symbol" fill="{sym}">\n    {shapes}\n  </g>\n</svg>\n'
+        f'  <g id="symbol" fill="{sym}">\n    {body}\n  </g>\n</svg>\n'
     )
 
 
-# --- Couleurs : contraste et écart perceptif ----------------------------------
+# --- Couleur : contraste et variante claire -------------------------------------
 
 
 def rgb(hexa: str) -> tuple[float, float, float]:
@@ -261,33 +239,16 @@ def contrast(a: str, b: str) -> float:
     return (la + 0.05) / (lb + 0.05)
 
 
-def lab(hexa: str) -> tuple[float, float, float]:
-    def lin(c: float) -> float:
-        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-    r, g, b = (lin(c) for c in rgb(hexa))
-    x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
-    y = 0.2126 * r + 0.7152 * g + 0.0722 * b
-    z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
-
-    def fl(t: float) -> float:
-        return t ** (1 / 3) if t > 0.008856 else 7.787 * t + 16 / 116
-    fx, fy, fz = fl(x), fl(y), fl(z)
-    return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
-
-
-def delta_e(a: str, b: str) -> float:
-    return math.dist(lab(a), lab(b))
-
-
 def darker(hexa: str) -> str:
     """Variante du thème clair : même teinte, assombrie par pas de 1 % jusqu'à
     un contraste de 3:1 sur la barre claire (#e6e6e6), et d'au moins 12 %."""
     r, g, b = rgb(hexa)
     k = 0.88
+    c = hexa
     while k > 0.2:
         c = '#{:02X}{:02X}{:02X}'.format(round(r * k * 255), round(g * k * 255), round(b * k * 255))
         if contrast(c, '#e6e6e6') >= 3.0:
-            return c
+            break
         k -= 0.01
     return c
 
@@ -297,55 +258,42 @@ def darker(hexa: str) -> str:
 SIZES = [128, 64, 48, 32, 24, 16]
 
 
-def tile_row(variant: str, color: str, bg: str, mono: bool = False) -> str:
-    cells = ''.join(f'<div class="cell"><div>{svg(variant, color, s, mono)}</div><span>{s}</span></div>' for s in SIZES)
-    return f'<div class="row" style="background:{bg}">{cells}</div>'
-
-
-def appbar(variant: str, color: str, light: bool) -> str:
-    bar, text, muted, edge = ('#e6e6e6', '#1e1e1e', '#636363', darker(color)) if light else ('#181818', '#e8e8e8', '#7d7d7d', color)
-    return (
-        f'<div class="appbar" style="background:{bar};color:{text}"><i style="background:{edge}"></i>'
-        f'{svg(variant, color, 24)}<b>FabWeave</b><span style="color:{muted}">G-code direct, modèles paramétriques</span></div>'
-    )
-
-
 def main() -> None:
+    shapes = {v: fn() for v, (_, _, fn) in VARIANTS.items()}
+    for old in HERE.glob('fabweave-*.svg'):
+        old.unlink()
     for v in VARIANTS:
-        (HERE / f'fabweave-{v}.svg').write_text(svg(v, COLORS['violet'][1], None))
+        (HERE / f'fabweave-{v}.svg').write_text(svg(v, None, shapes=shapes[v]))
+    light = darker(BLUE)
+
+    def tile_row(v: str, bg: str, mono: bool = False) -> str:
+        cells = ''.join(f'<div class="cell"><div>{svg(v, s, mono, shapes[v])}</div><span>{s}</span></div>' for s in SIZES)
+        return f'<div class="row" style="background:{bg}">{cells}</div>'
+
+    def appbar(v: str, is_light: bool) -> str:
+        bar, text, muted, edge = ('#e6e6e6', '#1e1e1e', '#636363', light) if is_light else ('#181818', '#e8e8e8', '#7d7d7d', BLUE)
+        button = '#1473e6' if is_light else ACCENT
+        return (
+            f'<div class="appbar" style="background:{bar};color:{text}"><i style="background:{edge}"></i>'
+            f'{svg(v, 24, shapes=shapes[v])}<b>FabWeave</b><span style="color:{muted}">G-code direct, modèles paramétriques</span>'
+            f'<em style="background:{button}">Exporter le G-code</em></div>'
+        )
 
     sections = []
-    # 1. Les quatre variantes en violet.
     for v, (title, desc, _) in VARIANTS.items():
-        c = COLORS['violet'][1]
         sections.append(
             f'<section><h2>{title}</h2><p>{desc}</p>'
-            f'{tile_row(v, c, "#232323")}{tile_row(v, c, "#f8f8f8")}{tile_row(v, c, "#808080", True)}'
-            f'<div class="bars">{appbar(v, c, False)}{appbar(v, c, True)}</div></section>'
+            f'{tile_row(v, "#232323")}{tile_row(v, "#f8f8f8")}{tile_row(v, "#808080", True)}'
+            f'<div class="bars">{appbar(v, False)}{appbar(v, True)}</div></section>'
         )
-    # 2. Couleurs candidates.
-    rows = []
-    for key, (name, c) in COLORS.items():
-        light = darker(c)
-        dist = sorted(((delta_e(c, s), n) for n, s in SEMANTIC.items()))
-        near = ', '.join(f'{n} {d:.0f}' for d, n in dist[:2])
-        tiles = ''.join(f'<div class="mini">{svg(v, c, 48)}</div>' for v in VARIANTS)
-        rows.append(
-            f'<tr><td><span class="sw" style="background:{c}"></span><span class="sw" style="background:{light}"></span></td>'
-            f'<td><b>{name}</b><br><code>{c}</code> / <code>{light}</code></td>'
-            f'<td>{contrast(c, "#181f2a"):.1f}:1</td><td>{contrast(light, "#e6e6e6"):.1f}:1</td>'
-            f'<td>{near}</td><td class="minis">{tiles}</td></tr>'
-        )
-    sem = ''.join(f'<span class="chip"><span class="sw" style="background:{c}"></span>{n}</span>' for n, c in SEMANTIC.items())
     sections.append(
-        '<section><h2>Couleurs candidates</h2>'
-        '<p>Teintes laissées libres par la famille : ni bleu, vert, orange, rouge ou cyan (couleurs de sens), '
-        'ni magenta (FabSpeed) ni chartreuse (FabVents). Contraste du symbole sur la tuile (≥ 3:1 demandé) et du liseré '
-        'clair sur la barre claire ; écart perceptif (ΔE, plus c’est grand mieux c’est, < 25 : risque de confusion) '
-        'avec les deux couleurs les plus proches.</p>'
-        f'<div class="chips">{sem}</div>'
-        '<table><tr><th></th><th>Couleur (sombre / clair)</th><th>Sur la tuile</th><th>Liseré clair</th><th>Plus proches (ΔE)</th><th>Variantes</th></tr>'
-        + ''.join(rows) + '</table></section>'
+        '<section><h2>Couleur : bleu FabCAM</h2>'
+        f'<p><span class="sw" style="background:{BLUE}"></span><code>{BLUE}</code> (thème sombre, symbole et liseré) · '
+        f'<span class="sw" style="background:{light}"></span><code>{light}</code> (liseré du thème clair). '
+        f'Contraste du symbole sur la tuile : {contrast(BLUE, "#181f2a"):.1f}:1 ; liseré clair sur la barre claire : '
+        f'{contrast(light, "#e6e6e6"):.1f}:1. Proche du bleu d’action <span class="sw" style="background:{ACCENT}"></span>'
+        f'<code>{ACCENT}</code> (bouton « Exporter » des barres ci-dessus) : acceptable car l’identité ne sert '
+        'qu’au logo et au liseré, jamais à un état ni à une action.</p></section>'
     )
     html = f'''<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -353,7 +301,7 @@ def main() -> None:
 <style>
   body {{ margin: 0; padding: 24px; background: #1c1c1c; color: #e8e8e8; font: 14px/1.45 -apple-system, "Inter", system-ui, sans-serif; }}
   h1 {{ font-size: 20px; margin: 0 0 4px; }} h2 {{ font-size: 15px; margin: 0 0 2px; }}
-  p {{ color: #ababab; margin: 0 0 10px; max-width: 760px; }}
+  p {{ color: #ababab; margin: 0 0 10px; max-width: 780px; }}
   section {{ margin: 0 0 28px; padding: 16px; background: #232323; border: 1px solid #343434; border-radius: 6px; }}
   .row {{ display: flex; align-items: flex-end; gap: 22px; padding: 12px 14px; border-radius: 4px; margin-bottom: 6px; overflow-x: auto; }}
   .cell {{ display: flex; flex-direction: column; align-items: center; gap: 4px; }}
@@ -362,24 +310,21 @@ def main() -> None:
   .appbar {{ position: relative; display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 12px; border-radius: 4px; overflow: hidden; }}
   .appbar i {{ position: absolute; inset: 0 0 auto 0; height: 2px; opacity: .85; }}
   .appbar b {{ font-size: 15px; letter-spacing: -0.01em; }} .appbar span {{ font-size: 12px; }}
-  table {{ border-collapse: collapse; width: 100%; }} th, td {{ text-align: left; padding: 8px; border-top: 1px solid #343434; vertical-align: middle; }}
-  th {{ color: #9a9a9a; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }}
-  .sw {{ display: inline-block; width: 18px; height: 18px; border-radius: 4px; margin-right: 4px; vertical-align: middle; }}
-  .chips {{ display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 12px; font-size: 12px; color: #ababab; }}
-  .minis {{ display: flex; gap: 8px; }} .mini svg {{ display: block; }}
-  code {{ font-size: 12px; color: #ababab; }}
+  .appbar em {{ margin-left: auto; font-style: normal; color: #fff; font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 4px; }}
+  .sw {{ display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin: 0 4px 0 0; vertical-align: -2px; }}
+  code {{ font-size: 12px; color: #d0d0d0; }}
 </style></head><body>
-<h1>FabWeave — planche de logos</h1>
-<p>Tuile graphite commune à la famille, symbole d’une seule couleur. Chaque variante à 128, 64, 48, 32, 24 et 16 px
-(rendu vectoriel natif à chaque taille), sur panneau sombre, sur panneau clair, en monochrome, puis dans la barre
-d’application (logo 24 px, liseré de 2 px). Généré par <code>branding/explorations/generate.py</code>.</p>
+<h1>FabWeave — planche de logos (2<sup>e</sup> tour)</h1>
+<p>Deux cercles ondulés entrelacés, bleu FabCAM. Tuile graphite commune à la famille, symbole d’une seule couleur.
+Chaque variante de 128 à 16 px (rendu vectoriel natif à chaque taille) sur panneau sombre, panneau clair, en monochrome,
+puis dans la barre d’application (logo 24 px, liseré 2 px). Généré par <code>branding/explorations/generate.py</code>.</p>
 {''.join(sections)}
 </body></html>
 '''
     (HERE / 'planche.html').write_text(html)
-    for key, (name, c) in COLORS.items():
-        print(f"{name:18} {c} / {darker(c)}  tuile {contrast(c, '#181f2a'):.1f}:1  "
-              + ', '.join(f'{n} {delta_e(c, s):.0f}' for n, s in sorted(SEMANTIC.items(), key=lambda kv: delta_e(c, kv[1]))[:3]))
+    print(f"bleu {BLUE} / {light} ; tuile {contrast(BLUE, '#181f2a'):.1f}:1 ; clair {contrast(light, '#e6e6e6'):.1f}:1")
+    for v, s in shapes.items():
+        print(v, len(s), 'formes')
 
 
 if __name__ == '__main__':
