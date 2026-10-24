@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/fabweave-core", "crates/fabweave-wasm"]
+members = ["crates/fabweave-core", "crates/fabweave-wasm", "crates/fabweave-cli"]
 
 [workspace.package]
 version = "0.1.0-dev"

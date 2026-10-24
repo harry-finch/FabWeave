@@ -51,10 +51,11 @@ p",
     // Hélice : 2 tours au pas de 0,5 mm.
     assert_eq!(ev.log[1], "1.2");
     let pts = &ev.path.unwrap().points;
-    assert_eq!(pts.len(), 10);
+    // Déplacement au premier point, puis les 8 autres (le premier, confondu, est sauté).
+    assert_eq!(pts.len(), 9);
     assert_eq!(pts[0].kind, MoveKind::Travel);
     // Cercle fermé : le dernier point revient au premier.
-    assert!((pts[9].x - pts[1].x).abs() < 1e-12 && (pts[9].y - pts[1].y).abs() < 1e-12);
+    assert!((pts[8].x - pts[0].x).abs() < 1e-12 && (pts[8].y - pts[0].y).abs() < 1e-12);
 }
 
 #[test]
@@ -181,4 +182,50 @@ fn specification_example_runs() {
         12 * 66
     );
     assert!(ev.plan.is_some());
+}
+
+/// Les modèles complets du prompt pour IA (`docs/PROMPT_MODELE_IA.md`) se
+/// lisent et se calculent sans message bloquant.
+#[test]
+fn ai_prompt_examples_run() {
+    let doc = include_str!("../../../docs/PROMPT_MODELE_IA.md");
+    let mut n = 0;
+    for block in doc.split("```weave\n").skip(1) {
+        let src = &block[..block.find("```").unwrap()];
+        let mut w = Workbench::default();
+        w.set_printer(MK4S).unwrap();
+        w.set_filament(PLA).unwrap();
+        w.load_model(src).unwrap_or_else(|e| panic!("{e:?}"));
+        let ev = w.evaluate(&Map::new());
+        assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
+        assert!(w.gcode(&ev).is_ok());
+        n += 1;
+    }
+    assert_eq!(n, 2);
+}
+
+/// Modèles écrits par une IA à partir du seul prompt (essai du 24/10/2026,
+/// v0.2 étape 2) : ils restent valides tant que l'API ne casse pas.
+#[test]
+fn ai_trial_models_still_run() {
+    for (name, src) in [
+        (
+            "abat-jour",
+            include_str!("fixtures/ai-trial/abat-jour.weave"),
+        ),
+        ("ressort", include_str!("fixtures/ai-trial/ressort.weave")),
+        ("panier", include_str!("fixtures/ai-trial/panier.weave")),
+    ] {
+        let mut w = Workbench::default();
+        w.set_printer(MK4S).unwrap();
+        w.set_filament(PLA).unwrap();
+        w.load_model(src)
+            .unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        let ev = w.evaluate(&Map::new());
+        assert!(
+            ev.issues.iter().all(|i| !i.is_error()),
+            "{name}: {:?}",
+            ev.issues
+        );
+    }
 }

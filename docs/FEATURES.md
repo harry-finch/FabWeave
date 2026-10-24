@@ -16,7 +16,7 @@ Périmètre fonctionnel de FabWeave, établi à partir de la conversation de rec
 | FMT-06 | Libellés, descriptions et infobulles FR / EN (`label = { fr = "…", en = "…" }` ou chaîne simple) | v0.1 | fait |
 | FMT-07 | `source` et `license` pour les modèles repris d'ailleurs (FullControl) | v0.1 | fait |
 | FMT-08 | Erreurs de lecture et de script avec ligne et colonne, code stable | v0.1 | fait |
-| FMT-09 | Spécification `docs/WEAVE_FORMAT.md` (premier jet fait) et prompt système pour IA `docs/PROMPT_MODELE_IA.md` | v0.1 / v0.2 | en cours |
+| FMT-09 | Spécification `docs/WEAVE_FORMAT.md` et prompt système pour IA `docs/PROMPT_MODELE_IA.md` | v0.1 / v0.2 | fait |
 | FMT-10 | Versionnement et migration des anciens formats | v0.2 | prévu |
 
 ## API du script (API)
@@ -153,7 +153,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
-| DESK-01 | `fabweave-cli check | export | stats` | v0.2 | prévu |
+| DESK-01 | `fabweave check | stats | export` (calcul aux valeurs par défaut et aux bornes, `--json`) | v0.2 | fait |
 | DESK-02 | Rechargement à chaud de `models/` en développement | v0.2 | fait |
 | DESK-03 | Application Tauri, dossier de modèles surveillé | v0.6 | prévu |
 | DESK-04 | Projet `.fabweave.json`, projet embarqué dans le G-code | v0.6 | prévu |

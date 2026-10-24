@@ -55,7 +55,7 @@ Critères d'acceptation :
 
 1. **Format et API** : paramètres `choice`, messages du modèle (`warn`, `fail`), annotations, ponts, API native de points inspirée de FullControl (formes, transformations, modulation), mesure du gain.
    ⏸ Validation de l'API et de la spécification (avant d'écrire le catalogue et le prompt pour IA).
-2. **Pour l'IA** : `fabweave-cli check | export | stats`, `docs/PROMPT_MODELE_IA.md`, essai de génération de trois modèles à partir du seul prompt.
+2. **Pour l'IA** : `fabweave-cli check | export | stats`, `docs/PROMPT_MODELE_IA.md`, essai de génération de trois modèles à partir du seul prompt. *Fait le 24/10/2026 : trois modèles sur trois valides au premier essai.*
 3. **Interface du catalogue** : catégories, recherche, vignettes, fiche du modèle, annotations dans la vue 3D, ouverture et glisser-déposer de `.weave`, « Mes modèles ».
 4. **Catalogue de départ** d'environ dix modèles.
 5. ⏸ Validation de jalon : trois modèles imprimés.

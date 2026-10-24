@@ -166,6 +166,16 @@ impl ScriptPath {
         Ok(())
     }
 
+    /// Vrai si `q` est la position courante (dernier point du parcours).
+    pub(crate) fn at(&self, q: Option<&[f64; 3]>) -> bool {
+        match (q, self.path.points.last()) {
+            (Some(q), Some(p)) => {
+                (q[0] - p.x).abs() < 1e-9 && (q[1] - p.y).abs() < 1e-9 && (q[2] - p.z).abs() < 1e-9
+            }
+            _ => false,
+        }
+    }
+
     /// Pont tendu : impression dans le vide, débit multiplié par `flow`.
     pub(crate) fn push_bridge(&mut self, xyz: [f64; 3], w: f64, h: f64, flow: f64) -> R<()> {
         if !(flow > 0.0 && flow <= 2.0) {

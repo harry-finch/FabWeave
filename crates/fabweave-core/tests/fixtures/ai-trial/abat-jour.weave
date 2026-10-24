@@ -1,0 +1,134 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Abat-jour à côtes torsadées", en = "Twisted-rib lampshade" }
+category = { fr = "Vases et luminaires", en = "Vases & lighting" }
+description = { fr = "Abat-jour à paroi unique imprimé en mode vase (une seule spirale continue, sans rétraction). Des côtes verticales sinusoïdales tournent sur la hauteur ; le diamètre varie linéairement entre le bas et le haut.", en = "Single-wall lampshade printed in vase mode (one continuous spiral, no retraction). Sinusoidal vertical ribs twist along the height; the diameter changes linearly from bottom to top." }
+author = "FabWeave"
+tags = ["vase", "abat-jour", "côtes", "torsion", "luminaire"]
+recommended_nozzle = [0.4, 0.6]
+
+[params.d_bottom]
+type = "float"
+label = { fr = "Diam. bas", en = "Bottom diam." }
+unit = "mm"
+help = { fr = "Diamètre moyen de l'abat-jour à sa base, côtes comprises en moyenne.", en = "Mean diameter of the lampshade at its base, averaged over the ribs." }
+default = 100
+min = 30
+max = 160
+step = 1
+
+[params.d_top]
+type = "float"
+label = { fr = "Diam. haut", en = "Top diam." }
+unit = "mm"
+help = { fr = "Diamètre moyen au sommet. Un haut plus étroit que le bas est plus facile à imprimer.", en = "Mean diameter at the top. A top narrower than the base is easier to print." }
+default = 70
+min = 30
+max = 160
+step = 1
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+default = 90
+min = 20
+max = 120
+step = 1
+
+[params.ribs]
+type = "int"
+label = { fr = "Nb de côtes", en = "Rib count" }
+help = { fr = "Nombre de côtes verticales réparties autour de l'abat-jour.", en = "Number of vertical ribs around the lampshade." }
+default = 12
+min = 3
+max = 20
+
+[params.twist]
+type = "float"
+label = { fr = "Torsion", en = "Twist" }
+unit = "°"
+help = { fr = "Rotation totale des côtes entre le bas et le haut. Négatif : sens horaire.", en = "Total rotation of the ribs from bottom to top. Negative: clockwise." }
+default = 90
+min = -360
+max = 360
+step = 5
+
+[params.depth]
+type = "float"
+label = { fr = "Profondeur", en = "Rib depth" }
+unit = "mm"
+help = { fr = "Écart entre le creux et la crête d'une côte.", en = "Distance between the valley and the crest of a rib." }
+default = 4
+min = 0.5
+max = 12
+step = 0.5
+
+[params.wall_factor]
+type = "float"
+label = { fr = "Largeur paroi", en = "Wall width" }
+unit = "×"
+help = { fr = "Largeur du filet en multiple du diamètre de buse. Plus large, plus opaque et plus solide.", en = "Bead width as a multiple of the nozzle diameter. Wider means more opaque and stronger." }
+advanced = true
+default = 2
+min = 1.2
+max = 2.5
+step = 0.1
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+advanced = true
+default = 20
+min = 5
+max = 40
+step = 1
+---
+let nozzle = printer.nozzle_diameter;
+let w = nozzle * params.wall_factor;
+let h = nozzle * 0.5;
+
+let rb = params.d_bottom / 2.0;
+let rt = params.d_top / 2.0;
+let height = params.height;
+let amp = params.depth / 2.0;
+let ribs = params.ribs;
+let ribs_f = ribs.to_float();
+let tw = rad(params.twist);
+
+// Cohérence géométrique
+let rmin = min(rb, rt);
+if rmin - amp < w * 2.0 {
+    fail(#{
+        fr: "Profondeur des côtes trop grande pour le plus petit diamètre.",
+        en: "Rib depth too large for the smallest diameter."
+    });
+}
+
+// Pente de la paroi : conicité + déplacement radial dû à la torsion des côtes
+let taper = abs(rt - rb) / height;
+let twist_slope = amp * ribs_f * abs(tw) / height;
+if taper + twist_slope > 0.9 {
+    warn(#{
+        fr: "Parois très inclinées : risque de porte-à-faux. Réduire la torsion, la profondeur ou l'écart de diamètres.",
+        en: "Very steep walls: overhang risk. Reduce the twist, the rib depth or the diameter difference."
+    });
+}
+
+// Points par tour : au moins 8 par côte pour des côtes lisses
+let seg = max(ribs * 8, 96);
+let turns = height / h;
+
+let wall = helix(0, 0, printer.first_layer_height, rb, rt, 0, turns, h, seg);
+let wall = wall.modulate_r(0, 0, |t, angle, z| amp * cos(ribs_f * angle - tw * t));
+
+let path = new_path();
+path.set_speed(params.speed);
+path.travel_to(wall);
+path.note(#{ fr: "Départ de la spirale (bord bas)", en: "Spiral start (bottom edge)" });
+path.print_points(wall, w, h);
+path.note_at(wall.point(-1)[0], wall.point(-1)[1], wall.point(-1)[2], #{ fr: "Fin : bord haut", en: "End: top edge" });
+path

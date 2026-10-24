@@ -501,7 +501,10 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
         "print_points",
         |path: &mut ScriptPath, p: Points, w: D, h: D| -> R<()> {
             let (w, h) = (num(&w, "w")?, num(&h, "h")?);
-            for q in p.0 {
+            // Premier point confondu avec la position courante (après
+            // `travel_to(pts)`) : sauté.
+            let skip = usize::from(path.at(p.0.first()));
+            for q in p.0.into_iter().skip(skip) {
                 path.push(q, w, h, MoveKind::Print)?;
             }
             Ok(())
@@ -511,7 +514,8 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
         "bridge_points",
         |path: &mut ScriptPath, p: Points, w: D, h: D, flow: D| -> R<()> {
             let (w, h, flow) = (num(&w, "w")?, num(&h, "h")?, num(&flow, "flow")?);
-            for q in p.0 {
+            let skip = usize::from(path.at(p.0.first()));
+            for q in p.0.into_iter().skip(skip) {
                 path.push_bridge(q, w, h, flow)?;
             }
             Ok(())

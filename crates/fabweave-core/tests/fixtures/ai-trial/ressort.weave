@@ -1,0 +1,124 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Ressort hélicoïdal zigzag", en = "Zigzag helical spring" }
+category = { fr = "Non planaire", en = "Non-planar" }
+description = { fr = "Deux tours de base à plat sur le plateau, puis la buse monte en hélice continue tout en oscillant radialement en zigzag : la spire gagne en épaisseur sans jamais couper le fil. Le pas vertical doit rester proche de la hauteur de couche.", en = "Two flat base turns on the bed, then the nozzle climbs in a continuous helix while zigzagging radially: the coil gets its thickness without ever cutting the filament. The vertical pitch must stay close to the layer height." }
+tags = ["ressort", "hélice", "non planaire", "zigzag"]
+recommended_nozzle = [0.4, 0.6]
+
+[params.radius]
+type = "float"
+label = { fr = "Rayon moyen", en = "Mean radius" }
+unit = "mm"
+help = { fr = "Rayon du milieu de la spire, mesuré à l'axe du fil.", en = "Radius at the middle of the coil, measured at the centre of the strand." }
+default = 15
+min = 5
+max = 60
+step = 0.5
+
+[params.thickness]
+type = "float"
+label = { fr = "Épaisseur", en = "Thickness" }
+unit = "mm"
+help = { fr = "Amplitude du zigzag : largeur radiale de la spire (la largeur du fil s'y ajoute).", en = "Zigzag amplitude: radial width of the coil (the strand width is added to it)." }
+default = 4
+min = 0.5
+max = 20
+step = 0.5
+
+[params.turns]
+type = "int"
+label = { fr = "Spires", en = "Coils" }
+help = { fr = "Nombre de tours de la hélice montante, après les tours de base.", en = "Number of turns of the rising helix, after the base turns." }
+default = 5
+min = 1
+max = 60
+
+[params.pitch]
+type = "float"
+label = { fr = "Pas / tour", en = "Pitch / turn" }
+unit = "mm"
+help = { fr = "Montée en Z à chaque tour. Doit être proche de la hauteur de couche : en dessous le fil écrase la spire précédente, bien au-dessus il imprime dans le vide.", en = "Z rise per turn. Keep it close to the layer height: below, the strand crushes the previous turn; well above, it prints in mid-air." }
+default = 0.3
+min = 0.1
+max = 3
+step = 0.05
+
+[params.spacing]
+type = "float"
+label = { fr = "Pas du zigzag", en = "Zigzag step" }
+unit = "mm"
+help = { fr = "Distance le long de la spire entre deux inversions du zigzag. Proche de la largeur du fil, la spire est pleine.", en = "Distance along the coil between two zigzag reversals. Close to the strand width, the coil is solid." }
+advanced = true
+default = 0.45
+min = 0.3
+max = 2
+step = 0.05
+
+[params.base_turns]
+type = "int"
+label = { fr = "Tours de base", en = "Base turns" }
+help = { fr = "Tours à plat collés au plateau avant la montée.", en = "Flat turns stuck to the bed before the climb." }
+advanced = true
+default = 2
+min = 1
+max = 5
+---
+let w = printer.nozzle_diameter * 1.2;
+let h = printer.layer_height;
+let fh = printer.first_layer_height;
+let R = params.radius;
+let a = params.thickness;
+let p = params.pitch;
+
+// Garde-fous
+if R - a / 2.0 - w / 2.0 < 1.0 {
+    fail(#{ fr: "Épaisseur trop grande pour ce rayon : le centre du ressort se referme.", en: "Thickness too large for this radius: the spring centre would close up." });
+}
+if p < h * 0.9 {
+    warn(#{ fr: "Pas vertical inférieur à la hauteur de couche : chaque tour écrase le précédent et la buse risque de racler la spire.", en: "Vertical pitch is below the layer height: each turn crushes the previous one and the nozzle may scrape the coil." });
+}
+if p > h * 1.5 {
+    warn(#{ fr: "Pas vertical bien supérieur à la hauteur de couche : les tours ne se touchent plus et la spire s'imprime dans le vide (affaissement probable).", en: "Vertical pitch well above the layer height: turns no longer touch and the coil prints in mid-air (likely sagging)." });
+}
+if params.spacing > w * 1.3 {
+    warn(#{ fr: "Pas du zigzag large devant le fil : la spire sera ajourée.", en: "Zigzag step is wide compared with the strand: the coil will be open." });
+}
+
+// Points par tour (pair : une pointe vers l'intérieur, une vers l'extérieur)
+let half = round(TAU * R / (2.0 * params.spacing)).to_int();
+if half < 2 {
+    half = 2;
+}
+let n = 2 * half;
+let nb = params.base_turns;
+let total = n * (nb + params.turns);
+
+let base = points();
+let coil = points();
+for k in 0..=total {
+    let t = k.to_float() / n.to_float();
+    let ang = TAU * t;
+    let off = if k % 2 == 0 { 0.0 - a / 2.0 } else { a / 2.0 };
+    let r = R + off;
+    let x = r * cos(ang);
+    let y = r * sin(ang);
+    if k <= n * nb {
+        base.push(x, y, fh);
+    } else {
+        let z = fh + (t - nb.to_float()) * p;
+        coil.push(x, y, z);
+    }
+}
+
+let path = new_path();
+path.set_speed(10);
+path.travel_to(base);
+path.note(#{ fr: "Départ : tours de base à plat", en: "Start: flat base turns" });
+path.print_points(base, w, fh);
+path.set_speed(15);
+path.note_at(coil.point(0)[0], coil.point(0)[1], coil.point(0)[2], #{ fr: "Début de la montée en hélice", en: "Helix climb starts" });
+path.print_points(coil, w, h);
+path

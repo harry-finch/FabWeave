@@ -1,0 +1,17 @@
+[package]
+name = "fabweave-cli"
+description = "Vérifier, mesurer et exporter un modèle .weave sans interface (pour les auteurs et les IA)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "fabweave"
+path = "src/main.rs"
+
+[dependencies]
+fabweave-core = { path = "../fabweave-core" }
+serde_json.workspace = true

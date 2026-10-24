@@ -115,6 +115,7 @@ Le script est écrit en [Rhai](https://rhai.rs/book/) (syntaxe proche de Rust et
 - Millimètres, repère du modèle **centré sur (0, 0)**, Z vers le haut, **Z = 0 au plateau**. Le moteur centre la pièce sur le plateau de la machine ; ne jamais écrire de coordonnées de plateau.
 - La première couche se pose à `printer.first_layer_height` (ou un peu moins pour écraser le premier tour).
 - Le **premier point est rejoint par un déplacement** (sans extrusion) ; chaque point suivant décrit le mouvement depuis le point précédent.
+- `z` est la hauteur de la buse, soit le dessus du boudin déposé. Chaque passage doit s'appuyer sur la matière du passage d'en dessous : en spirale continue, la montée par tour vaut `h` ; une pièce haute s'obtient par beaucoup de tours.
 - `w` (largeur) et `h` (hauteur) décrivent la section du boudin déposé : section en stade (bords arrondis), `(max − min) × min + π × min² / 4`. Une largeur de 1,2 à 2,5 fois la buse est courante ; `h` est la montée par couche.
 
 ### Variables fournies
@@ -141,7 +142,7 @@ Le script est écrit en [Rhai](https://rhai.rs/book/) (syntaxe proche de Rust et
 | `path.reset_fan()` | Revient au ventilateur du filament. |
 | `path.len()` | Nombre de points. |
 | `path.bridge_to(x, y, z, w, h, flow)` | Pont tendu dans le vide : ventilateur au moins celui des ponts du filament, débit × `flow` (0 à 2 ; 0,85 tend le fil). |
-| `path.print_points(pts, w, h)` | Imprime une liste de points (ci-dessous) d'un coup. |
+| `path.print_points(pts, w, h)` | Imprime une liste de points (ci-dessous) d'un coup ; un premier point confondu avec la position courante est sauté (après `travel_to(pts)`). |
 | `path.bridge_points(pts, w, h, flow)` | Idem en pont. |
 | `path.travel_to(pts)` | Déplacement jusqu'au premier point de la liste. |
 | `path.note(texte)` | Annotation dans la vue 3D au dernier point (« Départ », « Pointe fine conseillée »). 50 au plus. |
@@ -220,6 +221,8 @@ Ces fonctions donnent le même résultat en natif et dans le navigateur (`libm`)
 5. Une propriété inconnue (`params.radius` au lieu de `params.inner_radius`) est une erreur (`script.unknown_property`).
 6. Les blocs `if` peuvent servir d'expression : `let h = if t < 1.0 { 0.3 } else { 0.24 };`.
 7. Chaînes : `` `n = ${params.n}` `` interpole ; `print(...)` écrit dans le journal du calcul (aide à la mise au point).
+8. Une fonction `fn nom(a, b) { … }` ne voit aucune variable extérieure, ni `params` ni `printer` : les passer en arguments. Les fermetures `|t, a, z| …` (utilisées par `modulate_r`, `modulate_z`), elles, voient les variables du script.
+9. Permis : intervalles inclusifs `0..=n`, réaffectation (`x = x + 1`), mélange entiers / flottants dans les calculs (hors division de deux entiers).
 
 ### Limites (bac à sable)
 

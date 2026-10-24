@@ -22,11 +22,17 @@ cd ui && npm install && npm run wasm && npm run dev
 
 Puis ouvrir http://localhost:5175. Après une modification du moteur Rust, relancer `npm run wasm`. Un modèle `.weave` ajouté ou modifié dans `models/` apparaît aussitôt.
 
-Exporter un G-code sans interface :
+Vérifier, mesurer ou exporter un modèle sans interface (outil `fabweave`) :
 
 ```bash
-cargo run --release -p fabweave-core --example export -- models/vases/ripple_vase.weave profiles/printers/prusa_mk4s.toml profiles/filaments/generic_pla.toml vase.gcode star_tips=6
+cargo run --release -p fabweave-cli -- check models/vases/ripple_vase.weave
 ```
+
+```bash
+cargo run --release -p fabweave-cli -- export models/vases/ripple_vase.weave -o vase.gcode --printer profiles/printers/prusa_core_one.toml --set star_tips=6
+```
+
+Faire écrire un modèle par une IA : donner [docs/PROMPT_MODELE_IA.md](docs/PROMPT_MODELE_IA.md) comme instructions, puis vérifier le fichier obtenu avec `fabweave check`.
 
 ## Développer
 
@@ -44,7 +50,7 @@ Mesures de performance : `cargo run --release -p fabweave-core --example bench` 
 | --- | --- |
 | `crates/fabweave-core` | Moteur pur : lecture des `.weave`, exécution Rhai en bac à sable, parcours, physique de l'extrusion, contrôles, G-code |
 | `crates/fabweave-wasm` | Le moteur pour l'interface (WebAssembly, appelé depuis un Web Worker) |
-| `crates/fabweave-cli` | (v0.2) Vérifier, prévisualiser et exporter un `.weave` sans interface (utile pour valider un modèle généré par IA) |
+| `crates/fabweave-cli` | Outil `fabweave` : vérifier (`check`), mesurer (`stats`) et exporter (`export`) un `.weave` sans interface |
 | `models/` | Le catalogue de modèles `.weave`, par catégorie |
 | `profiles/` | Profils imprimantes et filaments (TOML) |
 | `ui/` | Interface Svelte 5 (skill `fab-design-system`) |

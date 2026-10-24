@@ -1,0 +1,185 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Panier tressé", en = "Woven basket" }
+category = { fr = "Vannerie", en = "Basketry" }
+description = { fr = "Petit panier cylindrique : un fond en spirale pleine ou une grille de fils tendus, puis une paroi dont la buse ondule vers l'intérieur et l'extérieur, décalée d'une demi-ondulation à chaque tour pour imiter un tressage.", en = "Small cylindrical basket: a solid spiral floor or a grid of taut threads, then a wall where the nozzle weaves in and out, shifted by half a wave every turn to look braided." }
+tags = ["panier", "tressage", "ponts", "ondulation"]
+recommended_nozzle = [0.4, 0.6]
+
+[params.diameter]
+type = "float"
+label = { fr = "Diamètre", en = "Diameter" }
+unit = "mm"
+help = { fr = "Diamètre extérieur du panier, au sommet des ondulations.", en = "Outer diameter of the basket, measured at the wave crests." }
+default = 70
+min = 30
+max = 140
+step = 1
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+default = 50
+min = 15
+max = 80
+step = 1
+
+[params.waves]
+type = "int"
+label = { fr = "Ondulations", en = "Waves/turn" }
+help = { fr = "Nombre d'ondulations complètes sur un tour de paroi.", en = "Number of full waves around one turn of the wall." }
+default = 8
+min = 3
+max = 16
+step = 1
+
+[params.depth]
+type = "float"
+label = { fr = "Profondeur", en = "Wave depth" }
+unit = "mm"
+help = { fr = "Écart entre le creux et la crête d'une ondulation. Trop grand, les couches ne se touchent plus qu'aux croisements.", en = "Gap between the trough and the crest of a wave. If too large, layers only touch at the crossings." }
+default = 3
+min = 1
+max = 8
+step = 0.5
+
+[params.bottom]
+type = "choice"
+label = { fr = "Fond", en = "Bottom" }
+help = { fr = "Plein : spirale à plat. Ajouré : grille de fils tendus entre deux couches de bord.", en = "Solid: flat spiral. Open: grid of taut threads stretched across the rim." }
+options = [{ value = "solid", label = { fr = "Plein", en = "Solid" } }, { value = "open", label = { fr = "Ajouré", en = "Open" } }]
+default = "solid"
+
+[params.pore]
+type = "float"
+label = { fr = "Pores du fond", en = "Bottom pores" }
+unit = "mm"
+help = { fr = "Vide entre deux fils de la grille (fond ajouré seulement).", en = "Gap between two threads of the grid (open bottom only)." }
+default = 3
+min = 1
+max = 6
+step = 0.25
+
+[params.wall_w]
+type = "float"
+label = { fr = "Largeur paroi", en = "Wall width" }
+unit = "×"
+help = { fr = "Largeur du filet de la paroi, en multiple du diamètre de buse.", en = "Width of the wall bead, as a multiple of the nozzle diameter." }
+advanced = true
+default = 1.2
+min = 1.0
+max = 2.0
+step = 0.05
+---
+let nz = printer.nozzle_diameter;
+let h = printer.layer_height;
+let z0 = printer.first_layer_height;
+let w = nz * params.wall_w;
+let n = params.waves;
+let depth = params.depth;
+let amp = depth / 2.0;
+let rb = params.diameter / 2.0 - w / 2.0;
+let open = params.bottom == "open";
+
+if rb - depth < 5.0 {
+    fail(#{ fr: "Profondeur trop grande pour ce diamètre.", en: "Wave depth too large for this diameter." });
+}
+if depth < w * 1.5 {
+    warn(#{ fr: "Ondulation très faible : le tressage sera à peine visible.", en: "Very shallow waves: the braiding will barely show." });
+}
+
+let path = new_path();
+
+// Première couche de paroi (k = numéro de couche, z = z0 + k * h)
+let k_wall0 = 1;
+
+if open {
+    k_wall0 = 3;
+    let pitch = params.pore + nz;
+    if params.pore < nz * 0.5 {
+        fail(#{ fr: "Pores trop petits pour cette buse.", en: "Pores too small for this nozzle." });
+    }
+    if params.pore > 4.0 {
+        warn(#{ fr: "Pores larges : la paroi risque de s'affaisser au-dessus de la grille.", en: "Wide pores: the wall may sag above the grid." });
+    }
+    let nl = floor(2.0 * (rb - 2.0 * w) / pitch).to_int() + 1;
+    if nl < 2 {
+        fail(#{ fr: "Diamètre trop petit pour une grille avec ces pores.", en: "Diameter too small for a grid with these pores." });
+    }
+
+    // Anneau de bord sur trois couches : les fils s'y ancrent
+    path.set_speed(15);
+    path.travel_to(circle(0, 0, z0, rb, 0, 160));
+    path.note(#{ fr: "Départ : anneau de bord", en: "Start: rim ring" });
+    for k in 0..3 {
+        let hk = if k == 0 { z0 } else { h };
+        path.print_points(circle(0, 0, z0 + k * h, rb, 0, 160), w, hk);
+    }
+
+    // Grille : fils selon X (couche 2) puis selon Y (couche 3), en aller-retour
+    path.set_fan(100);
+    path.set_speed(12);
+    let lx = rb;
+    let ly = 0.0;
+    for sweep in 0..2 {
+        let z = z0 + (2 + sweep) * h;
+        for i in 0..nl {
+            let y = i.to_float() * pitch - (nl - 1).to_float() * pitch / 2.0;
+            let half = sqrt(rb * rb - y * y);
+            let d = if i % 2 == 0 { -1.0 } else { 1.0 };
+            let xs = d * half;
+            let xe = -d * half;
+            let sx = if sweep == 0 { xs } else { y };
+            let sy = if sweep == 0 { y } else { xs };
+            let ex = if sweep == 0 { xe } else { y };
+            let ey = if sweep == 0 { y } else { xe };
+            if i == 0 {
+                path.travel_to(lx, ly, z + 1.0);
+                path.travel_to(sx, sy, z + 1.0);
+                path.travel_to(sx, sy, z);
+            } else {
+                path.print_to(sx, sy, z, w, h);
+            }
+            path.bridge_to(ex, ey, z, nz, h, 0.85);
+            lx = ex;
+            ly = ey;
+        }
+    }
+    path.note_at(0, 0, z0 + 2 * h, #{ fr: "Fils tendus ancrés sur le bord", en: "Taut threads anchored on the rim" });
+
+    // Retour au départ de la paroi, en passant au-dessus des fils
+    let zw = z0 + k_wall0 * h;
+    path.travel_to(lx, ly, zw + 1.0);
+    path.travel_to(rb, 0, zw + 1.0);
+    path.travel_to(rb, 0, zw);
+    path.reset_fan();
+} else {
+    // Fond plein : spirale à plat du centre vers le bord
+    let turns = round(rb / (w * 0.9));
+    let floor_pts = spiral(0, 0, z0, w / 2.0, rb, 0, turns, 90);
+    path.set_speed(15);
+    path.travel_to(floor_pts);
+    path.note(#{ fr: "Départ au centre du fond", en: "Start at the centre of the floor" });
+    path.print_points(floor_pts, w, z0);
+}
+
+// Paroi : un cercle ondulé par couche, phase décalée d'une demi-ondulation à chaque couche
+path.set_speed(25);
+let nw = floor((params.height - z0) / h).to_int() - k_wall0 + 1;
+let seg = max(72, n * 12);
+for j in 0..nw {
+    let z = z0 + (k_wall0 + j) * h;
+    let f = min(1.0, j.to_float() / 3.0);
+    let pts = points();
+    for s in 0..=seg {
+        let a = s.to_float() / seg.to_float() * TAU;
+        let r = rb - amp * f * (1.0 - sin(n * a + PI * j));
+        pts.push(r * cos(a), r * sin(a), z);
+    }
+    path.print_points(pts, w, h);
+}
+path.note_at(rb, 0, z0 + (k_wall0 + nw - 1) * h, #{ fr: "Haut du panier", en: "Top of the basket" });
+path
