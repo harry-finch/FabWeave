@@ -8,15 +8,15 @@ Périmètre fonctionnel de FabWeave, établi à partir de la conversation de rec
 
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
-| FMT-01 | Fichier texte : en-tête TOML, séparateur `---`, corps Rhai | v0.1 | prévu |
-| FMT-02 | `[meta]` : nom, catégorie, description, auteur, étiquettes, buse recommandée, `format` et `version` | v0.1 | prévu |
-| FMT-03 | Paramètres `float`, `int`, `bool` : libellé, unité, défaut, min, max, pas ; ordre du fichier conservé | v0.1 | prévu |
+| FMT-01 | Fichier texte : en-tête TOML, séparateur `---`, corps Rhai | v0.1 | fait |
+| FMT-02 | `[meta]` : nom, catégorie, description, auteur, étiquettes, buse recommandée, `format` et `version` | v0.1 | fait |
+| FMT-03 | Paramètres `float`, `int`, `bool` : libellé, unité, défaut, min, max, pas ; ordre du fichier conservé | v0.1 | fait |
 | FMT-04 | Paramètre `choice` (liste de valeurs nommées) | v0.2 | prévu |
-| FMT-05 | Groupes de paramètres et `advanced = true` (« ▸ Avancé ») | v0.2 | prévu |
-| FMT-06 | Libellés, descriptions et infobulles FR / EN (`label = { fr = "…", en = "…" }` ou chaîne simple) | v0.2 | prévu |
-| FMT-07 | `source` et `license` pour les modèles repris d'ailleurs (FullControl) | v0.1 | prévu |
-| FMT-08 | Erreurs de lecture et de script avec ligne et colonne, code stable | v0.1 | prévu |
-| FMT-09 | Spécification `docs/WEAVE_FORMAT.md` et prompt système pour IA `docs/PROMPT_MODELE_IA.md` | v0.1 / v0.2 | prévu |
+| FMT-05 | `advanced = true` (« ▸ Avancé ») fait en v0.1 ; groupes de paramètres | v0.2 | en cours |
+| FMT-06 | Libellés, descriptions et infobulles FR / EN (`label = { fr = "…", en = "…" }` ou chaîne simple) | v0.1 | fait |
+| FMT-07 | `source` et `license` pour les modèles repris d'ailleurs (FullControl) | v0.1 | fait |
+| FMT-08 | Erreurs de lecture et de script avec ligne et colonne, code stable | v0.1 | fait |
+| FMT-09 | Spécification `docs/WEAVE_FORMAT.md` (premier jet fait) et prompt système pour IA `docs/PROMPT_MODELE_IA.md` | v0.1 / v0.2 | en cours |
 | FMT-10 | Versionnement et migration des anciens formats | v0.2 | prévu |
 
 ## API du script (API)
@@ -25,10 +25,10 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
-| API-01 | `new_path()`, `print_to(x, y, z, w, h)`, `travel_to(x, y, z)` | v0.1 | prévu |
-| API-02 | `print_polar(r, θ, z, w, h)` (coordonnées cylindriques) | v0.1 | prévu |
-| API-03 | `set_speed_factor(f)`, `set_fan(%)` | v0.1 | prévu |
-| API-04 | Fonctions mathématiques identiques en natif et en WebAssembly (crate `libm`) | v0.1 | prévu |
+| API-01 | `new_path()`, `print_to(x, y, z, w, h)`, `travel_to(x, y, z)` | v0.1 | fait |
+| API-02 | `print_polar(r, θ, z, w, h)` (coordonnées cylindriques) | v0.1 | fait |
+| API-03 | `set_speed_factor(f)`, `set_fan(%)` | v0.1 | fait |
+| API-04 | Fonctions mathématiques identiques en natif et en WebAssembly (crate `libm`) | v0.1 | fait |
 | API-05 | `bridge_to(x, y, z, w, h, flux)` : pont tendu, ventilateur forcé, facteur d'étirement | v0.2 | prévu |
 | API-06 | `warn(code, message)` / `fail(code, message)` : messages du modèle | v0.2 | prévu |
 | API-07 | `note(x, y, z, texte)` : annotations dans la vue 3D ; repères de départ et de fin | v0.2 | prévu |
@@ -42,33 +42,34 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
-| ENG-01 | Bac à sable Rhai : limites d'opérations, de profondeur, de points ; aucun accès fichier ni réseau | v0.1 | prévu |
-| ENG-02 | Section du boudin (stade si W > H, rectangle sinon) × longueur 3D → volume → `E` selon le diamètre et le multiplicateur de débit | v0.1 | prévu |
-| ENG-03 | Extrusion relative (`M83`) | v0.1 | prévu |
-| ENG-04 | Centrage automatique sur le plateau (origine au coin ou au centre) ; dépassement bloquant | v0.1 | prévu |
-| ENG-05 | Vitesse = vitesse nominale du filament × facteur du script ; première couche ralentie | v0.1 | prévu |
-| ENG-06 | Plafond de débit volumétrique (mm³/s) : vitesse réduite, segments comptés et signalés | v0.1 | prévu |
-| ENG-07 | Plafond de vitesse de l'axe Z (non planaire) : vitesse réduite, comptée et signalée | v0.1 | prévu |
-| ENG-08 | Ventilateur : coupé en première couche, valeur du filament, surcharge du script, forcé sur les ponts | v0.1 | prévu |
-| ENG-09 | Déplacements : rétraction, saut en Z, distance minimale de rétraction | v0.1 | prévu |
-| ENG-10 | Machine à états : `F`, `M106` émis seulement au changement ; points en double ignorés (comptés) | v0.1 | prévu |
-| ENG-11 | Gabarits de démarrage et de fin avec variables (`{nozzle_temp}`, `{bed_temp}`, `{pressure_advance}`…) | v0.1 | prévu |
-| ENG-12 | Métadonnées en commentaire : temps estimé, filament (mm, cm³, g), type, buse, modèle d'imprimante | v0.1 | prévu |
+| ENG-01 | Bac à sable Rhai : limites d'opérations, de profondeur, de points ; aucun accès fichier ni réseau | v0.1 | fait |
+| ENG-02 | Section du boudin (stade si W > H, rectangle sinon) × longueur 3D → volume → `E` selon le diamètre et le multiplicateur de débit | v0.1 | fait |
+| ENG-03 | Extrusion relative (`M83`) | v0.1 | fait |
+| ENG-04 | Centrage automatique sur le plateau (origine au coin ou au centre) ; dépassement bloquant | v0.1 | fait |
+| ENG-05 | Vitesse = vitesse nominale du filament × facteur du script ; première couche ralentie | v0.1 | fait |
+| ENG-06 | Plafond de débit volumétrique (mm³/s) : vitesse réduite, segments comptés et signalés | v0.1 | fait |
+| ENG-07 | Plafond de vitesse de l'axe Z (non planaire) : vitesse réduite, comptée et signalée | v0.1 | fait |
+| ENG-08 | Ventilateur : coupé en première couche, valeur du filament, surcharge du script, forcé sur les ponts | v0.1 | fait |
+| ENG-09 | Déplacements : rétraction, saut en Z, distance minimale de rétraction | v0.1 | fait |
+| ENG-10 | Machine à états : `F`, `M106` émis seulement au changement ; points en double ignorés (comptés) | v0.1 | fait |
+| ENG-11 | Gabarits de démarrage et de fin : expressions Rhai `{ … }` sur les variables de l'impression (ADR-0004) | v0.1 | fait |
+| ENG-12 | Métadonnées en commentaire : temps estimé, filament (mm, cm³, g), type, buse, modèle d'imprimante | v0.1 | fait |
 | ENG-13 | Dialectes : Marlin, Prusa Buddy, Klipper ; avance de pression | v0.3 | prévu |
 | ENG-14 | Vignette intégrée au G-code (PNG / QOI pour les écrans Prusa) | v0.3 | prévu |
 | ENG-15 | Estimation du temps avec accélérations | v0.4 | prévu |
-| ENG-16 | Mesures : nombre de points et de segments, longueur imprimée, déplacements, temps, filament, débit max, Z max, encombrement | v0.1 | prévu |
+| ENG-16 | Mesures : nombre de points et de segments, longueur imprimée, déplacements, temps, filament, débit max, Z max, encombrement | v0.1 | fait |
 | ENG-17 | Bambu Lab : G-code brut pour la carte SD ou paquet `.gcode.3mf` (MD5, métadonnées de plaque) | v0.3 | à décider |
+| ENG-18 | Adhésion au plateau générée par le moteur : bordure (*brim*) autour de l'empreinte de la première couche, ou radeau (*raft*) sous la pièce ; emprise incluse dans le contrôle du volume | v0.3 | prévu |
 
 ## Profils imprimante et filament (PRF)
 
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
-| PRF-01 | Profil imprimante TOML : plateau, origine, buse, vitesses max, vitesse Z max, gabarits | v0.1 | prévu |
-| PRF-02 | Profil filament TOML : diamètre, débit, températures, refroidissement, rétraction, débit volumétrique max, vitesse nominale | v0.1 | prévu |
-| PRF-03 | Profils Prusa MK4S et Core One | v0.1 | prévu |
+| PRF-01 | Profil imprimante TOML : plateau, origine, buse, vitesses max, vitesse Z max, gabarits | v0.1 | fait |
+| PRF-02 | Profil filament TOML : diamètre, débit, températures, refroidissement, rétraction, débit volumétrique max, vitesse nominale | v0.1 | fait |
+| PRF-03 | Profils Prusa MK4S et Core One | v0.1 | fait |
 | PRF-09 | Profils Bambu Lab A1, P1, X1 et Marlin générique | v0.3 | prévu |
-| PRF-04 | Bibliothèque de filaments : PLA, PETG, TPU, ASA, PETG-CF | v0.3 | prévu |
+| PRF-04 | Bibliothèque de filaments : PLA, PETG (faits en v0.1), TPU, ASA, PETG-CF | v0.3 | en cours |
 | PRF-05 | Cône de dégagement de la buse (angle, hauteur) | v0.3 | prévu |
 | PRF-06 | Facteur d'étirement des ponts par filament | v0.2 | prévu |
 | PRF-07 | Édition, duplication, import / export des profils dans l'application ; origine de chaque valeur | v0.3 | prévu |
@@ -80,7 +81,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 
 | Id | Modèle | Origine | Ce qu'il teste | Jalon | État |
 | --- | --- | --- | --- | --- | --- |
-| CAT-01 | Vase à ondulations (texture *ripple*) | FullControl « Ripple Texture Demo » | Spirale continue, largeur variable | v0.1 | prévu |
+| CAT-01 | Vase à ondulations (texture *ripple*) | FullControl « Ripple Texture Demo » | Spirale continue, largeur variable | v0.1 | fait |
 | CAT-02 | Tamis micro-maillage (ponts tendus) | Recherche FabWeave | Déplacements, rétractions, ponts | v0.2 | prévu |
 | CAT-03 | Entretoise non planaire | FullControl « Nonplanar Spacer » | Z variable, plafond de vitesse Z | v0.2 | prévu |
 | CAT-04 | Ressort hélicoïdal non planaire | Recherche FabWeave | Z continu, oscillation radiale | v0.2 | prévu |
@@ -107,9 +108,9 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
-| VIEW-01 | Vue 3D WebGL : orbite, déplacement, zoom centré sur le curseur, cadrer, vues standard | v0.1 | prévu |
-| VIEW-02 | Plateau dessiné (taille, origine, grille) | v0.1 | prévu |
-| VIEW-03 | Rendu en lignes, couleur par ordre d'impression ; déplacements affichables | v0.1 | prévu |
+| VIEW-01 | Vue 3D WebGL : orbite, déplacement, zoom centré sur le curseur, cadrer, vues standard | v0.1 | fait |
+| VIEW-02 | Plateau dessiné (taille, origine, grille) | v0.1 | fait |
+| VIEW-03 | Rendu en lignes, couleur par ordre d'impression ; déplacements affichables | v0.1 | fait |
 | VIEW-04 | Annotations 3D du modèle (API-07) | v0.2 | prévu |
 | VIEW-05 | Vignettes du catalogue rendues par l'application | v0.2 | prévu |
 | VIEW-06 | Rendu volumétrique W × H | v0.4 | prévu |
@@ -122,8 +123,8 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
-| SAFE-01 | Export refusé si le script échoue ou si la pièce sort du volume | v0.1 | prévu |
-| SAFE-02 | Plafonds du profil jamais dépassés (débit, Z, températures) | v0.1 | prévu |
+| SAFE-01 | Export refusé si le script échoue ou si la pièce sort du volume | v0.1 | fait |
+| SAFE-02 | Plafonds du profil jamais dépassés (débit, Z, températures) | v0.1 | fait |
 | SAFE-03 | Garde-buse : carte de hauteur, collisions du cône surlignées | v0.5 | prévu |
 | SAFE-04 | Segments trop courts / trop nombreux par seconde (planificateur) | v0.5 | prévu |
 | SAFE-05 | Porte-à-faux, ponts trop longs, largeur incohérente avec la buse | v0.5 | prévu |
@@ -133,13 +134,13 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
-| UI-01 | Curseurs générés depuis l'en-tête, calcul en direct (le dernier gagne) | v0.1 | prévu |
-| UI-02 | Mesures et messages à droite, champ fautif souligné | v0.1 | prévu |
-| UI-03 | Export G-code nommé d'après le modèle, l'imprimante et le filament | v0.1 | prévu |
-| UI-04 | Reprise du dernier modèle et des valeurs ; annuler / rétablir ; FR / EN ; thèmes | v0.1 | prévu |
+| UI-01 | Curseurs générés depuis l'en-tête, calcul en direct (le dernier gagne) | v0.1 | fait |
+| UI-02 | Mesures et messages à droite, champ fautif souligné | v0.1 | fait |
+| UI-03 | Export G-code nommé d'après le modèle, l'imprimante et le filament | v0.1 | fait |
+| UI-04 | Reprise du dernier modèle et des valeurs, FR / EN, thèmes (faits) ; annuler / rétablir | v0.1 | en cours |
 | UI-05 | Catalogue : catégories, recherche, étiquettes, fiche du modèle | v0.2 | prévu |
 | UI-06 | Ouvrir / glisser-déposer un `.weave` ; « Mes modèles » | v0.2 | prévu |
-| UI-07 | Revenir aux valeurs par défaut du modèle (tout ou un curseur) | v0.1 | prévu |
+| UI-07 | Revenir aux valeurs par défaut du modèle : tout (fait), un curseur | v0.1 | en cours |
 | UI-08 | Placement sur le plateau, copies multiples | v0.3 | prévu |
 
 ## Bureau, outils et projets (DESK)
@@ -147,7 +148,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
 | DESK-01 | `fabweave-cli check | export | stats` | v0.2 | prévu |
-| DESK-02 | Rechargement à chaud de `models/` en développement | v0.2 | prévu |
+| DESK-02 | Rechargement à chaud de `models/` en développement | v0.2 | fait |
 | DESK-03 | Application Tauri, dossier de modèles surveillé | v0.6 | prévu |
 | DESK-04 | Projet `.fabweave.json`, projet embarqué dans le G-code | v0.6 | prévu |
 | DESK-05 | Envoi à l'imprimante (PrusaLink, OctoPrint, Moonraker) | v0.6 | prévu |

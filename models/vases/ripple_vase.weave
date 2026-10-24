@@ -1,0 +1,185 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Vase à ondulations", en = "Ripple vase" }
+category = { fr = "Vases et luminaires", en = "Vases & lamps" }
+description = { fr = "Paroi d'un seul boudin large, imprimée en spirale continue. La buse ondule vers l'intérieur et l'extérieur à chaque tour, avec un demi-pas de décalage d'un tour à l'autre : la paroi se tisse d'elle-même. Branches en étoile, torsion et renflement en option. Sans fond.", en = "A single wide bead wall printed as one continuous spiral. The nozzle ripples in and out on every turn, shifted by half a ripple from one turn to the next, so the wall weaves itself. Optional star tips, twist and bulge. No bottom." }
+author = "Andrew Gleadall (FullControl) ; port FabWeave"
+tags = ["vase", "spirale", "texture", "fullcontrol"]
+source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/ripple_texture.ipynb"
+license = "GPL-3.0"
+recommended_nozzle = [0.4, 0.5, 0.6]
+
+[params.inner_radius]
+type = "float"
+label = { fr = "Rayon intérieur", en = "Inner radius" }
+unit = "mm"
+help = { fr = "Rayon du cercle de base ; les branches, les ondulations et le renflement s'ajoutent vers l'extérieur.", en = "Radius of the base circle; tips, ripples and bulge add outwards." }
+default = 15
+min = 5
+max = 40
+step = 0.5
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+default = 40
+min = 5
+max = 150
+step = 1
+
+[params.twist]
+type = "float"
+label = { fr = "Torsion", en = "Twist" }
+unit = "%"
+help = { fr = "Rotation de la forme sur toute la hauteur : 100 % = un tour complet dans le sens inverse des aiguilles d'une montre.", en = "Rotation of the shape over the full height: 100% = one full anticlockwise turn." }
+default = 10
+min = -100
+max = 100
+step = 1
+
+[params.star_tips]
+type = "int"
+label = { fr = "Branches", en = "Star tips" }
+help = { fr = "Nombre de pointes qui sortent du cercle (0 : vase rond).", en = "Number of points sticking out of the circle (0: round vase)." }
+default = 4
+min = 0
+max = 10
+
+[params.tip_length]
+type = "float"
+label = { fr = "Saillie", en = "Tip length" }
+unit = "mm"
+help = { fr = "Longueur des branches au-delà du rayon intérieur ; négative, elles rentrent vers le centre.", en = "How far tips stick out beyond the inner radius; negative values point inwards." }
+default = 5
+min = -20
+max = 20
+step = 0.5
+
+[params.tip_pointiness]
+type = "float"
+label = { fr = "Finesse", en = "Pointiness" }
+help = { fr = "Forme des branches : au-dessus de 1, elles s'affinent en pointes ; en dessous, elles s'arrondissent.", en = "Tip shape: above 1 tips get pointier; below 1 they get rounder." }
+default = 1.5
+min = 0.25
+max = 5
+step = 0.05
+
+[params.bulge]
+type = "float"
+label = { fr = "Renflement", en = "Bulge" }
+unit = "mm"
+help = { fr = "La forme gonfle de cette valeur à mi-hauteur (négatif : elle se resserre).", en = "The shape swells by this amount half way up (negative: it narrows)." }
+default = 2
+min = -20
+max = 20
+step = 0.5
+
+[params.ripples_per_layer]
+type = "int"
+label = { fr = "Ondulations", en = "Ripples" }
+help = { fr = "Allers-retours de la buse par tour. Un demi-pas s'ajoute à chaque tour pour décaler les ondulations d'une couche à l'autre.", en = "In-out waves of the nozzle per turn. Half a ripple is added per turn so the ripples alternate between layers." }
+default = 50
+min = 10
+max = 100
+
+[params.ripple_depth]
+type = "float"
+label = { fr = "Profondeur", en = "Ripple depth" }
+unit = "mm"
+help = { fr = "Amplitude radiale de chaque ondulation (aller-retour de la buse).", en = "Radial amplitude of each ripple." }
+default = 1
+min = 0
+max = 5
+step = 0.1
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+help = { fr = "Vitesse d'impression ; la moitié sur le premier tour. Les plafonds de l'imprimante et du filament s'appliquent.", en = "Print speed; half of it on the first turn. Printer and filament limits apply." }
+default = 8
+min = 2
+max = 60
+step = 0.5
+
+[params.ripple_segments]
+type = "int"
+label = { fr = "Points par onde", en = "Points/ripple" }
+help = { fr = "2 : zigzag. Davantage : onde lisse, mais beaucoup plus de points.", en = "2: zigzag. More: smooth wave, but many more points." }
+advanced = true
+default = 2
+min = 2
+max = 12
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+help = { fr = "Largeur d'extrusion, en multiple du diamètre de buse. Le boudin large donne la tenue de la paroi.", en = "Extrusion width, as a multiple of the nozzle diameter. The wide bead holds the wall together." }
+advanced = true
+default = 2.5
+min = 1
+max = 3
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Hauteur couche", en = "Layer height" }
+unit = "×"
+help = { fr = "Montée par tour, en multiple du diamètre de buse.", en = "Rise per turn, as a multiple of the nozzle diameter." }
+advanced = true
+default = 0.6
+min = 0.2
+max = 0.8
+step = 0.05
+
+[params.first_layer_boost]
+type = "float"
+label = { fr = "Surplus 1er tour", en = "First turn extra" }
+unit = "%"
+help = { fr = "Surcroît de matière ajouté progressivement sur le premier tour : la buse s'éloigne du plateau en spirale, il faut combler l'écart.", en = "Extra material added progressively over the first turn: the nozzle spirals away from the bed and the gap must be filled." }
+advanced = true
+default = 40
+min = 0
+max = 100
+step = 5
+---
+// Port de « ripple texture demo » de FullControl (A. Gleadall, GPL-3.0).
+// Une seule spirale : Z monte continûment de `eh` par tour.
+
+let ew = printer.nozzle_diameter * params.width_factor;   // largeur du boudin
+let eh = printer.nozzle_diameter * params.height_factor;  // montée par tour
+let layers = floor(params.height / eh).to_int();
+let segs = params.ripple_segments;
+let ripples = params.ripples_per_layer + 0.5;             // demi-pas de décalage
+let layer_segs = ripples * segs;                          // points par tour
+let total = floor(layers * layer_segs).to_int();
+let z0 = 0.8 * eh;          // premier tour un peu écrasé contre le plateau
+let twist = params.twist / 100.0;
+let boost = params.first_layer_boost / 100.0;
+
+let path = new_path();
+path.set_speed(params.speed / 2);
+let full_speed = false;
+
+for t in 0..total {
+    let tv = t / layer_segs;                              // 0 → layers
+    let z = tv * eh;
+    let a = tv * TAU * (1.0 + twist / layers) - TAU / 4;  // départ devant, au milieu
+    let r = params.inner_radius
+        + params.ripple_depth * (0.5 + 0.5 * cos(ripples * tv * TAU))
+        + params.tip_length * pow(0.5 - 0.5 * cos(params.star_tips * tv * TAU), params.tip_pointiness)
+        + params.bulge * sin(z / params.height * 0.5 * TAU);
+    // Premier tour : la hauteur du boudin grandit pour combler l'écart au plateau.
+    let h = if tv < 1.0 { eh * (1.0 + tv * boost) } else { eh };
+    if tv >= 1.0 && !full_speed {
+        path.set_speed(params.speed);
+        full_speed = true;
+    }
+    path.print_polar(r, a, z0 + z, ew, h);
+}
+
+path

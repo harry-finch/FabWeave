@@ -25,9 +25,11 @@ FabWeave : générateur de **G-code direct** à partir de **modèles paramétriq
 - Interface : aucune couleur en dur dans les composants ni dans le rendu 3D, tout passe par les jetons de `ui/src/app.css` ; textes par `t('clé')`, `fr.ts` est la référence et `en.ts` a les mêmes clés.
 - Mettre à jour la documentation dans le même changement que le comportement.
 
-## Commandes (à partir de la v0.1)
+## Commandes
 
 - Tests : `cargo test --workspace`, `cargo clippy --workspace --all-targets`, `cd ui && npm run check`.
 - Moteur pour l'interface : `cd ui && npm run wasm` (wasm-pack, sortie dans `ui/src/wasm/`, hors Git).
-- Développement : `cd ui && npm run dev` (relancer `npm run wasm` après une modification du moteur).
+- Développement : `cd ui && npm run dev` → http://localhost:5175 (relancer `npm run wasm` après une modification du moteur).
+- Mesures : `cargo run --release -p fabweave-core --example bench`, `cd ui && npm run bench`.
+- Export sans interface : `cargo run --release -p fabweave-core --example export -- <modèle> <imprimante> <filament> <sortie> [id=valeur …]`.
 - Build : `cd ui && npm run build` (moteur compris), puis `npm run preview`.

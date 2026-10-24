@@ -1,0 +1,18 @@
+[package]
+name = "fabweave-core"
+description = "Moteur FabWeave : modèles .weave (TOML + Rhai), parcours, physique de l'extrusion, G-code"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+indexmap = { version = "2", features = ["serde"] }
+libm = "0.2"
+# Bac à sable : pas de modules (aucun accès fichier), pas d'horloge (déterminisme).
+rhai = { version = "1", default-features = false, features = ["std", "no_module", "no_time", "no_custom_syntax"] }
+serde.workspace = true
+serde_json.workspace = true
+toml = { version = "0.9", default-features = false, features = ["parse", "serde", "std", "preserve_order"] }

@@ -1,0 +1,33 @@
+# Modèle de mesure : spirale ondulée en pur script, nombre de points réglable.
+# Calcul par point comparable aux modèles du catalogue (trois fonctions
+# trigonométriques, un appel à l'API du parcours).
+[meta]
+name = "Banc d'essai : spirale"
+category = "Mesures"
+
+[params.points]
+type = "int"
+label = "Points"
+default = 50000
+min = 1000
+max = 1000000
+
+[params.radius]
+type = "float"
+label = "Rayon"
+unit = "mm"
+default = 30
+min = 5
+max = 80
+---
+let n = params.points;
+let turns = 200;
+let eh = 0.2;
+let path = new_path();
+for i in 0..n {
+    let t = i / n.to_float();   // i / n entre entiers serait une division entière
+    let a = t * turns * TAU;
+    let r = params.radius + 1.5 * sin(a * 12.5) + 3.0 * cos(t * TAU);
+    path.print_polar(r, a, 0.2 + t * turns * eh, 0.6, eh);
+}
+path

@@ -1,0 +1,122 @@
+# Prusa MK4S, buse 0,4 mm standard (firmware Buddy).
+# Gabarits adaptés du profil « Original Prusa MK4S 0.4 nozzle » de PrusaSlicer
+# (prusa3d/PrusaSlicer-settings-prusa-fff, PrusaResearch 2.5.13) : mêmes
+# contrôles, même palpage, même ligne de purge. Les macros PrusaSlicer y sont
+# réécrites en expressions `{ … }` (voir docs/WEAVE_FORMAT.md).
+
+format = "fabweave.printer"
+version = 1
+
+[printer]
+id = "prusa_mk4s"
+name = "Prusa MK4S"
+model = "MK4S"
+firmware = "prusa"
+source = "PrusaSlicer, Original Prusa MK4S 0.4 nozzle (PrusaResearch 2.5.13)"
+
+[bed]
+size = [250.0, 210.0]
+max_height = 220.0
+origin = "corner"
+
+[nozzle]
+diameter = 0.4
+high_flow = false
+abrasive = false
+
+[limits]
+max_print_speed = 200.0
+travel_speed = 180.0
+max_z_speed = 12.0
+
+[layers]
+layer_height = 0.2
+first_layer_height = 0.2
+
+[gcode]
+start = """
+M17 ; enable steppers
+M862.1 P{nozzle_diameter} A{if filament_abrasive {1} else {0}} F{if nozzle_high_flow {1} else {0}} ; nozzle check
+M862.3 P "{printer_model}" ; printer model check
+M862.5 P2 ; g-code level check
+M862.6 P"Input shaper" ; FW feature check
+M115 U7.0.0+16903
+
+M555 X{min(bed_size_x, first_layer_min_x + 32) - 32} Y{max(0, first_layer_min_y) - 4} W{min(bed_size_x, max(first_layer_min_x + 32, first_layer_max_x)) - (min(bed_size_x, first_layer_min_x + 32) - 32)} H{first_layer_max_y - (max(0, first_layer_min_y) - 4)}
+
+G90 ; use absolute coordinates
+M83 ; extruder relative mode
+
+M140 S{first_layer_bed_temperature} ; set bed temp
+M104 T0 S{probe_temperature} ; set extruder temp for bed leveling
+M109 T0 R{probe_temperature} ; wait for temp
+
+M84 E ; turn off E motor
+
+G28 ; home all without mesh bed level
+
+G1 X42 Y-4 Z5 F4800
+
+M302 S155 ; lower cold extrusion limit to 155C
+
+{if filament_type == "FLEX" { "G1 E-4 F2400 ; retraction" } else { "G1 E-2 F2400 ; retraction" }}
+
+M84 E ; turn off E motor
+
+G29 P9 X10 Y-4 W32 H4
+
+{if first_layer_bed_temperature <= 60 { "M106 S100" }}
+
+G0 Z40 F10000
+
+M190 S{first_layer_bed_temperature} ; wait for bed temp
+
+M107
+
+;
+; MBL
+;
+M84 E ; turn off E motor
+G29 P1 ; invalidate mbl & probe print area
+G29 P1 X0 Y0 W50 H20 C ; probe near purge place
+G29 P3.2 ; interpolate mbl probes
+G29 P3.13 ; extrapolate mbl outside probe area
+G29 A ; activate mbl
+
+; prepare for purge
+M104 S{first_layer_temperature}
+G0 X0 Y-4 Z15 F4800 ; move away and ready for the purge
+M109 S{first_layer_temperature}
+
+G92 E0
+M569 S0 E ; set spreadcycle mode for extruder
+
+;
+; Extrude purge line
+;
+G92 E0 ; reset extruder position
+G1 E{if filament_type == "FLEX" {4} else {2}} F2400 ; deretraction after the initial one before nozzle cleaning
+G0 E7 X15 Z0.2 F500 ; purge
+G0 X25 E4 F500 ; purge
+G0 X35 E4 F650 ; purge
+G0 X45 E4 F800 ; purge
+G0 X48 Z0.05 F8000 ; wipe, move close to the bed
+G0 X51 Z0.2 F8000 ; wipe, move quickly away from the bed
+
+G92 E0
+M221 S100 ; set flow to 100%
+M572 S{pressure_advance} ; pressure advance (filament)
+"""
+end = """
+G1 Z{min(max_z + 1, max_print_height)} F720 ; Move print head up
+M104 S0 ; turn off temperature
+M140 S0 ; turn off heatbed
+M107 ; turn off fan
+G1 X241 Y170 F3600 ; park
+G1 Z{min(max_z + 23, max_print_height)} F300 ; Move print head up
+G4 ; wait
+M572 S0 ; reset PA
+M593 X T2 F0 ; disable IS
+M593 Y T2 F0 ; disable IS
+M84 X Y E ; disable motors
+"""

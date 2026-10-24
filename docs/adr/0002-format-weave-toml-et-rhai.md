@@ -32,3 +32,25 @@ Rhai est un interpréteur : nettement plus lent que du Rust natif. Un modèle qu
 ## Validation
 
 Mesure à la v0.1 (étape 2) : temps d'exécution en WebAssembly d'un modèle en pur script de 50 000 et 200 000 points (objectif < 60 ms pour 50 000). Test de génération par IA à la v0.2 : trois modèles écrits à partir du seul prompt passent `fabweave-cli check` en deux essais au plus. Revoir le choix de Rhai si la mesure est hors d'atteinte même avec les fonctions natives.
+
+### Mesures (24/10/2026, Apple M4, Rhai 1.27, médiane de 7 à 9 exécutions)
+
+Script seul, puis écriture du G-code. Natif : `cargo run --release -p fabweave-core --example bench`. WebAssembly : `cd ui && npm run bench` (Node 26, moteur V8 de Chrome).
+
+| Cas | Points | Script natif | Script WebAssembly | G-code natif / WebAssembly |
+| --- | ---: | ---: | ---: | ---: |
+| Vase à ondulations (défaut) | 16 766 | 31 ms | 54 ms | 8 / 11 ms (0,6 Mo) |
+| Spirale de mesure, 50 000 points | 50 000 | 46 ms | 81 ms | 23 / 30 ms (1,8 Mo) |
+| Spirale de mesure, 200 000 points | 200 000 | 183 ms | 324 ms | 87 / 114 ms (6,1 Mo) |
+| Vase, 12 points par ondulation | 100 596 | 190 ms | 321 ms | 45 / 57 ms (3,2 Mo) |
+
+Dans l'application (vue web Chromium) : vase par défaut recalculé en 61 à 67 ms, premier calcul 104 ms. Le plan (physique) coûte 0,1 à 2 ms ; l'essentiel est l'interprétation du script.
+
+Constats :
+
+- WebAssembly ≈ 1,75 × le natif ; ≈ 1,6 µs par point pour un calcul de trois fonctions trigonométriques et un appel à l'API.
+- L'objectif de 60 ms pour 50 000 points en pur script **n'est pas atteint** (81 ms). Il l'est jusqu'à ≈ 30 000 points.
+- Répartition pour 50 000 points en natif : boucle seule 6 ms, calculs 25 ms, appels `print_polar` 22 ms. Des surcharges typées (arguments flottants au lieu de `Dynamic`) n'apportent rien : le coût est celui de l'interpréteur. Copier les paramètres dans des variables locales avant la boucle : − 16 %.
+- Le mode `unchecked` de Rhai retire les limites du bac à sable : écarté.
+
+Suite proposée : fonctions natives (v0.2) pour les formes courantes (spirale, onde polaire, répétition), et calcul au relâchement du curseur, signalé dans la barre d'état, quand un calcul dépasse ≈ 60 ms (principe 5 de la famille Fab).

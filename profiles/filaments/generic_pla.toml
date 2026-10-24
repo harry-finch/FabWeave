@@ -1,0 +1,40 @@
+# PLA générique, buse 0,4 mm. Valeurs d'après « Generic PLA @PG / @PGIS » de
+# PrusaSlicer (PrusaResearch 2.5.13), températures de la version sans
+# Input Shaper : les modèles de FabWeave impriment lentement.
+
+format = "fabweave.filament"
+version = 1
+
+[filament]
+id = "generic_pla"
+name = "PLA générique"
+type = "PLA"
+diameter = 1.75
+density = 1.24
+flow_multiplier = 1.0
+pressure_advance = 0.036
+
+[temperature]
+first_layer = 215.0
+nozzle = 210.0
+bed_first_layer = 60.0
+bed = 60.0
+probe = 170.0
+idle = 170.0
+chamber = 20.0
+
+[speed]
+nominal = 40.0
+first_layer = 20.0
+max_volumetric = 15.0
+
+[cooling]
+fan = 100.0
+first_layer_fan = 0.0
+bridge_fan = 100.0
+
+[retraction]
+length = 0.7
+speed = 35.0
+z_hop = 0.2
+min_travel = 1.5

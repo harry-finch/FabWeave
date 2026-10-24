@@ -6,19 +6,49 @@ Inspiré de [FullControl](https://fullcontrol.xyz) (Andrew Gleadall, Loughboroug
 
 Les modèles sont de simples fichiers texte `.weave` : un en-tête TOML (description, curseurs) et un script [Rhai](https://rhai.rs) qui trace le parcours. Un modèle s'écrit à la main ou se fait générer par une IA à partir d'une spécification courte, puis se glisse dans l'application.
 
-> État : **v0.0 — fondations** (dépôt, feuille de route). Voir [STATUS.md](STATUS.md) et [ROADMAP.md](ROADMAP.md).
+> État : **v0.1 en cours** (moteur, premier G-code, interface de base). Voir [STATUS.md](STATUS.md) et [ROADMAP.md](ROADMAP.md).
 
-## Organisation prévue
+## Lancer
+
+Prérequis : Rust 1.88 (installé automatiquement par `rust-toolchain.toml`) avec la cible `wasm32-unknown-unknown`, [wasm-pack](https://rustwasm.github.io/wasm-pack/), Node 20+.
+
+```bash
+rustup target add wasm32-unknown-unknown
+```
+
+```bash
+cd ui && npm install && npm run wasm && npm run dev
+```
+
+Puis ouvrir http://localhost:5175. Après une modification du moteur Rust, relancer `npm run wasm`. Un modèle `.weave` ajouté ou modifié dans `models/` apparaît aussitôt.
+
+Exporter un G-code sans interface :
+
+```bash
+cargo run --release -p fabweave-core --example export -- models/vases/ripple_vase.weave profiles/printers/prusa_mk4s.toml profiles/filaments/generic_pla.toml vase.gcode star_tips=6
+```
+
+## Développer
+
+```bash
+cargo test --workspace
+cargo clippy --workspace --all-targets
+cd ui && npm run check
+```
+
+Mesures de performance : `cargo run --release -p fabweave-core --example bench` (natif) et `cd ui && npm run bench` (WebAssembly). Écrire un modèle : [docs/WEAVE_FORMAT.md](docs/WEAVE_FORMAT.md).
+
+## Organisation
 
 | Dossier | Rôle |
 | --- | --- |
 | `crates/fabweave-core` | Moteur pur : lecture des `.weave`, exécution Rhai en bac à sable, parcours, physique de l'extrusion, contrôles, G-code |
 | `crates/fabweave-wasm` | Le moteur pour l'interface (WebAssembly, appelé depuis un Web Worker) |
-| `crates/fabweave-cli` | Vérifier, prévisualiser et exporter un `.weave` sans interface (utile pour valider un modèle généré par IA) |
+| `crates/fabweave-cli` | (v0.2) Vérifier, prévisualiser et exporter un `.weave` sans interface (utile pour valider un modèle généré par IA) |
 | `models/` | Le catalogue de modèles `.weave`, par catégorie |
 | `profiles/` | Profils imprimantes et filaments (TOML) |
 | `ui/` | Interface Svelte 5 (skill `fab-design-system`) |
-| `docs/` | [Fonctions](docs/FEATURES.md), [décisions](docs/adr), spécification du format (à venir) |
+| `docs/` | [Fonctions](docs/FEATURES.md), [format des modèles et des profils](docs/WEAVE_FORMAT.md), [décisions](docs/adr) |
 
 ## Licence
 

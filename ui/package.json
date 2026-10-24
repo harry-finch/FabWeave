@@ -1,0 +1,29 @@
+{
+  "name": "fabweave-ui",
+  "private": true,
+  "version": "0.1.0-dev",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "wasm": "wasm-pack build ../crates/fabweave-wasm --target web --release --out-dir ../../ui/src/wasm --out-name fabweave --no-pack",
+    "dev": "vite",
+    "build": "npm run wasm && vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "bench": "node scripts/bench-wasm.mjs"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/three": "^0.186.0",
+    "svelte": "^5.57.2",
+    "svelte-check": "^4.7.7",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.5"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@lucide/svelte": "^1.61.0",
+    "three": "^0.186.1"
+  }
+}
