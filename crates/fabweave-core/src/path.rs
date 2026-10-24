@@ -69,9 +69,19 @@ impl Bounds {
     }
 }
 
+/// Annotation affichée dans la vue 3D (repère du modèle).
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Note {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub text: crate::model::Text,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Toolpath {
     pub points: Vec<WayPoint>,
+    pub notes: Vec<Note>,
 }
 
 impl Toolpath {

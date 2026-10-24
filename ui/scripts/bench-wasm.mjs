@@ -16,6 +16,9 @@ const cases = [
   ['spirale 50 000 points', 'crates/fabweave-core/tests/fixtures/bench_spiral.weave', { points: 50000 }],
   ['spirale 200 000 points', 'crates/fabweave-core/tests/fixtures/bench_spiral.weave', { points: 200000 }],
   ['vase, 12 points par ondulation', 'models/vases/ripple_vase.weave', { ripple_segments: 12 }],
+  ['spirale native (helix), 50 000', 'crates/fabweave-core/tests/fixtures/bench_spiral_native.weave', { points: 50000 }],
+  ['spirale native (helix), 200 000', 'crates/fabweave-core/tests/fixtures/bench_spiral_native.weave', { points: 200000 }],
+  ['helix + modulate_r, 50 000', 'crates/fabweave-core/tests/fixtures/bench_spiral_modulated.weave', { points: 50000 }],
 ];
 
 console.log(`moteur ${engine_version()}, Node ${process.version}, ${repeats} répétitions (médiane)\n`);

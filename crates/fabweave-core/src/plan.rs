@@ -431,6 +431,7 @@ mod tests {
                 wp(-10.0, 0.0, 0.2, MoveKind::Travel, Speed::Factor(1.0)),
                 wp(10.0, 0.0, 0.2, MoveKind::Print, Speed::Absolute(20.0)),
             ],
+            ..Default::default()
         };
         let (plan, issues) = plan(&p, &printer(), &filament());
         let plan = plan.unwrap();
@@ -455,7 +456,14 @@ mod tests {
             // Axe Z : montée presque verticale.
             wp(20.0, 0.1, 6.0, MoveKind::Print, Speed::Absolute(50.0)),
         ];
-        let (plan, issues) = plan(&Toolpath { points: pts }, &printer(), &filament());
+        let (plan, issues) = plan(
+            &Toolpath {
+                points: pts,
+                ..Default::default()
+            },
+            &printer(),
+            &filament(),
+        );
         let plan = plan.unwrap();
         assert_eq!(plan.moves[1].limit, SpeedLimit::FirstLayer);
         assert!(!plan.moves[2].retract);
@@ -480,6 +488,7 @@ mod tests {
                 wp(-200.0, 0.0, 0.2, MoveKind::Travel, Speed::Factor(1.0)),
                 wp(200.0, 0.0, 0.2, MoveKind::Print, Speed::Factor(1.0)),
             ],
+            ..Default::default()
         };
         let (plan_, issues) = plan(&big, &printer(), &filament());
         assert!(plan_.is_none());
@@ -490,6 +499,7 @@ mod tests {
         let (none, issues) = plan(
             &Toolpath {
                 points: vec![same, same, same],
+                ..Default::default()
             },
             &printer(),
             &filament(),
@@ -500,6 +510,7 @@ mod tests {
 
         let travel_only = Toolpath {
             points: vec![wp(0.0, 0.0, 0.2, MoveKind::Travel, Speed::Factor(1.0))],
+            ..Default::default()
         };
         assert_eq!(
             plan(&travel_only, &printer(), &filament()).1[0].code,

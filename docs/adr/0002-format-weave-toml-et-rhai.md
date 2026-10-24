@@ -54,3 +54,7 @@ Constats :
 - Le mode `unchecked` de Rhai retire les limites du bac à sable : écarté.
 
 Suite proposée : fonctions natives (v0.2) pour les formes courantes (spirale, onde polaire, répétition), et calcul au relâchement du curseur, signalé dans la barre d'état, quand un calcul dépasse ≈ 60 ms (principe 5 de la famille Fab).
+
+### Fonctions natives (v0.2, 24/10/2026)
+
+Même spirale de mesure construite par `helix()` (liste de points calculée en Rust) : **1,2 ms** pour 50 000 points et **4,6 ms** pour 200 000 dans le navigateur (1,7 et 6,4 ms en natif), contre 81 et 323 ms en pur script, soit ≈ 70 fois plus vite. Avec `modulate_r()` qui rappelle une fonction du script à chaque point : 57 ms pour 50 000 points (− 30 % seulement) : chaque appel au script garde le coût de l'interpréteur. Les formes courantes doivent donc exister en natif ; les modulations propres à un modèle restent au tarif du script.

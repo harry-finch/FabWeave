@@ -274,7 +274,7 @@ class Store {
     this.#restore(d);
   }
 
-  setValue(id: string, v: number | boolean) {
+  setValue(id: string, v: number | boolean | string) {
     this.edit((d) => {
       d.values[d.model] = { ...(d.values[d.model] ?? {}), [id]: v };
     }, `params.${id}`);

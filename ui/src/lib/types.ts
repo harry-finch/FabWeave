@@ -14,6 +14,7 @@ export type ParamDef = {
   | { type: 'float'; default: number; min: number; max: number; step?: number }
   | { type: 'int'; default: number; min: number; max: number; step?: number }
   | { type: 'bool'; default: boolean }
+  | { type: 'choice'; default: string; options: { value: string; label?: Text }[] }
 );
 
 export interface ModelMeta {
@@ -32,7 +33,7 @@ export interface ModelInfo {
   params: Record<string, ParamDef>;
 }
 
-export type ParamValue = number | boolean;
+export type ParamValue = number | boolean | string;
 export type Values = Record<string, ParamValue>;
 
 export interface Issue {
@@ -44,6 +45,8 @@ export interface Issue {
   line?: number;
   column?: number;
   detail?: string;
+  /** Texte écrit par l'auteur du modèle (`warn`, `fail`). */
+  text?: Text;
 }
 
 export interface PrinterProfile {
@@ -82,7 +85,15 @@ export interface Stats {
   limited: { first_layer: number; machine: number; flow: number; z_axis: number };
 }
 
+export interface Note {
+  x: number;
+  y: number;
+  z: number;
+  text: Text;
+}
+
 export interface Report {
+  notes: Note[];
   params: Values;
   stats: Stats | null;
   offset: [number, number, number] | null;

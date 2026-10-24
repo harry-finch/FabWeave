@@ -83,6 +83,9 @@ const en: Shape<typeof fr> = {
       unsupported_version: 'Format version {value} is not supported by this engine.',
       invalid_nozzle: 'Invalid recommended nozzle diameter.',
       not_loaded: 'No model loaded.',
+      warning: 'Model warning.',
+      failure: 'The model rejects these values.',
+      warnings_dropped: '{count} more model warnings not shown.',
     },
     param: {
       invalid_id: 'Invalid parameter id (lowercase, digits, “_”): {field}.',
@@ -98,6 +101,9 @@ const en: Shape<typeof fr> = {
       wrong_type: '{field}: value of the wrong type.',
       out_of_range: '{field}: {value} is outside the model’s bounds, path not computed.',
       unknown: '{field}: parameter unknown to the model, ignored.',
+      invalid_options: '{field}: empty or invalid option list.',
+      duplicate_option: '{field}: duplicate option.',
+      unknown_option: '{field}: unknown option.',
     },
     script: {
       not_a_number: 'A number is expected.',
@@ -115,6 +121,7 @@ const en: Shape<typeof fr> = {
       thrown: 'The model reported an error.',
       runtime: 'Script runtime error.',
       no_path: 'The script must end with the path (the variable created by new_path()).',
+      not_a_text: 'A text is expected (string or #{ fr: …, en: … }).',
     },
     path: {
       too_many_points: 'Path too long: more than {detail} points.',
@@ -128,6 +135,14 @@ const en: Shape<typeof fr> = {
       below_bed: 'The path goes below the bed (Z = {value} mm).',
       too_high: 'The part exceeds the print height (Z = {value} mm).',
       duplicates_skipped: '{count} points identical to the previous one, skipped.',
+      invalid_flow: 'Invalid bridge flow: 0 to 2 (1 = nominal flow).',
+      too_many_notes: 'Too many notes (at most {detail}).',
+    },
+    points: {
+      invalid_count: 'Invalid count (positive integer expected).',
+      invalid_value: 'Invalid value (positive expected).',
+      index_out_of_range: 'Point index outside the list.',
+      empty: 'Empty point list.',
     },
     speed: {
       limited_first_layer: 'Speed capped at {value} mm/s on the first layer ({count} segments).',

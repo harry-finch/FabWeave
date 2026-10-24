@@ -15,6 +15,7 @@ pub mod model;
 pub mod params;
 pub mod path;
 pub mod plan;
+pub mod points;
 pub mod profile;
 pub mod script;
 pub mod template;

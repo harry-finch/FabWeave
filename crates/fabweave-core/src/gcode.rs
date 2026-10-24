@@ -164,10 +164,11 @@ fn render(engine: &TemplateEngine, field: &str, t: &str, vars: &Scope) -> Result
 }
 
 fn param_text(v: &ParamValue) -> String {
-    match *v {
-        ParamValue::Float(f) => num(f, 4),
+    match v {
+        ParamValue::Float(f) => num(*f, 4),
         ParamValue::Int(i) => i.to_string(),
         ParamValue::Bool(b) => b.to_string(),
+        ParamValue::Choice(s) => s.clone(),
     }
 }
 

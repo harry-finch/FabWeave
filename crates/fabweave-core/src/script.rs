@@ -17,13 +17,16 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use rhai::{Dynamic, Engine, EvalAltResult, ParseErrorType, Position, Scope, AST, FLOAT, INT};
+use rhai::{
+    Dynamic, Engine, EvalAltResult, NativeCallContext, ParseErrorType, Position, Scope, AST, FLOAT,
+    INT,
+};
 use serde::Serialize;
 
 use crate::issue::Issue;
-use crate::model::Model;
+use crate::model::{Model, Text};
 use crate::params::ParamValue;
-use crate::path::{MoveKind, Speed, Toolpath, WayPoint};
+use crate::path::{MoveKind, Note, Speed, Toolpath, WayPoint};
 
 /// Garde-fous de l'exécution d'un script.
 #[derive(Clone, Copy, Debug)]
@@ -59,21 +62,39 @@ const MAX_LOG_LINES: usize = 200;
 struct Fault {
     code: &'static str,
     detail: String,
+    /// Texte de l'auteur du modèle (`fail`).
+    text: Option<Text>,
 }
 
-fn fault(code: &'static str, detail: impl Into<String>) -> Box<EvalAltResult> {
+pub(crate) fn fault(code: &'static str, detail: impl Into<String>) -> Box<EvalAltResult> {
     EvalAltResult::ErrorRuntime(
         Dynamic::from(Fault {
             code,
             detail: detail.into(),
+            text: None,
         }),
         Position::NONE,
     )
     .into()
 }
 
+/// Texte d'un message du modèle : chaîne, ou table par langue (`#{ fr: "…", en: "…" }`).
+fn text_of(d: &Dynamic) -> R<Text> {
+    if let Ok(s) = d.clone().into_string() {
+        return Ok(Text::Plain(s));
+    }
+    if let Some(m) = d.read_lock::<rhai::Map>() {
+        let mut out = IndexMap::new();
+        for (k, v) in m.iter() {
+            out.insert(k.to_string(), v.to_string());
+        }
+        return Ok(Text::Localized(out));
+    }
+    Err(fault("script.not_a_text", d.type_name()))
+}
+
 /// Nombre (entier ou flottant) passé à une fonction de l'API.
-fn num(v: &Dynamic, what: &str) -> Result<f64, Box<EvalAltResult>> {
+pub(crate) fn num(v: &Dynamic, what: &str) -> Result<f64, Box<EvalAltResult>> {
     if let Ok(f) = v.as_float() {
         return Ok(f);
     }
@@ -95,6 +116,11 @@ pub struct ScriptPath {
     limit: usize,
 }
 
+/// Annotations au plus par parcours.
+const MAX_NOTES: usize = 50;
+/// Messages `warn` gardés au plus par exécution.
+const MAX_WARNINGS: usize = 20;
+
 impl ScriptPath {
     fn new(limit: usize) -> Self {
         Self {
@@ -105,7 +131,7 @@ impl ScriptPath {
         }
     }
 
-    fn push(
+    pub(crate) fn push(
         &mut self,
         xyz: [f64; 3],
         w: f64,
@@ -139,13 +165,41 @@ impl ScriptPath {
         });
         Ok(())
     }
+
+    /// Pont tendu : impression dans le vide, débit multiplié par `flow`.
+    pub(crate) fn push_bridge(&mut self, xyz: [f64; 3], w: f64, h: f64, flow: f64) -> R<()> {
+        if !(flow > 0.0 && flow <= 2.0) {
+            return Err(fault("path.invalid_flow", flow.to_string()));
+        }
+        self.push(xyz, w, h, MoveKind::Bridge)?;
+        if let Some(p) = self.path.points.last_mut() {
+            p.flow = flow;
+        }
+        Ok(())
+    }
+
+    fn note(&mut self, xyz: [f64; 3], text: Text) -> R<()> {
+        if self.path.notes.len() >= MAX_NOTES {
+            return Err(fault("path.too_many_notes", MAX_NOTES.to_string()));
+        }
+        self.path.notes.push(Note {
+            x: xyz[0],
+            y: xyz[1],
+            z: xyz[2],
+            text,
+        });
+        Ok(())
+    }
 }
 
-type R<T> = Result<T, Box<EvalAltResult>>;
+pub(crate) type R<T> = Result<T, Box<EvalAltResult>>;
 
 struct Log {
     lines: Vec<String>,
     dropped: usize,
+    /// Messages `warn` : texte et position dans le script.
+    warnings: Vec<(Text, Position)>,
+    warnings_dropped: usize,
 }
 
 /// Moteur de script, créé une fois et réutilisé pour chaque calcul.
@@ -274,6 +328,47 @@ fn register_path(engine: &mut Engine, max_points: usize) {
         Ok(())
     });
     engine.register_fn("reset_fan", |p: &mut ScriptPath| p.fan = None);
+    engine.register_fn(
+        "bridge_to",
+        |p: &mut ScriptPath,
+         x: Dynamic,
+         y: Dynamic,
+         z: Dynamic,
+         w: Dynamic,
+         h: Dynamic,
+         flow: Dynamic|
+         -> R<()> {
+            let xyz = [num(&x, "x")?, num(&y, "y")?, num(&z, "z")?];
+            p.push_bridge(xyz, num(&w, "w")?, num(&h, "h")?, num(&flow, "flow")?)
+        },
+    );
+    // note(texte) : annotation au dernier point ; note_at(x, y, z, texte).
+    engine.register_fn("note", |p: &mut ScriptPath, text: Dynamic| -> R<()> {
+        let last = p.path.points.last().map_or([0.0; 3], |w| [w.x, w.y, w.z]);
+        let t = text_of(&text)?;
+        p.note(last, t)
+    });
+    engine.register_fn(
+        "note_at",
+        |p: &mut ScriptPath, x: Dynamic, y: Dynamic, z: Dynamic, text: Dynamic| -> R<()> {
+            let xyz = [num(&x, "x")?, num(&y, "y")?, num(&z, "z")?];
+            let t = text_of(&text)?;
+            p.note(xyz, t)
+        },
+    );
+    // fail(texte) : le modèle refuse ces valeurs (erreur bloquante).
+    engine.register_fn("fail", |text: Dynamic| -> R<()> {
+        let t = text_of(&text)?;
+        Err(EvalAltResult::ErrorRuntime(
+            Dynamic::from(Fault {
+                code: "model.failure",
+                detail: String::new(),
+                text: Some(t),
+            }),
+            Position::NONE,
+        )
+        .into())
+    });
 }
 
 impl ScriptEngine {
@@ -295,7 +390,25 @@ impl ScriptEngine {
         let log = Rc::new(RefCell::new(Log {
             lines: Vec::new(),
             dropped: 0,
+            warnings: Vec::new(),
+            warnings_dropped: 0,
         }));
+        // warn(texte) : avertissement du modèle, avec sa ligne.
+        let warnings = log.clone();
+        engine.register_fn(
+            "warn",
+            move |ctx: NativeCallContext, text: Dynamic| -> R<()> {
+                let t = text_of(&text)?;
+                let mut l = warnings.borrow_mut();
+                if l.warnings.len() < MAX_WARNINGS {
+                    l.warnings.push((t, ctx.call_position()));
+                } else {
+                    l.warnings_dropped += 1;
+                }
+                Ok(())
+            },
+        );
+        crate::points::register(&mut engine, limits.max_points);
         let sink = |log: Rc<RefCell<Log>>| {
             move |s: &str| {
                 let mut l = log.borrow_mut();
@@ -361,13 +474,16 @@ impl ScriptEngine {
             let mut l = self.log.borrow_mut();
             l.lines.clear();
             l.dropped = 0;
+            l.warnings.clear();
+            l.warnings_dropped = 0;
         }
         let mut p = rhai::Map::new();
         for (k, v) in params {
-            let d = match *v {
-                ParamValue::Float(f) => Dynamic::from_float(f),
-                ParamValue::Int(i) => Dynamic::from_int(i),
-                ParamValue::Bool(b) => Dynamic::from_bool(b),
+            let d = match v {
+                ParamValue::Float(f) => Dynamic::from_float(*f),
+                ParamValue::Int(i) => Dynamic::from_int(*i),
+                ParamValue::Bool(b) => Dynamic::from_bool(*b),
+                ParamValue::Choice(s) => Dynamic::from(s.clone()),
             };
             p.insert(k.as_str().into(), d);
         }
@@ -408,6 +524,22 @@ impl ScriptEngine {
                 None
             }
         };
+        {
+            let mut l = self.log.borrow_mut();
+            let mut warn: Vec<Issue> = std::mem::take(&mut l.warnings)
+                .into_iter()
+                .map(|(t, pos)| {
+                    Issue::warning("model.warning")
+                        .at(file_pos(pos, compiled.script_line))
+                        .text(t)
+                })
+                .collect();
+            if l.warnings_dropped > 0 {
+                warn.push(Issue::warning("model.warnings_dropped").count(l.warnings_dropped));
+            }
+            warn.append(&mut issues);
+            issues = warn;
+        }
         let mut log = std::mem::take(&mut self.log.borrow_mut().lines);
         let dropped = self.log.borrow().dropped;
         if dropped > 0 {
@@ -434,9 +566,13 @@ fn eval_issue(e: &EvalAltResult, script_line: usize) -> Issue {
             pos = inner.position();
         }
     }
+    let mut text = None;
     let (code, detail) = match inner {
         E::ErrorRuntime(d, _) => match d.clone().try_cast::<Fault>() {
-            Some(f) => (f.code, f.detail),
+            Some(f) => {
+                text = f.text;
+                (f.code, f.detail)
+            }
             None => ("script.thrown", d.to_string()),
         },
         E::ErrorVariableNotFound(n, _) => ("script.unknown_variable", n.clone()),
@@ -455,7 +591,8 @@ fn eval_issue(e: &EvalAltResult, script_line: usize) -> Issue {
         E::ErrorAssignmentToConstant(n, _) => ("script.constant_assignment", n.clone()),
         _ => ("script.runtime", inner.to_string()),
     };
-    let issue = Issue::error(code).at(file_pos(pos, script_line));
+    let mut issue = Issue::error(code).at(file_pos(pos, script_line));
+    issue.text = text;
     if detail.is_empty() {
         issue
     } else {

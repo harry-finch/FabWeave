@@ -10,12 +10,13 @@ use serde_json::Value;
 use crate::issue::Issue;
 use crate::model::{ParamDef, ParamKind};
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum ParamValue {
     Float(f64),
     Int(i64),
     Bool(bool),
+    Choice(String),
 }
 
 impl ParamDef {
@@ -24,6 +25,7 @@ impl ParamDef {
             ParamKind::Float { default, .. } => ParamValue::Float(default),
             ParamKind::Int { default, .. } => ParamValue::Int(default),
             ParamKind::Bool { default } => ParamValue::Bool(default),
+            ParamKind::Choice { ref default, .. } => ParamValue::Choice(default.clone()),
         }
     }
 }
@@ -82,6 +84,13 @@ fn check(kind: &ParamKind, v: &Value) -> Result<ParamValue, Issue> {
             Ok(ParamValue::Int(x))
         }
         ParamKind::Bool { .. } => v.as_bool().map(ParamValue::Bool).ok_or_else(wrong),
+        ParamKind::Choice { ref options, .. } => {
+            let s = v.as_str().ok_or_else(wrong)?;
+            if !options.iter().any(|o| o.value == s) {
+                return Err(Issue::error("param.unknown_option").detail(s.to_string()));
+            }
+            Ok(ParamValue::Choice(s.to_string()))
+        }
     }
 }
 

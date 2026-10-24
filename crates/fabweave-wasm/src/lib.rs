@@ -152,7 +152,17 @@ impl Engine {
                 speeds.push(m.speed as f32);
             }
         }
+        // Annotations dans le repère de la machine.
+        let notes: Vec<Value> = match (&ev.path, &ev.plan) {
+            (Some(path), Some(plan)) => path
+                .notes
+                .iter()
+                .map(|n| json!({ "x": n.x + plan.offset[0], "y": n.y + plan.offset[1], "z": n.z + plan.offset[2], "text": n.text }))
+                .collect(),
+            _ => Vec::new(),
+        };
         let report = json!({
+            "notes": notes,
             "params": ev.params,
             "stats": ev.plan.as_ref().map(|p| &p.stats),
             "offset": ev.plan.as_ref().map(|p| p.offset),

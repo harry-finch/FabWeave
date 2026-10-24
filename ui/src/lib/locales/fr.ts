@@ -81,6 +81,9 @@ const fr = {
       unsupported_version: 'Version de format {value} non prise en charge par ce moteur.',
       invalid_nozzle: 'Diamètre de buse recommandé invalide.',
       not_loaded: 'Aucun modèle chargé.',
+      warning: 'Avertissement du modèle.',
+      failure: 'Le modèle refuse ces valeurs.',
+      warnings_dropped: '{count} autres avertissements du modèle non affichés.',
     },
     param: {
       invalid_id: 'Identifiant de paramètre invalide (minuscules, chiffres, « _ ») : {field}.',
@@ -96,6 +99,9 @@ const fr = {
       wrong_type: '{field} : valeur du mauvais type.',
       out_of_range: '{field} : {value} sort des bornes du modèle, parcours non calculé.',
       unknown: '{field} : paramètre inconnu du modèle, ignoré.',
+      invalid_options: '{field} : liste d’options vide ou invalide.',
+      duplicate_option: '{field} : option en double.',
+      unknown_option: '{field} : option inconnue.',
     },
     script: {
       not_a_number: 'Un nombre est attendu.',
@@ -113,6 +119,7 @@ const fr = {
       thrown: 'Le modèle a signalé une erreur.',
       runtime: 'Erreur d’exécution du script.',
       no_path: 'Le script doit se terminer par le parcours (la variable créée par new_path()).',
+      not_a_text: 'Un texte est attendu (chaîne ou #{ fr: …, en: … }).',
     },
     path: {
       too_many_points: 'Parcours trop long : plus de {detail} points.',
@@ -126,6 +133,14 @@ const fr = {
       below_bed: 'Le parcours descend sous le plateau (Z = {value} mm).',
       too_high: 'La pièce dépasse la hauteur d’impression (Z = {value} mm).',
       duplicates_skipped: '{count} points confondus avec le précédent, ignorés.',
+      invalid_flow: 'Débit de pont invalide : de 0 à 2 (1 = débit nominal).',
+      too_many_notes: 'Trop d’annotations (au plus {detail}).',
+    },
+    points: {
+      invalid_count: 'Nombre invalide (entier positif attendu).',
+      invalid_value: 'Valeur invalide (positive attendue).',
+      index_out_of_range: 'Indice de point hors de la liste.',
+      empty: 'Liste de points vide.',
     },
     speed: {
       limited_first_layer: 'Vitesse plafonnée à {value} mm/s sur la première couche ({count} segments).',

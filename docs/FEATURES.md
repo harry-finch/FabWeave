@@ -11,7 +11,7 @@ Périmètre fonctionnel de FabWeave, établi à partir de la conversation de rec
 | FMT-01 | Fichier texte : en-tête TOML, séparateur `---`, corps Rhai | v0.1 | fait |
 | FMT-02 | `[meta]` : nom, catégorie, description, auteur, étiquettes, buse recommandée, `format` et `version` | v0.1 | fait |
 | FMT-03 | Paramètres `float`, `int`, `bool` : libellé, unité, défaut, min, max, pas ; ordre du fichier conservé | v0.1 | fait |
-| FMT-04 | Paramètre `choice` (liste de valeurs nommées) | v0.2 | prévu |
+| FMT-04 | Paramètre `choice` (liste de valeurs nommées) | v0.2 | fait |
 | FMT-05 | `advanced = true` (« ▸ Avancé ») fait en v0.1 ; groupes de paramètres | v0.2 | en cours |
 | FMT-06 | Libellés, descriptions et infobulles FR / EN (`label = { fr = "…", en = "…" }` ou chaîne simple) | v0.1 | fait |
 | FMT-07 | `source` et `license` pour les modèles repris d'ailleurs (FullControl) | v0.1 | fait |
@@ -29,13 +29,13 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-02 | `print_polar(r, θ, z, w, h)` (coordonnées cylindriques) | v0.1 | fait |
 | API-03 | `set_speed_factor(f)`, `set_fan(%)` | v0.1 | fait |
 | API-04 | Fonctions mathématiques identiques en natif et en WebAssembly (crate `libm`) | v0.1 | fait |
-| API-05 | `bridge_to(x, y, z, w, h, flux)` : pont tendu, ventilateur forcé, facteur d'étirement | v0.2 | prévu |
-| API-06 | `warn(code, message)` / `fail(code, message)` : messages du modèle | v0.2 | prévu |
-| API-07 | `note(x, y, z, texte)` : annotations dans la vue 3D ; repères de départ et de fin | v0.2 | prévu |
-| API-08 | Primitives natives : segment, arc, cercle, polygone, rectangle, zigzag, spirale, hélice, onde polaire | v0.2 | prévu |
-| API-09 | Transformations natives : translation, rotation, miroir, répétition en Z, copie tournée, inversion de sens | v0.2 | prévu |
-| API-10 | `modulate_z(tracé, fonction)` : déformation non planaire d'un tracé plat | v0.2 | prévu |
-| API-11 | Subdivision et discrétisation adaptative (tolérance de corde) | v0.2 / v0.5 | prévu |
+| API-05 | `bridge_to(x, y, z, w, h, flux)` : pont tendu, ventilateur forcé, facteur d'étirement | v0.2 | fait |
+| API-06 | `warn(texte)` / `fail(texte)` : messages du modèle, texte par langue, ligne du script | v0.2 | fait |
+| API-07 | `path.note(texte)`, `path.note_at(x, y, z, texte)` : annotations (moteur fait ; affichage dans la vue 3D à l'étape 3) | v0.2 | en cours |
+| API-08 | Listes de points natives : `line`, `arc`, `circle`, `polygon`, `rectangle`, `zigzag`, `sine`, `spiral`, `helix` | v0.2 | fait |
+| API-09 | Transformations natives : translation, rotation, miroir, répétition en Z, copie tournée, inversion de sens | v0.2 | fait |
+| API-10 | `pts.modulate_z(f)`, `pts.modulate_r(cx, cy, f)` : déformation par une fonction du script | v0.2 | fait |
+| API-11 | Subdivision (`pts.subdivide`, faite en v0.2) ; discrétisation adaptative (tolérance de corde) | v0.2 / v0.5 | en cours |
 | API-12 | Essuyage (*wipe*), pause (insertion d'objet, ruban de renfort) | v0.3 | prévu |
 | API-13 | Remplissage natif d'un contour fermé (zigzag croisé d'une couche à l'autre, ou concentrique) : fonds pleins | v0.2 | prévu |
 
@@ -76,6 +76,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | PRF-07 | Édition, duplication, import / export des profils (filaments et imprimantes) dans l'application ; origine de chaque valeur ; profils livrés jamais écrasés | v0.3 | prévu |
 | PRF-08 | Plateau rond (delta), origine au centre | v0.3 | prévu |
 | PRF-10 | Import de profils filament et imprimante depuis PrusaSlicer (`.ini`), OrcaSlicer et Bambu Studio (`.json`) ; rapport des valeurs reprises, ignorées, manquantes ; gabarits « à relire » | v0.3 | prévu |
+| PRF-11 | Sélecteur de buse à côté de l'imprimante (diamètre courant ou libre, HF, abrasive) sans dupliquer le profil ; recalcul immédiat ; réglages par buse (première couche, débit max) ; mémorisé par imprimante | v0.3 | prévu |
 
 ## Catalogue de modèles (CAT)
 

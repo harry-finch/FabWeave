@@ -1,0 +1,29 @@
+# Modèle de mesure : spirale ondulée en pur script, nombre de points réglable.
+# Calcul par point comparable aux modèles du catalogue (trois fonctions
+# trigonométriques, un appel à l'API du parcours).
+[meta]
+name = "Banc d'essai : spirale native"
+category = "Mesures"
+
+[params.points]
+type = "int"
+label = "Points"
+default = 50000
+min = 1000
+max = 1000000
+
+[params.radius]
+type = "float"
+label = "Rayon"
+unit = "mm"
+default = 30
+min = 5
+max = 80
+---
+// Même spirale que bench_spiral.weave, construite par helix() en Rust natif.
+let turns = 200;
+let eh = 0.2;
+let h = helix(0, 0, 0.2, params.radius, params.radius, 0, turns, eh, params.points / turns);
+let path = new_path();
+path.print_points(h, 0.6, eh);
+path

@@ -30,7 +30,7 @@
     params: Record<string, ParamDef>;
     values: Values;
     issues: Issue[];
-    onchange: (id: string, v: number | boolean) => void;
+    onchange: (id: string, v: number | boolean | string) => void;
     onreset: (id: string) => void;
     onbegin?: () => void;
     onend?: () => void;
@@ -47,6 +47,7 @@
   /** Valeur du modèle, telle qu'affichée (« 15 mm », « 0,6 in », « 10 % »). */
   function shownDefault(def: ParamDef): string {
     if (def.type === 'bool') return def.default ? t('model.on') : t('model.off');
+    if (def.type === 'choice') return text(def.options.find((o) => o.value === def.default)?.label) || def.default;
     if (def.unit === 'mm' && def.type === 'float') return fmtLen(def.default, ui.units, decimalsOf(def.step));
     return `${numTrim(def.default, decimalsOf(def.step))}${def.unit ? ` ${def.unit}` : ''}`;
   }
@@ -65,6 +66,23 @@
         ]}
       />
     </Field>
+  {:else if def.type === 'choice'}
+    {@const current = (values[id] as string | undefined) ?? def.default}
+    {#if def.options.length <= 2}
+      <Field label={text(def.label)} hint={text(def.help) || undefined}>
+        <Segmented label={text(def.label)} value={current} onchange={(v) => onchange(id, v)} options={def.options.map((o) => ({ id: o.value, label: text(o.label) || o.value }))} />
+      </Field>
+    {:else}
+      <!-- Trois options ou plus : sous-libellé puis pleine largeur. -->
+      <p class="sub">{text(def.label)}</p>
+      {#if def.options.length === 3}
+        <Segmented label={text(def.label)} value={current} onchange={(v) => onchange(id, v)} options={def.options.map((o) => ({ id: o.value, label: text(o.label) || o.value }))} />
+      {:else}
+        <select class="input select" aria-label={text(def.label)} value={current} onchange={(e) => onchange(id, (e.currentTarget as HTMLSelectElement).value)}>
+          {#each def.options as o (o.value)}<option value={o.value}>{text(o.label) || o.value}</option>{/each}
+        </select>
+      {/if}
+    {/if}
   {:else}
     {@const isLength = def.unit === 'mm' && def.type === 'float'}
     {@const kind = def.type === 'int' ? 'count' : isLength ? 'length' : def.unit === '°' ? 'angle' : 'plain'}
@@ -97,3 +115,15 @@
     {/each}
   </Disclosure>
 {/if}
+
+<style>
+  .sub {
+    margin: var(--s1) 0 0;
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+  }
+
+  .select {
+    width: 100%;
+  }
+</style>

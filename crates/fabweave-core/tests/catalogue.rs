@@ -83,6 +83,9 @@ fn every_model_survives_its_parameter_bounds() {
                 ParamKind::Float { min, max, .. } => vec![json!(min), json!(max)],
                 ParamKind::Int { min, max, .. } => vec![json!(min), json!(max)],
                 ParamKind::Bool { .. } => vec![json!(false), json!(true)],
+                ParamKind::Choice { ref options, .. } => {
+                    options.iter().map(|o| json!(o.value)).collect()
+                }
             };
             for v in ends {
                 let mut values = Map::new();

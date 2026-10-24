@@ -27,6 +27,8 @@ export function issueText(i: Issue, model: ModelInfo | null): string {
   };
   let s = t(key, params);
   if (s === key) s = i.code;
+  // Message écrit par l'auteur du modèle (`warn`, `fail`) : son texte, dans la langue.
+  if (i.text) s = text(i.text);
   if (i.line != null) s = labelled(t('issues.line', { line: i.line }), s);
   // Détail technique, sauf s'il est déjà repris dans le texte.
   if (i.detail && !s.includes(i.detail)) s = `${s} — ${i.detail}`;

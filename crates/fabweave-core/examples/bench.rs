@@ -42,6 +42,21 @@ fn main() {
             "models/vases/ripple_vase.weave".into(),
             json!({ "ripple_segments": 12 }),
         ),
+        (
+            "spirale native (helix), 50 000".into(),
+            "crates/fabweave-core/tests/fixtures/bench_spiral_native.weave".into(),
+            json!({ "points": 50000 }),
+        ),
+        (
+            "spirale native (helix), 200 000".into(),
+            "crates/fabweave-core/tests/fixtures/bench_spiral_native.weave".into(),
+            json!({ "points": 200000 }),
+        ),
+        (
+            "helix + modulate_r, 50 000".into(),
+            "crates/fabweave-core/tests/fixtures/bench_spiral_modulated.weave".into(),
+            json!({ "points": 50000 }),
+        ),
     ];
     if !files.is_empty() {
         cases = files

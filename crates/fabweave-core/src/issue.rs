@@ -4,6 +4,8 @@
 
 use serde::Serialize;
 
+use crate::model::Text;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Severity {
@@ -37,6 +39,9 @@ pub struct Issue {
     /// variable inconnue…), montré en second.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
+    /// Texte écrit par l'auteur du modèle (`warn`, `fail`), par langue.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<Text>,
 }
 
 impl Issue {
@@ -50,6 +55,7 @@ impl Issue {
             line: None,
             column: None,
             detail: None,
+            text: None,
         }
     }
 
@@ -90,6 +96,11 @@ impl Issue {
 
     pub fn detail(mut self, d: impl Into<String>) -> Self {
         self.detail = Some(d.into());
+        self
+    }
+
+    pub fn text(mut self, t: Text) -> Self {
+        self.text = Some(t);
         self
     }
 

@@ -76,6 +76,19 @@ pub enum ParamKind {
     Bool {
         default: bool,
     },
+    /// Une valeur parmi une liste (le script reçoit la chaîne `value`).
+    Choice {
+        default: String,
+        options: Vec<ChoiceOption>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct ChoiceOption {
+    pub value: String,
+    /// Libellé affiché ; absent : la valeur elle-même.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<Text>,
 }
 
 /// Paramètre réglable : un curseur, un champ ou une case dans l'interface.
@@ -146,6 +159,15 @@ struct RawParam {
     min: Option<Spanned<toml::Value>>,
     max: Option<Spanned<toml::Value>>,
     step: Option<Spanned<toml::Value>>,
+    options: Option<Spanned<Vec<RawOption>>>,
+}
+
+/// Option d'un paramètre `choice` : `"zigzag"` ou `{ value = "zigzag", label = … }`.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RawOption {
+    Value(String),
+    Labelled { value: String, label: Option<Text> },
 }
 
 /// Découpe le fichier : (début de l'en-tête, fin de l'en-tête, début du
@@ -311,6 +333,11 @@ fn convert_param(
         }
     };
 
+    if p.kind.get_ref() != "choice" {
+        if let Some(o) = &p.options {
+            issues.push(err("param.unexpected_field", o.span()).detail("options".to_string()));
+        }
+    }
     let kind = match p.kind.get_ref().as_str() {
         "float" => {
             required(&p.min, "min", &mut issues);
@@ -368,11 +395,64 @@ fn convert_param(
                 step,
             }
         }
-        "bool" => {
+        "bool" | "choice" => {
             for (v, name) in [(&p.min, "min"), (&p.max, "max"), (&p.step, "step")] {
                 if let Some(v) = v {
                     issues.push(err("param.unexpected_field", v.span()).detail(name.to_string()));
                 }
+            }
+            if p.kind.get_ref() == "choice" {
+                let Some(opts) = &p.options else {
+                    issues.push(
+                        Issue::error("param.missing_field")
+                            .field(field.clone())
+                            .detail("options"),
+                    );
+                    return Err(issues);
+                };
+                let options: Vec<ChoiceOption> = opts
+                    .get_ref()
+                    .iter()
+                    .map(|o| match o {
+                        RawOption::Value(v) => ChoiceOption {
+                            value: v.clone(),
+                            label: None,
+                        },
+                        RawOption::Labelled { value, label } => ChoiceOption {
+                            value: value.clone(),
+                            label: label.clone(),
+                        },
+                    })
+                    .collect();
+                if options.is_empty() || options.iter().any(|o| o.value.is_empty()) {
+                    issues.push(err("param.invalid_options", opts.span()));
+                }
+                for (i, o) in options.iter().enumerate() {
+                    if options[..i].iter().any(|x| x.value == o.value) {
+                        issues.push(
+                            err("param.duplicate_option", opts.span()).detail(o.value.clone()),
+                        );
+                    }
+                }
+                let default = match p.default.get_ref() {
+                    toml::Value::String(s) => s.clone(),
+                    _ => String::new(),
+                };
+                if !options.iter().any(|o| o.value == default) {
+                    issues.push(
+                        err("param.unknown_option", p.default.span()).detail(default.clone()),
+                    );
+                }
+                if !issues.is_empty() {
+                    return Err(issues);
+                }
+                return Ok(ParamDef {
+                    label: p.label,
+                    unit: p.unit,
+                    help: p.help,
+                    advanced: p.advanced,
+                    kind: ParamKind::Choice { default, options },
+                });
             }
             let default = match p.default.get_ref() {
                 toml::Value::Boolean(b) => *b,
@@ -511,6 +591,28 @@ p
         assert_eq!(e[0].code, "param.unknown_type");
         let e = parse(&MINIMAL.replace("default = 6", "default = 6.5")).unwrap_err();
         assert_eq!(e[0].code, "param.not_an_integer");
+    }
+
+    #[test]
+    fn choice_parameters() {
+        let src = MINIMAL.replace(
+            "[params.closed]",
+            "[params.pattern]\ntype = \"choice\"\nlabel = \"Motif\"\noptions = [\"zigzag\", { value = \"smooth\", label = { fr = \"Lisse\", en = \"Smooth\" } }]\ndefault = \"smooth\"\n\n[params.closed]",
+        );
+        let m = parse(&src).unwrap();
+        match &m.params["pattern"].kind {
+            ParamKind::Choice { default, options } => {
+                assert_eq!(default, "smooth");
+                assert_eq!(options[0].value, "zigzag");
+                assert_eq!(options[1].label.as_ref().unwrap().get("en"), "Smooth");
+            }
+            k => panic!("{k:?}"),
+        }
+        let e = parse(&src.replace("default = \"smooth\"", "default = \"wavy\"")).unwrap_err();
+        assert_eq!(e[0].code, "param.unknown_option");
+        let e =
+            parse(&src.replace("options = [\"zigzag\", ", "options = [\"smooth\", ")).unwrap_err();
+        assert_eq!(e[0].code, "param.duplicate_option");
     }
 
     #[test]
