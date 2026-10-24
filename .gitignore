@@ -1,0 +1,26 @@
+# Rust
+/target/
+
+# Interface
+/ui/node_modules/
+/ui/dist/
+# Moteur compilé en WebAssembly (généré par `npm run wasm`)
+/ui/src/wasm/
+
+# Recherche (conversations, documents de travail) : hors dépôt public
+/docs/research/
+
+# Builds de l'application de bureau
+/dist-desktop/
+/crates/fabweave-desktop/gen/
+
+# G-code de test produits pendant le développement
+*.gcode
+*.bgcode
+!/crates/fabweave-core/tests/fixtures/**/*.gcode
+
+# Environnement et fichiers temporaires
+.env
+.tmp/
+.DS_Store
+*.log

@@ -1,0 +1,5 @@
+[toolchain]
+# Même version que FabCAM ; Cargo choisit des dépendances compatibles (resolver 3).
+channel = "1.88.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"
