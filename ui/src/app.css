@@ -65,6 +65,8 @@
   --view-bed: #2a2d31;
   --view-bed-edge: #4b4f55;
   --view-grid: #34383d;
+  /* Zones exclues du plateau (purge, pinces) : hachures ambrées sourdes. */
+  --view-bed-exclude: #6e5a37;
   /* Dégradé du parcours selon la hauteur (bas → haut). */
   --path-low: #7d838c;
   --path-high: #f2f2f2;
@@ -147,6 +149,7 @@
   --view-bed: #dcdee1;
   --view-bed-edge: #a3a8ae;
   --view-grid: #c9ccd0;
+  --view-bed-exclude: #c29a5c;
   --path-low: #9aa0a8;
   --path-high: #2a2d31;
   --path-travel: #b4b8bd;

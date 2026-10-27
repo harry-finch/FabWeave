@@ -5,7 +5,7 @@
 # réécrites en expressions `{ … }` (voir docs/WEAVE_FORMAT.md).
 
 format = "fabweave.printer"
-version = 1
+version = 2
 
 [printer]
 id = "prusa_mk4s"
@@ -28,12 +28,20 @@ abrasive = false
 max_print_speed = 200.0
 travel_speed = 180.0
 max_z_speed = 12.0
+# Accélérations de PrusaSlicer (profils 0.20mm STRUCTURAL) : celle des parois
+# extérieures, les modèles FabWeave étant pour l'essentiel des parois uniques.
+acceleration = 1500.0
+travel_acceleration = 4000.0
+first_layer_acceleration = 500.0
+jerk = 8.0
 
 [layers]
 layer_height = 0.2
 first_layer_height = 0.2
 
 [gcode]
+# Vignettes lues par l'écran (réglage `thumbnails` de PrusaSlicer).
+thumbnails = ["16x16/QOI", "313x173/QOI", "480x240/QOI", "380x285/PNG"]
 start = """
 M17 ; enable steppers
 M862.1 P{nozzle_diameter} A{if filament_abrasive {1} else {0}} F{if nozzle_high_flow {1} else {0}} ; nozzle check

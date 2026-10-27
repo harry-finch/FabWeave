@@ -1,0 +1,70 @@
+# Imprimante Marlin générique, plateau 220 × 220 mm (classe Ender-3), buse
+# 0,4 mm. Point de départ à adapter à la machine (taille, vitesses,
+# accélérations, gabarits). Démarrage courant des profils Marlin de Cura et
+# de Creality : origine, chauffe, double ligne de purge le long du bord
+# gauche (zone exclue du plateau), avance linéaire `M900` si le filament la
+# donne (ignorée par un firmware compilé sans LIN_ADVANCE).
+
+format = "fabweave.printer"
+version = 2
+
+[printer]
+id = "marlin_generic"
+name = { fr = "Marlin générique 220 × 220", en = "Generic Marlin 220 × 220" }
+model = "MARLIN"
+firmware = "marlin"
+source = "FabWeave, d'après le démarrage des profils Marlin de Cura (Creality Ender-3)"
+
+[bed]
+size = [220.0, 220.0]
+max_height = 250.0
+origin = "corner"
+exclude = [
+    { name = { fr = "ligne de purge", en = "purge line" }, min = [0.0, 0.0], max = [3.0, 220.0] },
+]
+
+[nozzle]
+diameter = 0.4
+
+[limits]
+max_print_speed = 150.0
+travel_speed = 150.0
+max_z_speed = 5.0
+acceleration = 500.0
+travel_acceleration = 1000.0
+first_layer_acceleration = 500.0
+jerk = 8.0
+
+[layers]
+layer_height = 0.2
+first_layer_height = 0.2
+
+[gcode]
+start = """
+G90 ; coordonnées absolues
+M83 ; extrusion relative
+M140 S{first_layer_bed_temperature} ; chauffe du plateau
+M104 S{probe_temperature} ; buse tiède pendant la prise d'origine
+G28 ; origine de tous les axes
+M190 S{first_layer_bed_temperature} ; attente du plateau
+M104 S{first_layer_temperature}
+M109 S{first_layer_temperature} ; attente de la buse
+{if pressure_advance > 0 { `M900 K${num(pressure_advance)} ; avance linéaire (filament)` }}
+
+; double ligne de purge le long du bord gauche
+G1 Z2 F600
+G1 X0.1 Y20 Z0.3 F5000
+G1 X0.1 Y200 Z0.3 E15 F1500
+G1 X0.4 Y200 Z0.3 F5000
+G1 X0.4 Y20 Z0.3 E15 F1500
+G1 Z2 F600
+"""
+end = """
+G1 E-2 F2700 ; rétraction
+G1 Z{min(max_z + 10, max_print_height)} F600 ; dégager la buse
+G1 X0 Y{bed_size_y - 10} F3000 ; présenter la pièce
+M104 S0 ; buse éteinte
+M140 S0 ; plateau éteint
+M107 ; ventilateur coupé
+M84 X Y E ; moteurs libérés (Z tenu)
+"""

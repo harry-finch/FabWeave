@@ -72,13 +72,14 @@
   const bedFill = new THREE.MeshBasicMaterial();
   const bedEdge = new THREE.LineBasicMaterial();
   const grid = new THREE.LineBasicMaterial();
+  const exclude = new THREE.LineBasicMaterial();
   const printMat = new THREE.LineBasicMaterial({ vertexColors: true });
   const travelMat = new THREE.LineBasicMaterial();
   const printLines = new THREE.LineSegments(new THREE.BufferGeometry(), printMat);
   const travelLines = new THREE.LineSegments(new THREE.BufferGeometry(), travelMat);
   scene.add(bed, printLines, travelLines);
 
-  const TOKENS = ['view-bg', 'view-bed', 'view-bed-edge', 'view-grid', 'path-low', 'path-high', 'path-travel'] as const;
+  const TOKENS = ['view-bg', 'view-bed', 'view-bed-edge', 'view-grid', 'view-bed-exclude', 'path-low', 'path-high', 'path-travel'] as const;
   let colors: Record<(typeof TOKENS)[number], THREE.Color> = Object.fromEntries(TOKENS.map((k) => [k, new THREE.Color()])) as never;
 
   function readColors() {
@@ -88,6 +89,7 @@
     bedFill.color = colors['view-bed'];
     bedEdge.color = colors['view-bed-edge'];
     grid.color = colors['view-grid'];
+    exclude.color = colors['view-bed-exclude'];
     travelMat.color = colors['path-travel'];
   }
 
@@ -118,6 +120,26 @@
     const edge = new THREE.BufferGeometry();
     edge.setAttribute('position', new THREE.Float32BufferAttribute([x0, y0, 0, x0 + w, y0, 0, x0 + w, y0 + h, 0, x0, y0 + h, 0, x0, y0, 0], 3));
     bed.add(plane, new THREE.LineSegments(g, grid), new THREE.Line(edge, bedEdge));
+    // Zones exclues (repère machine) : contour et hachures à 45°, tous les 3 mm.
+    const hatch: number[] = [];
+    for (const z of p.bed.exclude ?? []) {
+      const [ax, ay] = [Math.max(z.min[0], x0), Math.max(z.min[1], y0)];
+      const [bx, by] = [Math.min(z.max[0], x0 + w), Math.min(z.max[1], y0 + h)];
+      if (ax >= bx || ay >= by) continue;
+      const z0 = 0.02;
+      hatch.push(ax, ay, z0, bx, ay, z0, bx, ay, z0, bx, by, z0, bx, by, z0, ax, by, z0, ax, by, z0, ax, ay, z0);
+      // Droites x − y = c coupées par le rectangle.
+      for (let c = ax - by + 3; c < bx - ay; c += 3) {
+        const p0: [number, number] = c >= ax - ay ? [ax + (c - (ax - ay)), ay] : [ax, ax - c];
+        const p1: [number, number] = c <= bx - by ? [c + by, by] : [bx, bx - c];
+        hatch.push(p0[0], p0[1], z0, p1[0], p1[1], z0);
+      }
+    }
+    if (hatch.length) {
+      const hg = new THREE.BufferGeometry();
+      hg.setAttribute('position', new THREE.Float32BufferAttribute(hatch, 3));
+      bed.add(new THREE.LineSegments(hg, exclude));
+    }
   }
 
   function buildPath(f: FrameData | null) {

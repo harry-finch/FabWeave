@@ -217,7 +217,7 @@
       <Section id="machine" title={t('machine.section')} step={3}>
         <Field label={t('machine.printer')}>
           <select class="input select" value={store.printerId} onchange={(e) => store.select('printer', (e.currentTarget as HTMLSelectElement).value)}>
-            {#each store.printers as p (p.id)}<option value={p.id}>{p.profile?.printer.name ?? p.id}</option>{/each}
+            {#each store.printers as p (p.id)}<option value={p.id}>{p.profile ? text(p.profile.printer.name) : p.id}</option>{/each}
           </select>
         </Field>
         <Field label={t('machine.filament')}>
@@ -272,7 +272,7 @@
     {/if}
     {#snippet right()}
       {#if store.printer && store.filament}
-        <span>{store.printer.printer.name} · {text(store.filament.filament.name)}</span>
+        <span>{text(store.printer.printer.name)} · {text(store.filament.filament.name)}</span>
       {/if}
     {/snippet}
   </StatusBar>

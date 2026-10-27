@@ -9,7 +9,8 @@
 use md5::{Digest, Md5};
 
 use crate::format::num;
-use crate::path::{MoveKind, Toolpath};
+use crate::image::{crc32, thumbnail};
+use crate::path::Toolpath;
 use crate::plan::Plan;
 use crate::profile::{FilamentProfile, PrinterProfile};
 
@@ -172,126 +173,8 @@ const MODEL_SETTINGS_RELS: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 </Relationships>
 "#;
 
-// --- Vignette ---------------------------------------------------------------
-
-/// Vignette PNG `size` × `size` du parcours imprimé, fond transparent, en
-/// vue oblique (comme les vignettes du catalogue), teinte claire dégradée
-/// selon la hauteur ; traits semi-transparents, dont le recouvrement dessine
-/// le relief.
-pub fn thumbnail(path: &Toolpath, plan: &Plan, size: usize) -> Vec<u8> {
-    let pts = &path.points;
-    let proj = |p: &crate::path::WayPoint| {
-        (
-            p.x * 0.91 + p.y * 0.41,
-            -p.z * 0.8 + (p.y * 0.91 - p.x * 0.41) * 0.45,
-        )
-    };
-    let mut lo = [f64::INFINITY; 3];
-    let mut hi = [f64::NEG_INFINITY; 3];
-    for p in pts {
-        let (u, v) = proj(p);
-        for (k, c) in [u, v, p.z].into_iter().enumerate() {
-            lo[k] = lo[k].min(c);
-            hi[k] = hi[k].max(c);
-        }
-    }
-    let mut rgba = vec![0u8; size * size * 4];
-    if pts.len() >= 2 && lo[0].is_finite() {
-        let pad = 0.08 * size as f64;
-        let span = (hi[0] - lo[0]).max(hi[1] - lo[1]).max(1e-6);
-        let k = (size as f64 - 2.0 * pad) / span;
-        let ou = pad + ((size as f64 - 2.0 * pad) - (hi[0] - lo[0]) * k) / 2.0 - lo[0] * k;
-        let ov = pad + ((size as f64 - 2.0 * pad) - (hi[1] - lo[1]) * k) / 2.0 - lo[1] * k;
-        let zspan = (hi[2] - lo[2]).max(1e-6);
-        for (w, m) in pts.windows(2).zip(&plan.moves[1..]) {
-            let (a, b) = (&w[0], &w[1]);
-            if b.kind == MoveKind::Travel || m.skipped {
-                continue;
-            }
-            let (ua, va) = proj(a);
-            let (ub, vb) = proj(b);
-            let t = ((b.z - lo[2]) / zspan).clamp(0.0, 1.0);
-            let shade = (125.0 + 117.0 * t) as u8; // gris moyen en bas, presque blanc en haut
-            segment(
-                &mut rgba,
-                size,
-                (ou + ua * k, ov + va * k),
-                (ou + ub * k, ov + vb * k),
-                shade,
-            );
-        }
-    }
-    png(&rgba, size)
-}
-
-/// Segment en pas d'un pixel, mélangé à 45 % d'opacité.
-fn segment(rgba: &mut [u8], size: usize, a: (f64, f64), b: (f64, f64), shade: u8) {
-    let steps = (b.0 - a.0).abs().max((b.1 - a.1).abs()).ceil().max(1.0) as usize;
-    for s in 0..=steps {
-        let t = s as f64 / steps as f64;
-        let (x, y) = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
-        if x < 0.0 || y < 0.0 || x >= size as f64 || y >= size as f64 {
-            continue;
-        }
-        let p = ((y as usize) * size + x as usize) * 4;
-        let alpha = 0.45;
-        let old_a = f64::from(rgba[p + 3]) / 255.0;
-        let new_a = alpha + old_a * (1.0 - alpha);
-        for c in 0..3 {
-            let old = f64::from(rgba[p + c]) * old_a * (1.0 - alpha);
-            rgba[p + c] = ((f64::from(shade) * alpha + old) / new_a).round() as u8;
-        }
-        rgba[p + 3] = (new_a * 255.0).round() as u8;
-    }
-}
-
-/// PNG RVBA 8 bits, sans filtre de lignes, compressé (zlib).
-fn png(rgba: &[u8], size: usize) -> Vec<u8> {
-    let mut raw = Vec::with_capacity(rgba.len() + size);
-    for row in rgba.chunks(size * 4) {
-        raw.push(0);
-        raw.extend_from_slice(row);
-    }
-    let mut out = b"\x89PNG\r\n\x1a\n".to_vec();
-    let mut ihdr = Vec::with_capacity(13);
-    ihdr.extend((size as u32).to_be_bytes());
-    ihdr.extend((size as u32).to_be_bytes());
-    ihdr.extend([8, 6, 0, 0, 0]);
-    chunk(&mut out, b"IHDR", &ihdr);
-    chunk(
-        &mut out,
-        b"IDAT",
-        &miniz_oxide::deflate::compress_to_vec_zlib(&raw, 6),
-    );
-    chunk(&mut out, b"IEND", &[]);
-    out
-}
-
-fn chunk(out: &mut Vec<u8>, kind: &[u8; 4], data: &[u8]) {
-    out.extend((data.len() as u32).to_be_bytes());
-    let start = out.len();
-    out.extend_from_slice(kind);
-    out.extend_from_slice(data);
-    let crc = crc32(&out[start..]);
-    out.extend(crc.to_be_bytes());
-}
-
 // --- ZIP --------------------------------------------------------------------
 
-/// CRC-32 (polynôme 0xEDB88320) du ZIP et du PNG.
-fn crc32(data: &[u8]) -> u32 {
-    let mut crc = !0u32;
-    for &b in data {
-        crc ^= u32::from(b);
-        for _ in 0..8 {
-            crc = (crc >> 1) ^ (0xEDB8_8320 & (crc & 1).wrapping_neg());
-        }
-    }
-    !crc
-}
-
-/// Écriture ZIP minimale : fichiers compressés (deflate), date fixe
-/// (1er janvier 1980) pour un résultat identique d'un export à l'autre.
 #[derive(Default)]
 struct Zip {
     data: Vec<u8>,
@@ -416,11 +299,6 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn crc32_matches_the_reference_value() {
-        assert_eq!(crc32(b"123456789"), 0xCBF4_3926);
-    }
-
-    #[test]
     fn zip_round_trips() {
         let mut z = Zip::default();
         z.add("a.txt", b"bonjour");
@@ -429,14 +307,5 @@ pub(crate) mod tests {
         assert_eq!(files[0], ("a.txt".into(), b"bonjour".to_vec()));
         assert_eq!(files[1].0, "dossier/b.bin");
         assert_eq!(files[1].1.len(), 1000);
-    }
-
-    #[test]
-    fn png_has_the_expected_header() {
-        let p = png(&[255u8; 4 * 4 * 4], 4);
-        assert_eq!(&p[..8], b"\x89PNG\r\n\x1a\n");
-        assert_eq!(&p[12..16], b"IHDR");
-        assert_eq!(u32::from_be_bytes([p[16], p[17], p[18], p[19]]), 4);
-        assert_eq!(&p[p.len() - 8..p.len() - 4], b"IEND");
     }
 }

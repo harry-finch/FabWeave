@@ -42,6 +42,10 @@ pub struct Issue {
     /// Texte écrit par l'auteur du modèle (`warn`, `fail`), par langue.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<Text>,
+    /// Nom, par langue, de l'élément d'un profil en cause (zone exclue du
+    /// plateau…), repris dans le message.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<Text>,
 }
 
 impl Issue {
@@ -56,6 +60,7 @@ impl Issue {
             column: None,
             detail: None,
             text: None,
+            name: None,
         }
     }
 
@@ -101,6 +106,11 @@ impl Issue {
 
     pub fn text(mut self, t: Text) -> Self {
         self.text = Some(t);
+        self
+    }
+
+    pub fn name(mut self, n: Text) -> Self {
+        self.name = Some(n);
         self
     }
 

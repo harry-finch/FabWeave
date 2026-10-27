@@ -48,7 +48,7 @@ Repère : millimètres, pièce **centrée sur (0, 0)**, Z vers le haut, **Z = 0 
 
 Langage : `let x = …;` (réaffectable : `x = x + 1;`), `if … { } else { }`, `for i in 0..n { }` (n exclu) et `for i in 0..=n { }` (n inclus), `while`, tableaux `[1, 2]`, chaînes `` `n = ${n}` ``. Entiers et flottants se mélangent dans les calculs (`k * 0.2`), sauf la division de deux entiers. Les fermetures `|t, a, z| …` voient les variables du script. Une fonction `fn nom(a, b) { … }` est permise mais **ne voit aucune variable extérieure** (ni `params`, ni `printer`) : lui passer en arguments ce dont elle a besoin. Le **premier point est rejoint par un déplacement** ; chaque point suivant décrit le mouvement depuis le précédent. Le script se termine par le parcours (dernière ligne : `path`).
 
-Variables fournies : `params.<id>` (constantes), `printer.nozzle_diameter`, `printer.layer_height`, `printer.first_layer_height`, `PI`, `TAU` (= 2π).
+Variables fournies : `params.<id>` (constantes), `printer.nozzle_diameter`, `printer.layer_height`, `printer.first_layer_height`, `printer.nozzle_cone_angle` et `printer.nozzle_cone_height` (cône de dégagement de la buse, 0 si inconnu : tester `> 0`), `PI`, `TAU` (= 2π).
 
 **Parcours** (`let path = new_path();`) :
 

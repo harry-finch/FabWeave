@@ -11,6 +11,7 @@
 pub mod fill;
 pub mod format;
 pub mod gcode;
+pub mod image;
 pub mod issue;
 pub mod model;
 pub mod package;

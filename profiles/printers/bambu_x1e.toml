@@ -10,11 +10,14 @@
 # - scan lidar de la première couche et détection d'impression dans le vide
 #   retirés : un parcours FabWeave n'est pas une suite de couches planes.
 # Filament : bobine de l'AMS en emplacement 1, ou bobine externe.
-# Zone de purge et d'essuyage à l'avant du plateau (Y < 15 mm) : la pièce,
-# centrée, ne l'atteint qu'au-delà de 226 mm de profondeur.
+# Zones exclues : coin avant gauche (`bed_exclude_area` de Bambu Studio) et
+# bande avant où le gabarit trace ses lignes de purge et de calibration
+# (Y < 13 mm) ; la pièce, centrée, ne l'atteint qu'au-delà de 230 mm de
+# profondeur. Accélérations de Bambu Studio (paroi extérieure, première
+# couche, déplacements plafonnés par la machine), jerk de la machine.
 
 format = "fabweave.printer"
-version = 1
+version = 2
 
 [printer]
 id = "bambu_x1e"
@@ -28,6 +31,10 @@ size = [256.0, 256.0]
 max_height = 250.0
 origin = "corner"
 plate = "Textured PEI Plate"
+exclude = [
+    { name = { fr = "coin avant gauche", en = "front left corner" }, min = [0.0, 0.0], max = [18.0, 28.0] },
+    { name = { fr = "lignes de purge", en = "purge lines" }, min = [18.0, 0.0], max = [241.0, 13.0] },
+]
 
 [nozzle]
 diameter = 0.4
@@ -38,12 +45,18 @@ abrasive = true
 max_print_speed = 300.0
 travel_speed = 300.0
 max_z_speed = 15.0
+acceleration = 5000.0
+travel_acceleration = 9000.0
+first_layer_acceleration = 500.0
+jerk = 9.0
 
 [layers]
 layer_height = 0.2
 first_layer_height = 0.2
 
 [gcode]
+# Vignette dans le G-code (bloc THUMBNAIL_BLOCK de Bambu Studio).
+thumbnails = ["300x300/PNG"]
 start = '''
 ;===== machine: X1E-0.4 =========================
 ;===== date: 20251031 =====================

@@ -126,6 +126,7 @@ Le script est écrit en [Rhai](https://rhai.rs/book/) (syntaxe proche de Rust et
 | `printer.nozzle_diameter` | Diamètre de buse (mm). |
 | `printer.layer_height` | Hauteur de couche conseillée par le profil (mm). |
 | `printer.first_layer_height` | Hauteur de première couche du profil (mm). |
+| `printer.nozzle_cone_angle`, `printer.nozzle_cone_height` | Cône de dégagement de la buse : pente maximale d'une surface que la buse peut longer (degrés depuis l'horizontale) et hauteur du cône (mm) ; **0 si le profil ne les donne pas** (tester `> 0` avant de s'en servir, par exemple pour avertir d'une pente non planaire trop forte). |
 | `PI`, `TAU` | π et 2π. |
 
 ### API du parcours
@@ -258,9 +259,9 @@ Mesurée sur Apple M4 (voir [ADR-0002](adr/0002-format-weave-toml-et-rhai.md)) :
 ## 4. Ce que fait le moteur
 
 1. Contrôle les valeurs des paramètres, exécute le script.
-2. Centre l'encombrement de la pièce sur le plateau ; refuse une pièce qui dépasse le plateau, descend sous Z = 0 ou dépasse la hauteur d'impression.
-3. Pour chaque mouvement : extrusion relative `E` = section × longueur 3D × multiplicateur de débit ÷ section du filament ; vitesse = demande du script, plafonnée (première couche, machine, débit volumétrique, axe Z) ; ventilateur (première couche, filament, script, ponts).
-4. Écrit le G-code : gabarit de démarrage du profil, `M83`, mouvements (seuls les axes qui changent), consignes de température après la première couche, gabarit de fin, métadonnées (temps estimé, filament) lues par les imprimantes Prusa.
+2. Centre l'encombrement de la pièce sur le plateau ; refuse une pièce qui dépasse le plateau, descend sous Z = 0, dépasse la hauteur d'impression ou passe dans une zone exclue du plateau (purge, pinces).
+3. Pour chaque mouvement : extrusion relative `E` = section × longueur 3D × multiplicateur de débit ÷ section du filament ; vitesse = demande du script, plafonnée (première couche, machine, débit volumétrique, axe Z) ; ventilateur (première couche, filament, script, ponts) ; durée avec les accélérations du profil (trapèze de vitesse, passage des angles limité par le *jerk*).
+4. Écrit le G-code : vignettes du profil, gabarit de démarrage, `M83`, accélérations, mouvements (seuls les axes qui changent) avec progression `M73 P R` et changements de couche dans le dialecte du profil, consignes de température après la première couche, gabarit de fin, métadonnées (temps estimé, filament) lues par les imprimantes Prusa.
 
 ## 5. Messages du moteur
 
@@ -284,22 +285,25 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `param.invalid_options`, `param.duplicate_option`, `param.unknown_option` | erreur | Paramètre `choice` mal défini, ou valeur hors liste. |
 | `path.empty` | erreur | Aucun mouvement ne dépose de matière. |
 | `path.out_of_bed`, `path.below_bed`, `path.too_high` | erreur | La pièce ne tient pas dans le volume d'impression. |
+| `path.excluded_zone` | erreur | La pièce passe dans une zone exclue du plateau (`field` : `printer.bed.exclude[i]`, `name` : nom de la zone par langue, `count` : segments en cause). |
 | `path.duplicates_skipped` | info (avertissement au-delà d'un point sur dix) | Points confondus avec le précédent, ignorés. |
 | `speed.limited_first_layer`, `speed.limited_machine`, `speed.limited_flow`, `speed.limited_z` | info | Vitesse plafonnée (nombre de segments, valeur du plafond). |
 | `nozzle.not_recommended` | avertissement | Buse hors de `recommended_nozzle`. |
 
 ## 6. Profils
 
-Deux fichiers TOML, lus strictement comme l'en-tête des modèles : `profiles/printers/*.toml` (`format = "fabweave.printer"`) et `profiles/filaments/*.toml` (`format = "fabweave.filament"`). Exemples commentés : [prusa_mk4s.toml](../profiles/printers/prusa_mk4s.toml), [bambu_x1e.toml](../profiles/printers/bambu_x1e.toml), [generic_pla.toml](../profiles/filaments/generic_pla.toml).
+Deux fichiers TOML, lus strictement comme l'en-tête des modèles : `profiles/printers/*.toml` (`format = "fabweave.printer"`, `version = 2`) et `profiles/filaments/*.toml` (`format = "fabweave.filament"`, `version = 1`). Exemples commentés : [prusa_mk4s.toml](../profiles/printers/prusa_mk4s.toml), [bambu_x1e.toml](../profiles/printers/bambu_x1e.toml), [marlin_generic.toml](../profiles/printers/marlin_generic.toml), [klipper_generic.toml](../profiles/printers/klipper_generic.toml), [generic_pla.toml](../profiles/filaments/generic_pla.toml).
+
+**Version 2 du profil imprimante** (FabWeave 0.3) : zones exclues, accélérations, cône de la buse, vignettes, nom par langue. Tous ces champs sont facultatifs : un profil `version = 1` se lit sans changement (test de lecture : `crates/fabweave-core/tests/fixtures/prusa_mk4s_v1.toml`), sans zone, sans accélération (temps estimé = longueur ÷ vitesse, aucun `M204`) ni vignette.
 
 | Imprimante | Contenu |
 | --- | --- |
-| `[printer]` | `id`, `name`, `model` (annoncé au firmware : `M862.3` des Prusa, `printer_model_id` du paquet Bambu, `C13` pour la X1E), `firmware` (`prusa`, `marlin`, `klipper`, `bambu`), `source` |
-| `[bed]` | `size = [x, y]`, `max_height`, `origin = "corner"` ou `"center"`, `plate` (facultatif : type de plaque, variable `bed_type` ; Bambu Lab : `"Textured PEI Plate"`, `"Cool Plate"`, `"Engineering Plate"`, `"High Temp Plate"`) |
-| `[nozzle]` | `diameter`, `high_flow`, `abrasive` |
-| `[limits]` | `max_print_speed`, `travel_speed`, `max_z_speed` (mm/s) |
+| `[printer]` | `id`, `name` (texte, ou table par langue `{ fr = "…", en = "…" }`), `model` (annoncé au firmware : `M862.3` des Prusa, `printer_model_id` du paquet Bambu, `C13` pour la X1E), `firmware` (`prusa`, `marlin`, `klipper`, `bambu` ; tout autre nom est refusé), `source` |
+| `[bed]` | `size = [x, y]`, `max_height`, `origin = "corner"` ou `"center"`, `plate` (facultatif : type de plaque, variable `bed_type` ; Bambu Lab : `"Textured PEI Plate"`, `"Cool Plate"`, `"Engineering Plate"`, `"High Temp Plate"`), `exclude` (facultatif : zones interdites à la pièce, `{ name = { fr, en }, min = [x, y], max = [x, y] }` en repère machine ; dessinées hachurées sur le plateau ; erreur `path.excluded_zone` si un mouvement imprimé y passe) |
+| `[nozzle]` | `diameter`, `high_flow`, `abrasive`, `cone_angle` et `cone_height` (facultatifs : cône de dégagement, pente maximale en degrés de 0 à 90 exclus, hauteur en mm ; transmis au script) |
+| `[limits]` | `max_print_speed`, `travel_speed`, `max_z_speed` (mm/s) ; facultatifs : `acceleration` (impression, mm/s²), `travel_acceleration` et `first_layer_acceleration` (sinon `acceleration`, qu'ils exigent), `jerk` (saut de vitesse dans un angle, mm/s, 8 par défaut ; pour l'estimation seulement) |
 | `[layers]` | `layer_height`, `first_layer_height` (transmis au script) |
-| `[gcode]` | `start`, `end` : gabarits (ci-dessous) |
+| `[gcode]` | `start`, `end` : gabarits (ci-dessous) ; `thumbnails` (facultatif) : vignettes du parcours intégrées au G-code, `["16x16/QOI", "380x285/PNG"]` comme le réglage de PrusaSlicer (PNG ou QOI, 1 024 px de côté au plus ; `profile.invalid_thumbnail` sinon) |
 
 | Filament | Contenu |
 | --- | --- |
@@ -320,11 +324,26 @@ G1 Z{min(max_z + 1, max_print_height)} F720
 {if first_layer_bed_temperature <= 60 { "M106 S100" }}
 ```
 
-Variables : `printer_model`, `printer_name`, `filament_type`, `filament_name`, `model_name` (textes) ; `nozzle_high_flow`, `nozzle_abrasive`, `filament_abrasive` (booléens) ; `nozzle_diameter`, `bed_size_x`, `bed_size_y`, `max_print_height`, `first_layer_temperature`, `temperature`, `first_layer_bed_temperature`, `bed_temperature`, `probe_temperature`, `idle_temperature`, `chamber_temperature`, `pressure_advance`, `retraction_length`, `retraction_speed`, `first_layer_min_x`, `first_layer_min_y`, `first_layer_max_x`, `first_layer_max_y`, `print_min_x`, `print_min_y`, `print_max_x`, `print_max_y`, `max_z` (nombres, repère de la machine), `max_volumetric_speed` (débit volumétrique maximal du filament, mm³/s) ; `bed_type` (texte, plaque du profil). Fonction `num(x)` : nombre écrit comme une expression du gabarit (3 décimales au plus), à utiliser dans une chaîne interpolée. Un bloc de plusieurs lignes s'écrit en chaîne entre accents graves : ``{if chamber_temperature >= 40 { `M141 S${num(chamber_temperature)}` }}`` ; dans un profil, mettre alors le gabarit en chaîne TOML littérale `'''…'''` (sans échappements). Une variable inconnue est une erreur dès la lecture du profil (`profile.template_error`).
+Variables : `printer_model`, `printer_name`, `filament_type`, `filament_name`, `model_name` (textes) ; `nozzle_high_flow`, `nozzle_abrasive`, `filament_abrasive` (booléens) ; `nozzle_diameter`, `bed_size_x`, `bed_size_y`, `max_print_height`, `first_layer_temperature`, `temperature`, `first_layer_bed_temperature`, `bed_temperature`, `probe_temperature`, `idle_temperature`, `chamber_temperature`, `pressure_advance`, `retraction_length`, `retraction_speed`, `first_layer_min_x`, `first_layer_min_y`, `first_layer_max_x`, `first_layer_max_y`, `print_min_x`, `print_min_y`, `print_max_x`, `print_max_y`, `max_z` (nombres, repère de la machine), `max_volumetric_speed` (débit volumétrique maximal du filament, mm³/s), `acceleration`, `travel_acceleration`, `first_layer_acceleration` (mm/s², 0 si le profil n'en donne pas), `total_layer_count` (couches au sens du compteur de l'imprimante, voir plus bas), `estimated_time` (s) ; `bed_type` (texte, plaque du profil). Fonction `num(x)` : nombre écrit comme une expression du gabarit (3 décimales au plus), à utiliser dans une chaîne interpolée. Un bloc de plusieurs lignes s'écrit en chaîne entre accents graves : ``{if chamber_temperature >= 40 { `M141 S${num(chamber_temperature)}` }}`` ; dans un profil, mettre alors le gabarit en chaîne TOML littérale `'''…'''` (sans échappements). Une variable inconnue est une erreur dès la lecture du profil (`profile.template_error`).
 
-### Dialecte Bambu Lab et paquet `.gcode.3mf`
+### Dialectes
 
-Pour un profil `firmware = "bambu"`, le G-code commence par l'en-tête que lit le firmware (`; HEADER_BLOCK_START` … `; HEADER_BLOCK_END` : durée, nombre de couches, filament, hauteur maximale) et porte à chaque couche `M73 L<n>` et `M991 S0 P<n−1>` (compteur de couches à l'écran) ainsi que `M73 P<%> R<minutes>` (progression). Un parcours FabWeave n'a pas toujours de couches : une couche commence quand l'impression dépasse d'une hauteur de couche du profil le début de la précédente (en spirale ou en non planaire, ce sont des paliers de hauteur atteinte).
+Ce que le moteur écrit lui-même, selon `firmware` (le reste vient des gabarits) :
+
+| | Prusa | Marlin | Klipper | Bambu Lab |
+| --- | --- | --- | --- | --- |
+| En tête de fichier | `; generated by FabWeave`, vignettes | idem | idem | `HEADER_BLOCK` (durée, couches, filament), vignettes entre `; THUMBNAIL_BLOCK_START` et `_END` |
+| Accélérations | `M204 P<impression> T<déplacements>` | idem | `M204 S`, réécrit à chaque passage impression ↔ déplacement | idem Klipper |
+| Couches | `;LAYER_CHANGE`, `;Z:`, `;HEIGHT:` (comme PrusaSlicer) | idem | `SET_PRINT_STATS_INFO TOTAL_LAYER` puis `CURRENT_LAYER` | `M73 L<n>`, `M991 S0 P<n−1>` (compteur à l'écran) |
+| Progression | `M73 P<%> R<minutes>` à chaque changement de l'un des deux | idem | idem (Klipper lit `P`) | idem, et à chaque couche |
+
+L'accélération de la première couche s'applique jusqu'au premier mouvement au-dessus d'elle, puis celle d'impression. L'avance de pression du filament (`pressure_advance`) passe par les gabarits : `M572 S` (Prusa), `M900 K` (Marlin), `SET_PRESSURE_ADVANCE ADVANCE=` (Klipper), écrite seulement si elle est donnée (`{if pressure_advance > 0 { … }}`).
+
+Vignettes (`[gcode] thumbnails`) : rendu du parcours en vue oblique, fond transparent, encodé en PNG ou QOI puis en base64, lignes de 78 caractères au plus, au format de PrusaSlicer (`; thumbnail begin 380x285 <longueur>` … `; thumbnail end`, `; thumbnail_QOI begin …` pour le QOI).
+
+Un parcours FabWeave n'a pas toujours de couches : une couche commence quand l'impression dépasse d'une hauteur de couche du profil le début de la précédente (en spirale ou en non planaire, ce sont des paliers de hauteur atteinte).
+
+### Paquet `.gcode.3mf` (Bambu Lab)
 
 L'export propose alors aussi le **paquet `.gcode.3mf`** (CLI : sortie en `.gcode.3mf`) : archive ZIP qui contient `Metadata/plate_1.gcode`, sa somme MD5, `slice_info.config` (modèle d'imprimante `model`, buse, durée, poids, filament), `model_settings.config`, `plate_1.json` et des vignettes PNG du parcours (512 et 128 px). Choix et essai : [ADR-0005](adr/0005-bambu-lab-x1e-par-la-carte-sd.md).
 

@@ -1,13 +1,22 @@
-//! Écriture du G-code à partir du plan : gabarit de démarrage, parcours en
-//! extrusion relative (`M83`), gabarit de fin, métadonnées lues par les
-//! imprimantes Prusa (temps estimé, filament).
+//! Écriture du G-code à partir du plan : vignettes, gabarit de démarrage,
+//! accélérations, parcours en extrusion relative (`M83`) avec progression
+//! (`M73 P R`) et changements de couche, gabarit de fin, métadonnées lues
+//! par les imprimantes Prusa (temps estimé, filament).
 //!
-//! Dialecte Bambu Lab (`firmware = "bambu"`) : en-tête `HEADER_BLOCK` lu par
-//! le firmware (durée, nombre de couches, filament), et à chaque couche
-//! `M73 L` / `M991` (compteur de couches à l'écran) et `M73 P R` (progression).
-//! Les parcours continus ou non planaires n'ont pas de couches : une couche
+//! Couches : les parcours continus ou non planaires n'en ont pas ; une couche
 //! commence quand l'impression dépasse d'une hauteur de couche du profil le
-//! début de la précédente (paliers de hauteur atteinte).
+//! début de la précédente (paliers de hauteur atteinte). Chaque dialecte les
+//! annonce à sa façon :
+//! - Prusa, Marlin : commentaires `;LAYER_CHANGE`, `;Z:`, `;HEIGHT:` (ceux de
+//!   PrusaSlicer, lus par les visionneuses et OctoPrint) ;
+//! - Klipper : `SET_PRINT_STATS_INFO` (couche courante dans Mainsail, Fluidd) ;
+//! - Bambu Lab : en-tête `HEADER_BLOCK` lu par le firmware (durée, nombre de
+//!   couches, filament), puis `M73 L` / `M991` (compteur à l'écran).
+//!
+//! Accélérations (si le profil les donne) : `M204 P T` (Prusa, Marlin :
+//! impression et déplacements), `M204 S` réécrit à chaque changement
+//! (Klipper, Bambu Lab : une seule accélération) ; celle de la première
+//! couche, puis celle d'impression.
 //!
 //! Machine à états : un axe, une vitesse `F` ou une consigne de ventilateur
 //! n'est écrit que s'il change.
@@ -18,12 +27,13 @@ use indexmap::IndexMap;
 use rhai::Scope;
 
 use crate::format::{duration, num};
+use crate::image;
 use crate::issue::Issue;
 use crate::model::Model;
 use crate::params::ParamValue;
 use crate::path::{MoveKind, Toolpath};
 use crate::plan::Plan;
-use crate::profile::{FilamentProfile, PrinterProfile};
+use crate::profile::{Accelerations, FilamentProfile, Firmware, ImageFormat, PrinterProfile};
 use crate::template::TemplateEngine;
 
 /// Tout ce qu'il faut pour écrire un G-code.
@@ -48,6 +58,7 @@ pub fn template_scope(
     filament: &FilamentProfile,
     plan: &Plan,
     model_name: &str,
+    layers: usize,
 ) -> Scope<'static> {
     let s = &plan.stats;
     scope(
@@ -56,6 +67,7 @@ pub fn template_scope(
         [s.first_layer_bounds.min, s.first_layer_bounds.max],
         [s.bounds.min, s.bounds.max],
         model_name,
+        [layers as f64, s.time],
     )
 }
 
@@ -107,6 +119,11 @@ const FLOAT_VARIABLES: &[&str] = &[
     "print_max_y",
     "max_z",
     "max_volumetric_speed",
+    "acceleration",
+    "travel_acceleration",
+    "first_layer_acceleration",
+    "total_layer_count",
+    "estimated_time",
 ];
 
 fn scope(
@@ -115,10 +132,11 @@ fn scope(
     first_layer: [[f64; 3]; 2],
     print: [[f64; 3]; 2],
     model_name: &str,
+    [layers, time]: [f64; 2],
 ) -> Scope<'static> {
     let mut s = Scope::new();
     s.push_constant("printer_model", p.printer.model.clone());
-    s.push_constant("printer_name", p.printer.name.clone());
+    s.push_constant("printer_name", p.printer.name.get("fr").to_string());
     s.push_constant("filament_type", f.filament.material.clone());
     s.push_constant("filament_name", f.filament.name.get("fr").to_string());
     s.push_constant("model_name", model_name.to_string());
@@ -151,6 +169,11 @@ fn scope(
         print[1][1],
         print[1][2],
         f.speed.max_volumetric,
+        p.limits.acceleration.unwrap_or(0.0),
+        p.limits.accelerations().map_or(0.0, |a| a.travel),
+        p.limits.accelerations().map_or(0.0, |a| a.first_layer),
+        layers,
+        time,
     ];
     for (name, v) in FLOAT_VARIABLES.iter().zip(values) {
         s.push_constant(*name, v);
@@ -268,15 +291,91 @@ pub fn layer_starts(job: &Job) -> Vec<usize> {
     out
 }
 
-/// Progression façon Bambu Studio : pourcentage écoulé, minutes restantes.
-fn progress(g: &mut String, elapsed: f64, total: f64) {
-    let pct = if total > 0.0 {
-        (elapsed / total * 100.0).floor().clamp(0.0, 100.0)
-    } else {
-        100.0
-    };
-    let left = ((total - elapsed).max(0.0) / 60.0).ceil();
-    line!(g, "M73 P{} R{}", pct as u32, left as u32);
+/// Progression `M73 P R` (pourcentage écoulé, minutes restantes), écrite
+/// quand l'un des deux change (Prusa, Marlin, Klipper, Bambu Lab).
+struct Progress {
+    total: f64,
+    last: Option<(u32, u32)>,
+}
+
+impl Progress {
+    fn at(&mut self, g: &mut String, elapsed: f64, force: bool) {
+        let pct = if self.total > 0.0 {
+            (elapsed / self.total * 100.0).floor().clamp(0.0, 100.0)
+        } else {
+            100.0
+        } as u32;
+        let left = ((self.total - elapsed).max(0.0) / 60.0).ceil() as u32;
+        if force || self.last != Some((pct, left)) {
+            line!(g, "M73 P{pct} R{left}");
+            self.last = Some((pct, left));
+        }
+    }
+}
+
+/// Accélération en cours (dialectes à une seule accélération).
+struct Accel {
+    acc: Accelerations,
+    single: bool,
+    current: f64,
+}
+
+impl Accel {
+    fn set(&mut self, g: &mut String, travel: bool, first_layer: bool) {
+        let a = if travel && self.single {
+            self.acc.travel
+        } else if first_layer {
+            self.acc.first_layer
+        } else {
+            self.acc.print
+        };
+        if a == self.current {
+            return;
+        }
+        if self.single {
+            line!(g, "M204 S{}", num(a, 0));
+        } else {
+            line!(g, "M204 P{} T{}", num(a, 0), num(self.acc.travel, 0));
+        }
+        self.current = a;
+    }
+}
+
+/// Vignettes du profil en commentaires (format de PrusaSlicer : base64 en
+/// lignes de 78 caractères).
+fn thumbnails(g: &mut String, job: &Job) {
+    let specs = job.printer.gcode.thumbnail_specs();
+    if specs.is_empty() {
+        return;
+    }
+    let bambu = job.printer.printer.firmware == Firmware::Bambu;
+    if bambu {
+        line!(g, "; THUMBNAIL_BLOCK_START");
+    }
+    for spec in specs {
+        let tag = match spec.format {
+            ImageFormat::Png => "thumbnail",
+            ImageFormat::Qoi => "thumbnail_QOI",
+        };
+        let b64 = image::base64(&image::encode(job.path, job.plan, spec));
+        line!(g, ";");
+        line!(
+            g,
+            "; {tag} begin {}x{} {}",
+            spec.width,
+            spec.height,
+            b64.len()
+        );
+        for chunk in b64.as_bytes().chunks(78) {
+            line!(g, "; {}", std::str::from_utf8(chunk).unwrap_or_default());
+        }
+        line!(g, "; {tag} end");
+        line!(g, ";");
+    }
+    if bambu {
+        line!(g, "; THUMBNAIL_BLOCK_END");
+    }
+    g.push('\n');
 }
 
 pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
@@ -285,7 +384,8 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
     let lim = &p.limits;
     let engine = TemplateEngine::new();
     let model_name = job.model.meta.name.get("fr").to_string();
-    let vars = template_scope(p, f, plan, &model_name);
+    let layers = layer_starts(job);
+    let vars = template_scope(p, f, plan, &model_name, layers.len());
     let start = render(&engine, "gcode.start", &p.gcode.start, &vars);
     let end = render(&engine, "gcode.end", &p.gcode.end, &vars);
     let (start, end) = match (start, end) {
@@ -295,8 +395,8 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
 
     let mut g = String::with_capacity(plan.moves.len() * 36 + start.len() + end.len() + 2048);
     let s = &plan.stats;
-    let bambu = p.printer.firmware == "bambu";
-    let layers = if bambu { layer_starts(job) } else { Vec::new() };
+    let firmware = p.printer.firmware;
+    let bambu = firmware == Firmware::Bambu;
     if bambu {
         line!(g, "; HEADER_BLOCK_START");
         line!(g, "; FabWeave {}", crate::version());
@@ -326,22 +426,42 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         line!(g, "; max_z_height: {}", num(s.bounds.max[2], 2));
         line!(g, "; HEADER_BLOCK_END");
         g.push('\n');
+    } else {
+        line!(g, "; generated by FabWeave {}", crate::version());
+        g.push('\n');
     }
-    line!(g, "; generated by FabWeave {}", crate::version());
+    thumbnails(&mut g, job);
+    if bambu {
+        line!(g, "; generated by FabWeave {}", crate::version());
+    }
     line!(g, "; model = {}", model_name);
     for (k, v) in job.params {
         line!(g, "; param {k} = {}", param_text(v));
     }
-    line!(g, "; printer = {}", p.printer.name);
+    line!(g, "; printer = {}", p.printer.name.get("fr"));
     line!(g, "; filament = {}", f.filament.name.get("fr"));
     g.push('\n');
     g.push_str(&start);
     g.push('\n');
     line!(g, "; --- FabWeave : parcours ---");
-    if bambu {
-        progress(&mut g, 0.0, s.time);
+    let mut progress = Progress {
+        total: s.time,
+        last: None,
+    };
+    progress.at(&mut g, 0.0, true);
+    if firmware == Firmware::Klipper {
+        line!(g, "SET_PRINT_STATS_INFO TOTAL_LAYER={}", layers.len());
+    }
+    let mut accel = lim.accelerations().map(|acc| Accel {
+        acc,
+        single: firmware.single_acceleration(),
+        current: f64::NAN,
+    });
+    if let Some(a) = accel.as_mut() {
+        a.set(&mut g, true, true);
     }
     let mut next_layer = layers.iter().copied().enumerate().peekable();
+    let mut layer_z = 0.0;
     let mut elapsed = 0.0;
 
     let off = plan.offset;
@@ -382,17 +502,35 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         let b = [w.x + off[0], w.y + off[1], w.z + off[2]];
         if let Some(&(n, _)) = next_layer.peek().filter(|(_, at)| *at == i) {
             next_layer.next();
-            line!(g, "; CHANGE_LAYER");
-            line!(g, "; Z_HEIGHT: {}", num(b[2], 3));
-            line!(
-                g,
-                "; layer num/total_layer_count: {}/{}",
-                n + 1,
-                layers.len()
-            );
-            line!(g, "M73 L{}", n + 1);
-            line!(g, "M991 S0 P{n} ; notify layer change");
-            progress(&mut g, elapsed, s.time);
+            match firmware {
+                Firmware::Bambu => {
+                    line!(g, "; CHANGE_LAYER");
+                    line!(g, "; Z_HEIGHT: {}", num(b[2], 3));
+                    line!(
+                        g,
+                        "; layer num/total_layer_count: {}/{}",
+                        n + 1,
+                        layers.len()
+                    );
+                    line!(g, "M73 L{}", n + 1);
+                    line!(g, "M991 S0 P{n} ; notify layer change");
+                }
+                Firmware::Klipper => {
+                    line!(g, "SET_PRINT_STATS_INFO CURRENT_LAYER={}", n + 1);
+                }
+                Firmware::Prusa | Firmware::Marlin => {
+                    line!(g, ";LAYER_CHANGE");
+                    line!(g, ";Z:{}", num(b[2], 3));
+                    line!(g, ";HEIGHT:{}", num(b[2] - layer_z, 3));
+                }
+            }
+            layer_z = b[2];
+            progress.at(&mut g, elapsed, bambu);
+        } else {
+            progress.at(&mut g, elapsed, false);
+        }
+        if let Some(a) = accel.as_mut() {
+            a.set(&mut g, w.kind == MoveKind::Travel, m.first_layer);
         }
         elapsed += m.time;
         if w.kind == MoveKind::Travel {
@@ -446,9 +584,7 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         st.g1(&mut g, [None; 3], Some(r.length), Some(r.speed));
     }
 
-    if bambu {
-        progress(&mut g, s.time, s.time);
-    }
+    progress.at(&mut g, s.time, false);
     line!(g, "; --- FabWeave : fin du parcours ---");
     g.push('\n');
     g.push_str(&end);
@@ -508,6 +644,8 @@ p
             nozzle_diameter: pr.nozzle.diameter,
             layer_height: pr.layers.layer_height,
             first_layer_height: pr.layers.first_layer_height,
+            nozzle_cone_angle: 0.0,
+            nozzle_cone_height: 0.0,
         };
         let out = eng.run(&c, &params, &ctx);
         let path = out.path.unwrap();
@@ -543,7 +681,7 @@ p
     }
 
     /// Lignes du parcours (entre les deux repères), valeurs de `E` masquées
-    /// sur les mouvements imprimés.
+    /// sur les mouvements imprimés, progression `M73` retirée (testée à part).
     fn path_lines(body: &str, printer_src: &str) -> Vec<String> {
         let src = format!("[meta]\nname = \"t\"\ncategory = \"t\"\n---\n{body}");
         let mut w = crate::Workbench::default();
@@ -557,6 +695,7 @@ p
         g[start..end]
             .lines()
             .skip(1)
+            .filter(|l| !l.starts_with("M73 "))
             .map(|l| {
                 let moves = l.contains(" X") || l.contains(" Y") || l.contains(" Z");
                 if moves && l.contains(" E") {
@@ -591,12 +730,18 @@ p",
         );
         // Encombrement 40 × 30 centré sur le plateau 250 × 210 : décalage (105, 90).
         let expected = [
+            // Accélérations de la première couche (impression, déplacements).
+            "M204 P500 T4000",
             // Déplacement initial : rétraction, montée, déplacement, descente.
             "G1 E-0.7 F2100",
             "G1 Z0.4 F720",
             "G1 X105 Y90 F10800",
             "G1 Z0.2 F720",
-            // Première couche : filament détendu, ventilateur coupé, 20 mm/s.
+            // Première couche : annoncée comme par PrusaSlicer.
+            ";LAYER_CHANGE",
+            ";Z:0.2",
+            ";HEIGHT:0.2",
+            // Filament détendu, ventilateur coupé, 20 mm/s.
             "G1 E0.7 F2100",
             "M107",
             "G1 X115 E* F1200",
@@ -604,11 +749,16 @@ p",
             // Déplacement court (0,5 mm < 1,5 mm) : ni rétraction ni saut.
             "G1 X115.5 F10800",
             "G1 X125 E* F1200",
+            // Hors de la première couche : accélération d'impression.
+            "M204 P1500 T4000",
             // Déplacement long : rétraction, saut au-dessus du plus haut des deux Z.
             "G1 E-0.7 F2100",
             "G1 Z0.6 F720",
             "G1 Y110 F10800",
             "G1 Z0.4 F720",
+            ";LAYER_CHANGE",
+            ";Z:0.4",
+            ";HEIGHT:0.2",
             // Deuxième couche : température de croisière une seule fois,
             // ventilateur du script (50 %), vitesse nominale 40 mm/s.
             "G1 E0.7 F2100",
@@ -618,6 +768,10 @@ p",
             // Retour au ventilateur du filament (100 %).
             "M106 S255",
             "G1 Y120 E*",
+            // Montée en imprimant : une couche de plus dès 0,2 mm gagné.
+            ";LAYER_CHANGE",
+            ";Z:0.6",
+            ";HEIGHT:0.2",
             "G1 X145 Z0.6 E*",
         ];
         assert_eq!(lines, expected);
@@ -654,6 +808,8 @@ p",
             nozzle_diameter: 0.4,
             layer_height: 0.2,
             first_layer_height: 0.2,
+            nozzle_cone_angle: 0.0,
+            nozzle_cone_height: 0.0,
         };
         let path = eng.run(&c, &params, &ctx).path.unwrap();
         let fi = filament();
@@ -669,6 +825,102 @@ p",
         .unwrap_err();
         assert_eq!(e[0].code, "profile.template_error");
         assert_eq!(e[0].field.as_deref(), Some("gcode.end"));
+    }
+
+    /// G-code complet d'un petit parcours sur deux couches.
+    fn two_layers(printer_src: &str) -> String {
+        let src = "[meta]\nname = \"t\"\ncategory = \"t\"\n---\nlet p = new_path();\np.travel_to(0, 0, 0.2);\np.print_to(30, 0, 0.2, 0.45, 0.2);\np.travel_to(30, 10, 0.2);\np.print_to(0, 10, 0.2, 0.45, 0.2);\np.print_to(0, 0, 0.4, 0.45, 0.2);\np.print_to(30, 0, 0.4, 0.45, 0.2);\np";
+        let mut w = crate::Workbench::default();
+        w.set_printer(printer_src).unwrap();
+        w.set_filament(crate::testing::PLA).unwrap();
+        w.load_model(src).unwrap();
+        w.gcode(&w.evaluate(&serde_json::Map::new())).unwrap()
+    }
+
+    #[test]
+    fn progress_runs_from_zero_to_one_hundred() {
+        for src in [
+            crate::testing::MK4S,
+            crate::testing::MARLIN,
+            crate::testing::KLIPPER,
+            crate::testing::X1E,
+        ] {
+            let g = two_layers(src);
+            let pct: Vec<u32> = g
+                .lines()
+                .filter_map(|l| l.strip_prefix("M73 P"))
+                .map(|l| l.split(' ').next().unwrap().parse().unwrap())
+                .collect();
+            assert_eq!(pct.first(), Some(&0));
+            assert_eq!(pct.last(), Some(&100));
+            assert!(pct.windows(2).all(|w| w[0] <= w[1]), "{pct:?}");
+            assert!(g.contains("\nM73 P100 R0\n"));
+        }
+    }
+
+    #[test]
+    fn each_dialect_announces_layers_and_accelerations() {
+        let g = two_layers(crate::testing::KLIPPER);
+        assert!(g.contains("SET_PRINT_STATS_INFO TOTAL_LAYER=2\n"));
+        assert!(g.contains("SET_PRINT_STATS_INFO CURRENT_LAYER=1\n"));
+        assert!(g.contains("SET_PRINT_STATS_INFO CURRENT_LAYER=2\n"));
+        assert!(g.contains("SET_PRESSURE_ADVANCE ADVANCE=0.036 ; avance de pression"));
+        assert!(!g.contains(";LAYER_CHANGE"));
+        // Une seule accélération : réécrite entre déplacements et impression.
+        let acc: Vec<&str> = g.lines().filter(|l| l.starts_with("M204")).collect();
+        assert_eq!(acc[..3], ["M204 S3000", "M204 S500", "M204 S3000"]);
+        assert!(acc.contains(&"M204 S2000"));
+
+        let g = two_layers(crate::testing::MARLIN);
+        assert!(g.contains("M900 K0.036 ; avance linéaire"));
+        assert_eq!(g.matches(";LAYER_CHANGE").count(), 2);
+        // Première couche et impression à 500 mm/s² : une seule consigne.
+        let acc: Vec<&str> = g.lines().filter(|l| l.starts_with("M204")).collect();
+        assert_eq!(acc, ["M204 P500 T1000"]);
+
+        let g = two_layers(crate::testing::X1E);
+        assert!(g.contains("; total layer number: 2\n"));
+        assert!(g.contains("M73 L2\n"));
+        assert!(g.contains("M204 S9000\n"));
+    }
+
+    #[test]
+    fn thumbnails_are_embedded_as_the_profile_asks() {
+        let g = two_layers(crate::testing::MK4S);
+        let begins: Vec<&str> = g
+            .lines()
+            .filter(|l| l.contains("thumbnail") && l.contains(" begin "))
+            .collect();
+        assert_eq!(begins.len(), 4);
+        assert!(begins[0].starts_with("; thumbnail_QOI begin 16x16 "));
+        assert!(begins[3].starts_with("; thumbnail begin 380x285 "));
+        // Longueur annoncée = base64 qui suit, en lignes d'au plus 78 caractères.
+        let start = g.find("; thumbnail begin 380x285 ").unwrap();
+        let block = &g[start..g[start..].find("; thumbnail end").unwrap() + start];
+        let mut lines = block.lines();
+        let len: usize = lines
+            .next()
+            .unwrap()
+            .rsplit(' ')
+            .next()
+            .unwrap()
+            .parse()
+            .unwrap();
+        let b64: Vec<&str> = lines.map(|l| l.strip_prefix("; ").unwrap()).collect();
+        assert!(b64.iter().all(|l| l.len() <= 78));
+        assert_eq!(b64.concat().len(), len);
+        // Vignettes avant le gabarit de démarrage, après la première ligne.
+        assert!(g.starts_with("; generated by FabWeave"));
+        assert!(start < g.find("M862.3").unwrap());
+
+        let g = two_layers(crate::testing::X1E);
+        let header = g.find("; HEADER_BLOCK_END").unwrap();
+        let thumbs = g.find("; THUMBNAIL_BLOCK_START").unwrap();
+        assert!(header < thumbs && thumbs < g.find("; thumbnail begin 300x300 ").unwrap());
+        assert!(g.contains("; THUMBNAIL_BLOCK_END\n"));
+
+        // Sans vignette dans le profil : aucune.
+        assert!(!two_layers(crate::testing::MARLIN).contains("thumbnail"));
     }
 
     #[test]

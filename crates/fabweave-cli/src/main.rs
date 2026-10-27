@@ -118,6 +118,7 @@ fn hint(code: &str) -> &'static str {
         "path.out_of_bed" => "la pièce dépasse du plateau",
         "path.too_high" => "la pièce dépasse la hauteur d'impression",
         "path.below_bed" => "un point descend sous Z = 0",
+        "path.excluded_zone" => "la pièce passe dans une zone exclue du plateau (purge…)",
         "path.invalid_width" | "path.invalid_height" => {
             "largeur et hauteur du boudin doivent être positives"
         }
@@ -146,6 +147,9 @@ fn describe(i: &Issue) -> String {
     s.push_str(&format!(" [{}]", i.code));
     if let Some(f) = &i.field {
         s.push_str(&format!(" {f}"));
+    }
+    if let Some(n) = &i.name {
+        s.push_str(&format!(" « {} »", n.get("fr")));
     }
     if let Some(v) = i.value {
         s.push_str(&format!(" = {v}"));
@@ -317,7 +321,10 @@ fn run() -> Result<bool, String> {
                             && (k == 0
                                 || !matches!(
                                     i.code,
-                                    "path.out_of_bed" | "path.too_high" | "model.failure"
+                                    "path.out_of_bed"
+                                        | "path.too_high"
+                                        | "path.excluded_zone"
+                                        | "model.failure"
                                 ))
                     })
                     .collect();

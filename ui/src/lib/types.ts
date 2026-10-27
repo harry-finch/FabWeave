@@ -47,11 +47,19 @@ export interface Issue {
   detail?: string;
   /** Texte écrit par l'auteur du modèle (`warn`, `fail`). */
   text?: Text;
+  /** Nom de l'élément du profil en cause (zone exclue du plateau). */
+  name?: Text;
+}
+
+export interface Zone {
+  name: Text;
+  min: [number, number];
+  max: [number, number];
 }
 
 export interface PrinterProfile {
-  printer: { id: string; name: string; model: string; firmware: string };
-  bed: { size: [number, number]; max_height: number; origin: 'corner' | 'center' };
+  printer: { id: string; name: Text; model: string; firmware: 'prusa' | 'marlin' | 'klipper' | 'bambu' };
+  bed: { size: [number, number]; max_height: number; origin: 'corner' | 'center'; exclude?: Zone[] };
   nozzle: { diameter: number };
   layers: { layer_height: number; first_layer_height: number };
 }

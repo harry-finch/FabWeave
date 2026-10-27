@@ -1,0 +1,73 @@
+# Imprimante Klipper générique, plateau 235 × 235 mm, buse 0,4 mm. Point de
+# départ à adapter à la machine (taille, vitesses, accélérations, gabarits).
+# Gabarit explicite, sans macro : si `printer.cfg` définit une macro de
+# démarrage, remplacer la chauffe et la purge par son appel, par exemple
+# `PRINT_START BED={first_layer_bed_temperature} EXTRUDER={first_layer_temperature}`.
+# Avance de pression du filament par `SET_PRESSURE_ADVANCE` (celle de
+# `printer.cfg` est gardée si le filament n'en donne pas). Une seule
+# accélération (`M204 S`), réglée à chaque passage impression ↔ déplacement ;
+# jerk : `square_corner_velocity` de Klipper (5 mm/s par défaut).
+
+format = "fabweave.printer"
+version = 2
+
+[printer]
+id = "klipper_generic"
+name = { fr = "Klipper générique 235 × 235", en = "Generic Klipper 235 × 235" }
+model = "KLIPPER"
+firmware = "klipper"
+source = "FabWeave, d'après la documentation de Klipper (Slicers, G-Codes)"
+
+[bed]
+size = [235.0, 235.0]
+max_height = 250.0
+origin = "corner"
+exclude = [
+    { name = { fr = "ligne de purge", en = "purge line" }, min = [0.0, 0.0], max = [3.0, 235.0] },
+]
+
+[nozzle]
+diameter = 0.4
+
+[limits]
+max_print_speed = 250.0
+travel_speed = 250.0
+max_z_speed = 10.0
+acceleration = 2000.0
+travel_acceleration = 3000.0
+first_layer_acceleration = 500.0
+jerk = 5.0
+
+[layers]
+layer_height = 0.2
+first_layer_height = 0.2
+
+[gcode]
+thumbnails = ["32x32/PNG", "300x300/PNG"]
+start = """
+G90 ; coordonnées absolues
+M83 ; extrusion relative
+M140 S{first_layer_bed_temperature} ; chauffe du plateau
+M104 S{probe_temperature} ; buse tiède pendant la prise d'origine
+G28 ; origine de tous les axes
+M190 S{first_layer_bed_temperature} ; attente du plateau
+M104 S{first_layer_temperature}
+M109 S{first_layer_temperature} ; attente de la buse
+{if pressure_advance > 0 { `SET_PRESSURE_ADVANCE ADVANCE=${num(pressure_advance)} ; avance de pression (filament)` }}
+
+; double ligne de purge le long du bord gauche
+G1 Z2 F600
+G1 X0.5 Y20 Z0.3 F6000
+G1 X0.5 Y200 Z0.3 E15 F1500
+G1 X0.9 Y200 Z0.3 F6000
+G1 X0.9 Y20 Z0.3 E15 F1500
+G1 Z2 F600
+"""
+end = """
+G1 E-2 F2700 ; rétraction
+G1 Z{min(max_z + 10, max_print_height)} F600 ; dégager la buse
+G1 X0 Y{bed_size_y - 10} F6000 ; présenter la pièce
+TURN_OFF_HEATERS
+M107 ; ventilateur coupé
+M84 ; moteurs libérés
+"""

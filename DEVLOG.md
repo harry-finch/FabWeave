@@ -141,3 +141,24 @@ v0.0 validée par l'utilisateur.
 **Défauts trouvés et corrigés.** Infobulle du bouton qui masquait le menu ; volume de filament de l'en-tête écrit en mm³ sous une étiquette en cm³ (d'après un souvenir non vérifié du format de Bambu Studio : corrigé en cm³). En nettoyant après les essais du catalogue, le fond du vase était resté sur « 2 couches » dans le navigateur de l'utilisateur : remis sur « Aucun ».
 
 **Non fait.** Essai sur la machine (⏸) ; zone de purge à l'avant du plateau non protégée par le moteur (Y < 15 mm, atteinte seulement par une pièce de plus de 226 mm de profondeur ; zones exclues à l'étape 2) ; profils A1, P1, X1.
+
+**Suite (27/10/2026).** Essai sur la X1E reporté par l'utilisateur, non bloquant : il se fera avec l'impression de validation de l'étape 6.
+
+## 2026-10-27 — v0.3, étape 2 : profils complets et dialectes
+
+**Entrées.** Profils PrusaSlicer (PrusaResearch 2.5.13) : vignettes `16x16/QOI, 313x173/QOI, 480x240/QOI, 380x285/PNG` de la MK4S et de la CORE One, accélérations des profils 0.20mm STRUCTURAL (parois extérieures 1 500 mm/s², première couche 500, déplacements 4 000 / 7 000), jerk 8 / 10. Bambu Studio (X1E) : `bed_exclude_area` (coin avant gauche 18 × 28 mm), jerk 9, déplacements plafonnés à 9 000 mm/s², parois extérieures 5 000. Spécification QOI (qoiformat.org) ; documentation de Klipper (`SET_PRINT_STATS_INFO`, `SET_PRESSURE_ADVANCE`, `M73`).
+
+**Choix.**
+- Profil imprimante **v2**, champs ajoutés tous facultatifs : un profil v1 se lit tel quel (la « migration » n'a rien à changer), et un lecteur v1 refuse un profil v2 sur son numéro de version plutôt que sur un champ inconnu. Profil MK4S de la v0.2 gardé comme fixture de lecture. `firmware` devient une énumération (nom inconnu refusé) ; `name` accepte une table par langue.
+- **Zones exclues** (`[bed] exclude`) : erreur `path.excluded_zone` (export bloqué) si un mouvement imprimé y passe (Liang–Barsky, bords tolérés) ; nom de la zone par langue porté par le message (nouveau champ `name` des messages). « Ligne de purge hors pièce » réglée ainsi : chaque gabarit purge dans une zone déclarée exclue (bord gauche pour Marlin et Klipper, bande avant Y < 13 mm et coin de Bambu Studio pour la X1E ; les Prusa purgent hors plateau, Y < 0). Zones hachurées sur le plateau de la vue 3D (jeton `--view-bed-exclude`).
+- **Temps avec accélérations** (ENG-15, avancé de la v0.4 parce que la progression `M73 R` en dépend) : trapèze de vitesse par mouvement, vitesse de passage d'un angle limitée par le jerk (écart des vecteurs vitesse, modèle de Marlin), passes arrière puis avant ; un déplacement rétracté part et finit à l'arrêt. Sans accélérations dans le profil, estimation inchangée.
+- **Dialectes** : progression `M73 P R` pour tous, écrite quand le pourcentage ou les minutes changent ; couches `;LAYER_CHANGE` / `;Z:` / `;HEIGHT:` (Prusa, Marlin), `SET_PRINT_STATS_INFO` (Klipper), `M73 L` / `M991` (Bambu). Accélérations : `M204 P T` (Prusa, Marlin), `M204 S` réécrit à chaque passage impression ↔ déplacement (Klipper, Bambu). L'avance de pression reste dans les gabarits, un par dialecte.
+- **Vignettes** (`[gcode] thumbnails`, syntaxe de PrusaSlicer) : rendu oblique du module `image.rs` (sorti de `package.rs`) à toute taille, encodeurs PNG et QOI et base64 écrits à la main (pas de dépendance) ; bloc `THUMBNAIL_BLOCK` de Bambu Studio pour la X1E.
+- **Cône de la buse** : champs `cone_angle` (pente maximale depuis l'horizontale) et `cone_height`, transmis au script (`printer.nozzle_cone_angle`, 0 si inconnu). Aucune valeur mise dans les profils livrés : les fabricants ne la publient pas, elle est à mesurer.
+- Profils **Marlin générique 220 × 220** (démarrage des profils Cura de l'Ender-3) et **Klipper générique 235 × 235** (gabarit explicite, appel d'une macro `PRINT_START` indiqué en commentaire) ; Bambu Lab A1, P1, X1 laissés de côté (pas de machine pour les essayer).
+
+**Vérification.** 65 tests (lecture du profil v1, contrôles du format v2, aller-retour QOI avec un décodeur écrit d'après la spécification, base64 de la RFC 4648, trapèzes et angles, zones exclues, progression de 0 à 100 sur quatre dialectes, couches et accélérations par dialecte, vignettes) ; le catalogue entier passe sur les cinq imprimantes. Vignettes d'un G-code de la MK4S relues par un décodeur Python indépendant (QOI et PNG, longueurs annoncées justes) et regardées. Navigateur : noms des profils en FR et EN, zones de la X1E hachurées, modèle d'essai traversant la bande de purge refusé avec le nom de la zone en FR et EN, export désactivé ; état remis (MK4S, vase, français) et modèle d'essai supprimé.
+
+**Défauts trouvés et corrigés.** Hachures mal coupées sur un côté de la zone ; message « 1 segments » (compte retiré du texte).
+
+**Non fait.** Valeurs du cône des machines du fablab ; temps estimé comparé à PrusaSlicer (critère ± 15 %) ; vignettes vues sur l'écran d'une Prusa ; profils A1, P1, X1.

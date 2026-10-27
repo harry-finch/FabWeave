@@ -24,6 +24,7 @@ export function issueText(i: Issue, model: ModelInfo | null): string {
     value: i.value == null ? '' : numTrim(i.value, 2),
     count: i.count ?? '',
     detail: i.detail ?? '',
+    name: i.name ? text(i.name) : '',
   };
   let s = t(key, params);
   if (s === key) s = i.code;

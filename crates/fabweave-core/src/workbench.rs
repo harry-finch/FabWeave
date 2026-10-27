@@ -83,6 +83,8 @@ impl Workbench {
             nozzle_diameter: p.nozzle.diameter,
             layer_height: p.layers.layer_height,
             first_layer_height: p.layers.first_layer_height,
+            nozzle_cone_angle: p.nozzle.cone_angle.unwrap_or(0.0),
+            nozzle_cone_height: p.nozzle.cone_height.unwrap_or(0.0),
         })
     }
 

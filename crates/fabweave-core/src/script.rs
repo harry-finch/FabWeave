@@ -1,7 +1,8 @@
 //! Exécution du corps Rhai d'un modèle en bac à sable (ADR-0002).
 //!
 //! - Variables injectées : `params` (valeurs des curseurs), `printer`
-//!   (`nozzle_diameter`, `layer_height`, `first_layer_height`), `PI`, `TAU`.
+//!   (`nozzle_diameter`, `layer_height`, `first_layer_height`,
+//!   `nozzle_cone_angle`, `nozzle_cone_height`), `PI`, `TAU`.
 //! - API du parcours : `new_path()`, puis `print_to`, `print_polar`,
 //!   `travel_to`, `set_speed`, `set_speed_factor`, `set_fan`, `reset_fan`.
 //! - Fonctions mathématiques réenregistrées depuis `libm` : même résultat en
@@ -52,6 +53,10 @@ pub struct PrinterContext {
     pub nozzle_diameter: f64,
     pub layer_height: f64,
     pub first_layer_height: f64,
+    /// Cône de dégagement de la buse : pente maximale (degrés) et hauteur
+    /// (mm) ; 0 si le profil ne les donne pas.
+    pub nozzle_cone_angle: f64,
+    pub nozzle_cone_height: f64,
 }
 
 /// Lignes de `print()` / `debug()` gardées au plus, par exécution.
@@ -516,6 +521,14 @@ impl ScriptEngine {
             "first_layer_height".into(),
             Dynamic::from_float(printer.first_layer_height),
         );
+        m.insert(
+            "nozzle_cone_angle".into(),
+            Dynamic::from_float(printer.nozzle_cone_angle),
+        );
+        m.insert(
+            "nozzle_cone_height".into(),
+            Dynamic::from_float(printer.nozzle_cone_height),
+        );
 
         let mut scope = Scope::new();
         scope.push_constant("PI", std::f64::consts::PI);
@@ -625,6 +638,8 @@ mod tests {
         nozzle_diameter: 0.4,
         layer_height: 0.2,
         first_layer_height: 0.2,
+        nozzle_cone_angle: 0.0,
+        nozzle_cone_height: 0.0,
     };
 
     fn run_src(body: &str) -> RunOutput {

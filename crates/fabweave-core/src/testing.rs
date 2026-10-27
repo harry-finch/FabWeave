@@ -4,6 +4,9 @@ use crate::profile::{parse_filament, parse_printer, FilamentProfile, PrinterProf
 
 pub const MK4S: &str = include_str!("../../../profiles/printers/prusa_mk4s.toml");
 pub const CORE_ONE: &str = include_str!("../../../profiles/printers/prusa_core_one.toml");
+pub const X1E: &str = include_str!("../../../profiles/printers/bambu_x1e.toml");
+pub const MARLIN: &str = include_str!("../../../profiles/printers/marlin_generic.toml");
+pub const KLIPPER: &str = include_str!("../../../profiles/printers/klipper_generic.toml");
 pub const PLA: &str = include_str!("../../../profiles/filaments/generic_pla.toml");
 pub const PETG: &str = include_str!("../../../profiles/filaments/generic_petg.toml");
 

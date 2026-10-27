@@ -45,6 +45,8 @@ fn every_model_prints_with_default_values() {
         "profiles/printers/prusa_mk4s.toml",
         "profiles/printers/prusa_core_one.toml",
         "profiles/printers/bambu_x1e.toml",
+        "profiles/printers/marlin_generic.toml",
+        "profiles/printers/klipper_generic.toml",
     ] {
         for filament in [
             "profiles/filaments/generic_pla.toml",

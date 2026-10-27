@@ -58,9 +58,10 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | ENG-10 | Machine à états : `F`, `M106` émis seulement au changement ; points en double ignorés (comptés) | v0.1 | fait |
 | ENG-11 | Gabarits de démarrage et de fin : expressions Rhai `{ … }` sur les variables de l'impression (ADR-0004) | v0.1 | fait |
 | ENG-12 | Métadonnées en commentaire : temps estimé, filament (mm, cm³, g), type, buse, modèle d'imprimante | v0.1 | fait |
-| ENG-13 | Dialectes : Marlin, Prusa Buddy, Klipper ; avance de pression | v0.3 | prévu |
-| ENG-14 | Vignette intégrée au G-code (PNG / QOI pour les écrans Prusa) | v0.3 | prévu |
-| ENG-15 | Estimation du temps avec accélérations | v0.4 | prévu |
+| ENG-13 | Dialectes : Marlin, Prusa Buddy, Klipper (accélérations `M204 P T` ou `M204 S`, couches `;LAYER_CHANGE` ou `SET_PRINT_STATS_INFO`, progression `M73 P R` pour tous) ; avance de pression par les gabarits (`M572`, `M900`, `SET_PRESSURE_ADVANCE`) | v0.3 | fait |
+| ENG-14 | Vignettes intégrées au G-code (PNG / QOI, tailles du profil, format de PrusaSlicer ; bloc `THUMBNAIL_BLOCK` pour Bambu Lab) | v0.3 | fait |
+| ENG-15 | Estimation du temps avec accélérations (trapèzes de vitesse, angles limités par le *jerk*, passes avant et arrière) ; avancée de la v0.4 pour la progression `M73` | v0.3 | fait |
+| ENG-20 | Zones exclues du plateau (purge, pinces) : pièce refusée si un mouvement imprimé y passe (`path.excluded_zone`), zones hachurées sur le plateau | v0.3 | fait |
 | ENG-16 | Mesures : nombre de points et de segments, longueur imprimée, déplacements, temps, filament, débit max, Z max, encombrement | v0.1 | fait |
 | ENG-17 | Bambu Lab : paquet `.gcode.3mf` (G-code, MD5, `slice_info.config`, `model_settings.config`, `plate_1.json`, vignettes PNG) et G-code brut, tous deux pour la carte SD (ADR-0005, proposée) | v0.3 | fait, à valider sur la X1E |
 | ENG-19 | Dialecte Bambu : en-tête `HEADER_BLOCK`, `M73 L` + `M991` à chaque couche (paliers de hauteur pour les parcours continus), progression `M73 P R` | v0.3 | fait, à valider sur la X1E |
@@ -73,10 +74,12 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | PRF-01 | Profil imprimante TOML : plateau, origine, buse, vitesses max, vitesse Z max, gabarits | v0.1 | fait |
 | PRF-02 | Profil filament TOML : diamètre, débit, températures, refroidissement, rétraction, débit volumétrique max, vitesse nominale | v0.1 | fait |
 | PRF-03 | Profils Prusa MK4S et Core One | v0.1 | fait |
-| PRF-09 | Profils Bambu Lab A1, P1, X1 et Marlin générique | v0.3 | prévu |
+| PRF-09 | Profils Bambu Lab A1, P1, X1 (Marlin générique : PRF-14) | v0.3 | prévu |
+| PRF-13 | Profil imprimante v2 : zones exclues, accélérations, cône, vignettes, nom par langue, dialecte contrôlé ; profil v1 lu sans changement (test sur le profil MK4S de la v0.2) | v0.3 | fait |
+| PRF-14 | Profils Marlin générique (220 × 220) et Klipper générique (235 × 235) : purge le long du bord gauche en zone exclue, avance de pression si le filament la donne | v0.3 | fait |
 | PRF-12 | Profil Bambu Lab X1E (gabarits de Bambu Studio 02.08 réécrits ; scan lidar retiré ; plaque `plate`) ; variables de gabarit `bed_type`, `max_volumetric_speed`, fonction `num()` | v0.3 | fait, à valider sur la X1E |
 | PRF-04 | Bibliothèque de filaments : PLA, PETG (faits en v0.1), TPU, ASA, PETG-CF | v0.3 | en cours |
-| PRF-05 | Cône de dégagement de la buse (angle, hauteur) | v0.3 | prévu |
+| PRF-05 | Cône de dégagement de la buse (angle, hauteur) : champs du profil, transmis au script (`printer.nozzle_cone_angle`, `_height`) ; valeurs des machines du fablab à mesurer | v0.3 | en cours |
 | PRF-06 | Facteur d'étirement des ponts par filament | v0.2 | prévu |
 | PRF-07 | Édition, duplication, import / export des profils (filaments et imprimantes) dans l'application ; origine de chaque valeur ; profils livrés jamais écrasés | v0.3 | prévu |
 | PRF-08 | Plateau rond (delta), origine au centre | v0.3 | prévu |
