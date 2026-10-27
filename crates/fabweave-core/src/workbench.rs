@@ -209,6 +209,12 @@ impl Workbench {
             ev.plan = pl;
             ev.path = Some(path);
         }
+        // Profil importé dont les gabarits n'ont pas été relus : le parcours
+        // se montre, le G-code attend.
+        if !printer.printer.review.is_empty() {
+            ev.issues
+                .push(Issue::error("profile.review_pending").field("printer.review"));
+        }
         ev.printer = Some(printer);
         ev.filament = Some(filament);
         ev

@@ -19,4 +19,4 @@ miniz_oxide = "0.8"
 rhai = { version = "1", default-features = false, features = ["std", "no_module", "no_time", "no_custom_syntax"] }
 serde.workspace = true
 serde_json.workspace = true
-toml = { version = "0.9", default-features = false, features = ["parse", "serde", "std", "preserve_order"] }
+toml = { version = "0.9", default-features = false, features = ["parse", "display", "serde", "std", "preserve_order"] }

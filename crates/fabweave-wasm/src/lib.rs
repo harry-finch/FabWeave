@@ -6,6 +6,7 @@
 //! Les messages gardent leur code stable (`param.out_of_range`…), traduit
 //! par l'interface.
 
+use fabweave_core::issue::has_error;
 use fabweave_core::{Evaluation, Issue, Workbench};
 use serde_json::{json, Map, Value};
 use wasm_bindgen::prelude::*;
@@ -26,16 +27,93 @@ pub fn read_model(source: &str) -> String {
     }
 }
 
-/// Profil sans le charger (liste des imprimantes et filaments) : `kind` vaut
-/// `printer` ou `filament`. JSON : `{ ok, profile }` ou `{ ok, issues }`.
+/// Profil sans le charger (listes des imprimantes et filaments, éditeur) :
+/// `kind` vaut `printer` ou `filament`. JSON : `{ ok, profile, issues }` ;
+/// un profil lisible mais aux valeurs fautives garde `profile` (pour être
+/// corrigé), `ok` est faux s'il y a une erreur.
 #[wasm_bindgen]
 pub fn read_profile(kind: &str, source: &str) -> String {
+    use fabweave_core::profile::{check_filament, check_printer, read_filament, read_printer};
     let r = match kind {
-        "printer" => fabweave_core::profile::parse_printer(source).map(|p| json!(p)),
-        _ => fabweave_core::profile::parse_filament(source).map(|f| json!(f)),
+        "printer" => read_printer(source).map(|p| (check_printer(&p), json!(p))),
+        _ => read_filament(source).map(|f| (check_filament(&f), json!(f))),
     };
     match r {
-        Ok(p) => json!({ "ok": true, "profile": p }).to_string(),
+        Ok((issues, p)) => {
+            json!({ "ok": !has_error(&issues), "profile": p, "issues": issues }).to_string()
+        }
+        Err(e) => issues_json(&e),
+    }
+}
+
+/// Profil modifié dans l'éditeur (JSON) : contrôlé et écrit en TOML.
+/// JSON : `{ ok, issues, toml }` (`toml` absent si le JSON ne décrit pas un
+/// profil).
+#[wasm_bindgen]
+pub fn check_profile(kind: &str, profile: &str) -> String {
+    use fabweave_core::profile::*;
+    let invalid =
+        |e: serde_json::Error| vec![Issue::error("profile.invalid").detail(e.to_string())];
+    let r = match kind {
+        "printer" => serde_json::from_str::<PrinterProfile>(profile)
+            .map_err(invalid)
+            .map(|p| (check_printer(&p), printer_toml(&p))),
+        _ => serde_json::from_str::<FilamentProfile>(profile)
+            .map_err(invalid)
+            .map(|f| (check_filament(&f), filament_toml(&f))),
+    };
+    match r {
+        Ok((issues, toml)) => {
+            json!({ "ok": !has_error(&issues), "issues": issues, "toml": toml }).to_string()
+        }
+        Err(e) => issues_json(&e),
+    }
+}
+
+/// Profils d'un fichier de trancheur (PrusaSlicer `.ini`, Bambu Studio ou
+/// OrcaSlicer `.json`). `bases` : `{ printers: [toml], filaments: [toml] }`,
+/// profils de départ possibles (le premier sert à défaut). JSON :
+/// `{ ok, profiles: [{ kind, profile, report, toml, issues }] }` ou
+/// `{ ok, issues }`.
+#[wasm_bindgen]
+pub fn import_profiles(source: &str, bases: &str) -> String {
+    use fabweave_core::import::{import, ImportedProfile};
+    use fabweave_core::profile::*;
+    let b: Value = serde_json::from_str(bases).unwrap_or_default();
+    let texts = |k: &str| -> Vec<String> {
+        b[k].as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|t| t.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let printers: Vec<_> = texts("printers")
+        .iter()
+        .filter_map(|t| parse_printer(t).ok())
+        .collect();
+    let filaments: Vec<_> = texts("filaments")
+        .iter()
+        .filter_map(|t| parse_filament(t).ok())
+        .collect();
+    match import(source, &printers, &filaments) {
+        Ok(found) => {
+            let profiles: Vec<Value> = found
+                .iter()
+                .map(|i| {
+                    let (issues, toml) = match &i.profile {
+                        ImportedProfile::Printer(p) => (check_printer(p), printer_toml(p)),
+                        ImportedProfile::Filament(f) => (check_filament(f), filament_toml(f)),
+                    };
+                    let mut v = json!(i);
+                    v["toml"] = json!(toml);
+                    v["issues"] = json!(issues);
+                    v
+                })
+                .collect();
+            json!({ "ok": true, "profiles": profiles }).to_string()
+        }
         Err(e) => issues_json(&e),
     }
 }

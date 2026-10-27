@@ -66,7 +66,15 @@ pub struct PrinterInfo {
     pub firmware: Firmware,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+    /// Champs à relire avant d'imprimer (`gcode.start`, `gcode.end`) : posé
+    /// à l'import depuis un trancheur, retiré par l'utilisateur après
+    /// relecture. Tant qu'il en reste, le G-code n'est pas exporté.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub review: Vec<String>,
 }
+
+/// Champs qu'un profil importé peut demander de relire.
+pub const REVIEW_FIELDS: &[&str] = &["gcode.start", "gcode.end"];
 
 /// Forme du plateau.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
@@ -213,12 +221,12 @@ pub struct NozzleLayers {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Templates {
-    pub start: String,
-    pub end: String,
     /// Vignettes intégrées au G-code, `"LxH/FORMAT"` (PNG ou QOI), comme le
     /// réglage `thumbnails` de PrusaSlicer.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub thumbnails: Vec<String>,
+    pub start: String,
+    pub end: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -477,7 +485,27 @@ fn percent(values: &[(&str, f64)], out: &mut Vec<Issue>) {
 }
 
 pub fn parse_printer(src: &str) -> Result<PrinterProfile, Vec<Issue>> {
-    let p: PrinterProfile = read(src)?;
+    let p = read_printer(src)?;
+    let out = check_printer(&p);
+    if out.is_empty() {
+        Ok(p)
+    } else {
+        Err(out)
+    }
+}
+
+/// Lecture seule (syntaxe et champs), sans contrôler les valeurs : un
+/// profil lisible mais faux s'ouvre dans l'éditeur pour être corrigé.
+pub fn read_printer(src: &str) -> Result<PrinterProfile, Vec<Issue>> {
+    read(src)
+}
+
+pub fn read_filament(src: &str) -> Result<FilamentProfile, Vec<Issue>> {
+    read(src)
+}
+
+/// Contrôle des valeurs d'un profil imprimante (domaines, zones, gabarits).
+pub fn check_printer(p: &PrinterProfile) -> Vec<Issue> {
     let mut out = Vec::new();
     check_format(
         &p.format,
@@ -576,15 +604,30 @@ pub fn parse_printer(src: &str) -> Result<PrinterProfile, Vec<Issue>> {
             );
         }
     }
+    for r in &p.printer.review {
+        if !REVIEW_FIELDS.contains(&r.as_str()) {
+            out.push(
+                Issue::error("profile.invalid_review")
+                    .field("printer.review")
+                    .detail(r.clone()),
+            );
+        }
+    }
+    out
+}
+
+pub fn parse_filament(src: &str) -> Result<FilamentProfile, Vec<Issue>> {
+    let f = read_filament(src)?;
+    let out = check_filament(&f);
     if out.is_empty() {
-        Ok(p)
+        Ok(f)
     } else {
         Err(out)
     }
 }
 
-pub fn parse_filament(src: &str) -> Result<FilamentProfile, Vec<Issue>> {
-    let f: FilamentProfile = read(src)?;
+/// Contrôle des valeurs d'un profil filament.
+pub fn check_filament(f: &FilamentProfile) -> Vec<Issue> {
     let mut out = Vec::new();
     check_format(
         &f.format,
@@ -641,9 +684,22 @@ pub fn parse_filament(src: &str) -> Result<FilamentProfile, Vec<Issue>> {
         ],
         &mut out,
     );
-    if out.is_empty() {
-        Ok(f)
-    } else {
-        Err(out)
-    }
+    out
+}
+
+/// Profil imprimante écrit en TOML (format et version courants), relu tel
+/// quel par [`parse_printer`]. Les commentaires du fichier d'origine ne sont
+/// pas conservés.
+pub fn printer_toml(p: &PrinterProfile) -> String {
+    let mut p = p.clone();
+    p.format = Some(PRINTER_FORMAT.into());
+    p.version = Some(PRINTER_VERSION);
+    toml::to_string(&p).expect("profil sérialisable")
+}
+
+pub fn filament_toml(f: &FilamentProfile) -> String {
+    let mut f = f.clone();
+    f.format = Some(FILAMENT_FORMAT.into());
+    f.version = Some(FILAMENT_VERSION);
+    toml::to_string(&f).expect("profil sérialisable")
 }

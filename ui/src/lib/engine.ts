@@ -87,6 +87,16 @@ export class EngineClient {
     return this.#call({ kind: 'read', text });
   }
 
+  /** Profil modifié (JSON) : contrôlé et écrit en TOML ; réponse `{ ok, issues, toml }`. */
+  checkProfile(kind: 'printer' | 'filament', profile: string): Promise<string> {
+    return this.#call({ kind: 'check-profile', profile: kind, text: profile });
+  }
+
+  /** Profils d'un fichier de trancheur ; `bases` : `{ printers, filaments }` en TOML. */
+  importProfiles(text: string, bases: string): Promise<string> {
+    return this.#call({ kind: 'import', text, bases });
+  }
+
   /** Profil sans le charger (listes des imprimantes et des filaments). */
   readProfile(kind: 'printer' | 'filament', text: string): Promise<string> {
     return this.#call({ kind: 'read-profile', profile: kind, text });

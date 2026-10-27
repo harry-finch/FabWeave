@@ -59,24 +59,86 @@ export interface Zone {
   max: [number, number];
 }
 
+export type Firmware = 'prusa' | 'marlin' | 'klipper' | 'bambu';
+
+export interface NozzleLayers {
+  diameter: number;
+  layer_height: number;
+  first_layer_height?: number;
+}
+
+export interface NozzleFlow {
+  diameter?: number;
+  high_flow?: boolean;
+  max_volumetric: number;
+}
+
+/** Profil imprimante (`fabweave_core::profile::PrinterProfile`), complet pour l'éditeur. */
 export interface PrinterProfile {
-  printer: { id: string; name: Text; model: string; firmware: 'prusa' | 'marlin' | 'klipper' | 'bambu' };
-  bed: { size: [number, number]; max_height: number; origin: 'corner' | 'center'; shape?: 'rectangle' | 'circle'; exclude?: Zone[] };
+  format?: string;
+  version?: number;
+  printer: { id: string; name: Text; model: string; firmware: Firmware; source?: string; review?: string[] };
+  bed: { size: [number, number]; max_height: number; origin: 'corner' | 'center'; shape?: 'rectangle' | 'circle'; plate?: string; exclude?: Zone[] };
   nozzle: {
     diameter: number;
     high_flow?: boolean;
     abrasive?: boolean;
+    cone_angle?: number;
+    cone_height?: number;
     choices?: number[];
     high_flow_available?: boolean;
     abrasive_available?: boolean;
     clearance_radius?: number;
     clearance_height?: number;
   };
-  layers: { layer_height: number; first_layer_height: number };
+  limits: {
+    max_print_speed: number;
+    travel_speed: number;
+    max_z_speed: number;
+    acceleration?: number;
+    travel_acceleration?: number;
+    first_layer_acceleration?: number;
+    jerk?: number;
+  };
+  layers: { layer_height: number; first_layer_height: number; by_nozzle?: NozzleLayers[] };
+  gcode: { thumbnails?: string[]; start: string; end: string };
 }
 
+/** Profil filament (`fabweave_core::profile::FilamentProfile`). */
 export interface FilamentProfile {
-  filament: { id: string; name: Text; type: string };
+  format?: string;
+  version?: number;
+  filament: { id: string; name: Text; type: string; diameter: number; density: number; flow_multiplier: number; pressure_advance: number; abrasive: boolean };
+  temperature: { first_layer: number; nozzle: number; bed_first_layer: number; bed: number; probe: number; idle?: number | null; chamber: number };
+  speed: { nominal: number; first_layer: number; max_volumetric: number; by_nozzle?: NozzleFlow[] };
+  cooling: { fan: number; first_layer_fan: number; bridge_fan: number };
+  retraction: { length: number; speed: number; z_hop: number; min_travel: number };
+}
+
+export type ProfileKind = 'printer' | 'filament';
+export type AnyProfile = PrinterProfile | FilamentProfile;
+
+/** Rapport d'import d'un profil de trancheur (`fabweave_core::import::Report`). */
+export interface ImportReport {
+  slicer: string;
+  name: string;
+  inherits?: string;
+  base: string;
+  taken: { field: string; key: string; value: string }[];
+  missing: { field: string; fallback: 'base' | 'empty' | 'estimated' }[];
+  ignored: string[];
+  ignored_gcode: string[];
+  untranslated: { field: string; line: number; text: string; reason: string }[];
+  constants: { field: string; name: string; value: string }[];
+}
+
+/** Profil trouvé dans un fichier de trancheur. */
+export interface ImportedItem {
+  kind: ProfileKind;
+  profile: AnyProfile;
+  report: ImportReport;
+  toml: string;
+  issues: Issue[];
 }
 
 export interface Bounds {
@@ -171,5 +233,6 @@ export interface FrameData {
   ms: number;
 }
 
-/** Réponse d'un chargement (modèle, profil). */
-export type LoadResult<T> = { ok: true; model?: ModelInfo; profile?: T } | { ok: false; issues: Issue[] };
+/** Réponse d'un chargement (modèle, profil). Un profil lisible mais aux
+ * valeurs fautives garde `profile` (lecture pour l'éditeur). */
+export type LoadResult<T> = { ok: true; model?: ModelInfo; profile?: T; issues?: Issue[] } | { ok: false; issues: Issue[]; profile?: T };

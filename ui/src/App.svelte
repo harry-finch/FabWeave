@@ -2,7 +2,10 @@
   // Écran principal : à gauche le modèle (catalogue) et ses paramètres, au
   // centre la vue 3D du parcours, à droite la machine (imprimante, filament),
   // les mesures et les messages du moteur. Tout se recalcule à chaque
-  // modification ; l'action principale exporte le G-code.
+  // modification ; l'action principale exporte le G-code. Les profils se
+  // modifient et s'importent depuis le menu « ⋯ » de leur liste, ou en
+  // déposant un fichier (.toml, .ini de PrusaSlicer, .json de Bambu Studio
+  // ou d'OrcaSlicer).
   import { RotateCcw } from '@lucide/svelte';
   import AppBar from './components/AppBar.svelte';
   import StatusBar from './components/StatusBar.svelte';
@@ -15,13 +18,18 @@
   import CatalogPicker from './components/CatalogPicker.svelte';
   import NozzleFields from './components/NozzleFields.svelte';
   import PlatePanel from './components/PlatePanel.svelte';
-  import { store, type ExportFormat } from './lib/store.svelte';
+  import ProfileMenu from './components/ProfileMenu.svelte';
+  import ProfileEditor from './components/ProfileEditor.svelte';
+  import ImportDialog from './components/ImportDialog.svelte';
+  import { store, type ExportFormat, type ProfileEntry } from './lib/store.svelte';
   import { ui } from './lib/ui.svelte';
   import { labelled, t } from './lib/i18n.svelte';
   import { text } from './lib/text';
   import { toAlerts } from './lib/issues';
   import { fmtDuration, fmtLength, lengthUnit, num, numTrim } from './lib/format';
   import { tip } from './lib/tip';
+  import { issueText } from './lib/issues';
+  import type { AnyProfile, ImportedItem, ProfileKind } from './lib/types';
 
   let viewport = $state<ReturnType<typeof Viewport>>();
 
@@ -42,16 +50,35 @@
   let dragging = $state(false);
   let dragDepth = 0;
 
+  // Profils : éditeur (copie d'un profil livré ou modification), import.
+  let editing = $state<{ kind: ProfileKind; entry: ProfileEntry<AnyProfile>; copy: boolean } | null>(null);
+  let importing = $state<{ file: string; items: ImportedItem[] } | null>(null);
+  let profileInput = $state<HTMLInputElement>();
+  const PROFILE_FILE = /\.(toml|ini|json)$/i;
+
   async function openFiles(files: FileList | null | undefined) {
     const list = [...(files ?? [])];
     const weave = list.filter((f) => /\.weave$/i.test(f.name));
-    if (!weave.length) {
+    const profiles = list.filter((f) => PROFILE_FILE.test(f.name));
+    if (!weave.length && !profiles.length) {
       if (list.length) ui.toast(t('catalog.notWeave'));
       return;
     }
     for (const f of weave) {
       const entry = await store.openFile(f.name, await f.text());
       ui.toast(entry.info ? t('catalog.opened', { name: f.name }) : t('catalog.openFailed', { name: f.name }));
+    }
+    for (const f of profiles) await openProfile(f);
+  }
+
+  async function openProfile(f: File) {
+    const r = await store.readProfileFile(f.name, await f.text());
+    if ('issues' in r) {
+      ui.toast(`${f.name} : ${r.issues[0] ? issueText(r.issues[0], null) : t('imp.nothing')}`);
+    } else if ('added' in r) {
+      ui.toast(t('imp.added', { n: 1, name: f.name }));
+    } else {
+      importing = { file: f.name, items: r.items };
     }
   }
 
@@ -142,6 +169,20 @@
 />
 
 <input
+  bind:this={profileInput}
+  class="sr-only"
+  type="file"
+  accept=".toml,.ini,.json"
+  tabindex="-1"
+  aria-hidden="true"
+  onchange={(e) => {
+    const f = (e.currentTarget as HTMLInputElement).files?.[0];
+    if (f) void openProfile(f);
+    (e.currentTarget as HTMLInputElement).value = '';
+  }}
+/>
+
+<input
   bind:this={fileInput}
   class="sr-only"
   type="file"
@@ -221,14 +262,30 @@
       <Section id="machine" title={t('machine.section')} step={3}>
         <Field label={t('machine.printer')}>
           <select class="input select" value={store.printerId} onchange={(e) => store.select('printer', (e.currentTarget as HTMLSelectElement).value)}>
-            {#each store.printers as p (p.id)}<option value={p.id}>{p.profile ? text(p.profile.printer.name) : p.id}</option>{/each}
+            {#each [false, true] as mine (mine)}
+              {@const list = store.printers.filter((p) => (p.source === 'user') === mine)}
+              {#if list.length}
+                <optgroup label={mine ? t('pm.mine') : t('pm.builtin')}>
+                  {#each list as p (p.id)}<option value={p.id}>{p.profile ? text(p.profile.printer.name) : p.id}{p.issues ? ` — ${t('pm.toFix')}` : ''}</option>{/each}
+                </optgroup>
+              {/if}
+            {/each}
           </select>
+          <span class="menu"><ProfileMenu kind="printer" onedit={(entry, copy) => (editing = { kind: 'printer', entry, copy })} onimport={() => profileInput?.click()} /></span>
         </Field>
         {#if store.printer}<NozzleFields printer={store.printer} />{/if}
         <Field label={t('machine.filament')}>
           <select class="input select" value={store.filamentId} onchange={(e) => store.select('filament', (e.currentTarget as HTMLSelectElement).value)}>
-            {#each store.filaments as f (f.id)}<option value={f.id}>{f.profile ? text(f.profile.filament.name) : f.id}</option>{/each}
+            {#each [false, true] as mine (mine)}
+              {@const list = store.filaments.filter((f) => (f.source === 'user') === mine)}
+              {#if list.length}
+                <optgroup label={mine ? t('pm.mine') : t('pm.builtin')}>
+                  {#each list as f (f.id)}<option value={f.id}>{f.profile ? text(f.profile.filament.name) : f.id}{f.issues ? ` — ${t('pm.toFix')}` : ''}</option>{/each}
+                </optgroup>
+              {/if}
+            {/each}
           </select>
+          <span class="menu"><ProfileMenu kind="filament" onedit={(entry, copy) => (editing = { kind: 'filament', entry, copy })} onimport={() => profileInput?.click()} /></span>
         </Field>
         {#if store.printer}
           <dl class="metrics">
@@ -291,6 +348,14 @@
     {/snippet}
   </StatusBar>
 </div>
+
+{#if editing}
+  <ProfileEditor kind={editing.kind} entry={editing.entry} copy={editing.copy} onclose={() => (editing = null)} />
+{/if}
+
+{#if importing}
+  <ImportDialog file={importing.file} items={importing.items} onclose={() => (importing = null)} />
+{/if}
 
 {#if ui.help}
   <Dialog title={t('help.title')} onclose={() => (ui.help = false)}>
@@ -367,6 +432,12 @@
 
   .select {
     width: 100%;
+    min-width: 0;
+  }
+
+  .menu {
+    flex: none;
+    width: var(--control-h);
   }
 
   .deferred {

@@ -6,7 +6,9 @@
 //! `G1 Z{min(max_z + 1, max_print_height)}`,
 //! `{if filament_type == "FLEX" { "G1 E-4" } else { "G1 E-2" }}`.
 //! `{{` et `}}` écrivent une accolade. Une expression qui ne renvoie rien
-//! (`if` sans `else` faux) n'écrit rien.
+//! (`if` sans `else` faux) n'écrit rien. Une branche peut être une chaîne
+//! `…` sur plusieurs lignes avec des valeurs `${num(x)}` : c'est la forme
+//! des blocs `{if}…{endif}` traduits à l'import d'un profil de trancheur.
 
 use rhai::{Dynamic, Engine, Scope};
 
@@ -39,10 +41,13 @@ fn pieces(t: &str) -> Result<Vec<Piece<'_>>, usize> {
             b'{' => {
                 let line = t[..i].matches('\n').count() + 1;
                 // Accolade fermante correspondante, hors chaînes de caractères.
-                let (mut depth, mut j, mut in_str) = (1, i + 1, false);
+                // Dans une chaîne `…` (gabarits importés), les accolades de
+                // `${…}` comptent et les guillemets sont du texte.
+                let (mut depth, mut j, mut in_str, mut in_tick) = (1, i + 1, false, false);
                 while j < bytes.len() && depth > 0 {
                     match bytes[j] {
-                        b'"' => in_str = !in_str,
+                        b'`' if !in_str => in_tick = !in_tick,
+                        b'"' if !in_tick => in_str = !in_str,
                         b'\\' if in_str => j += 1,
                         b'{' if !in_str => depth += 1,
                         b'}' if !in_str => depth -= 1,
@@ -95,6 +100,9 @@ impl TemplateEngine {
         engine
             .set_max_operations(100_000)
             .set_max_string_size(10_000)
+            // Conditions en chaîne des gabarits importés (température de
+            // palpage des Prusa : six cas).
+            .set_max_expr_depths(128, 64)
             .set_strict_variables(true);
         engine.disable_symbol("eval");
         // `min` / `max` mêlant entiers et flottants (`max(0, first_layer_min_y)`).

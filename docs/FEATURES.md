@@ -82,9 +82,9 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | PRF-04 | Bibliothèque de filaments : PLA, PETG (faits en v0.1), TPU, ASA, PETG-CF | v0.3 | en cours |
 | PRF-05 | Cône de dégagement de la buse (angle, hauteur) : champs du profil, transmis au script (`printer.nozzle_cone_angle`, `_height`) ; valeurs des machines du fablab à mesurer | v0.3 | en cours |
 | PRF-06 | Facteur d'étirement des ponts par filament | v0.2 | prévu |
-| PRF-07 | Édition, duplication, import / export des profils (filaments et imprimantes) dans l'application ; origine de chaque valeur ; profils livrés jamais écrasés | v0.3 | prévu |
+| PRF-07 | Édition, duplication, import / export des profils (filaments et imprimantes) dans l'application ; origine de chaque valeur ; profils livrés jamais écrasés | v0.3 | fait |
 | PRF-08 | Plateau rond (`shape = "circle"`, delta), origine au centre ; dépassement radial ; dessiné rond | v0.3 | fait |
-| PRF-10 | Import de profils filament et imprimante depuis PrusaSlicer (`.ini`), OrcaSlicer et Bambu Studio (`.json`) ; rapport des valeurs reprises, ignorées, manquantes ; gabarits « à relire » | v0.3 | prévu |
+| PRF-10 | Import de profils filament et imprimante depuis PrusaSlicer (`.ini`), OrcaSlicer et Bambu Studio (`.json`) ; rapport des valeurs reprises, ignorées, manquantes ; gabarits traduits et « à relire » (export bloqué avant relecture) | v0.3 | fait, essayé sur des préréglages officiels reconstitués |
 | PRF-11 | Sélecteur de buse à côté de l'imprimante (diamètres du profil ou libre, HF, abrasive) sans dupliquer le profil ; recalcul immédiat ; couches par buse (`layers.by_nozzle`, interpolées pour un diamètre libre et signalé), débit max par buse (`speed.by_nozzle` du filament) ; mémorisé par imprimante ; filament abrasif dans une buse qui ne l'est pas signalé | v0.3 | fait |
 
 ## Catalogue de modèles (CAT)

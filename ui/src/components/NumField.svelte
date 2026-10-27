@@ -11,6 +11,8 @@
   // `onreset` (FabWeave) : quand la valeur diffère de la valeur proposée
   // (`modified`), un ↺ discret à côté du libellé y revient ; son infobulle
   // (`resetHint`) donne la valeur proposée.
+  // `onclear` (valeur facultative) : un champ vidé appelle `onclear` au lieu
+  // de revenir à la valeur ; `placeholder` s'affiche quand il est vide.
   import { Info, RotateCcw } from '@lucide/svelte';
   import { tip } from '../lib/tip';
   import { ui } from '../lib/ui.svelte';
@@ -37,6 +39,8 @@
     modified = false,
     onreset,
     resetHint,
+    onclear,
+    placeholder,
   }: {
     label: string;
     value: number;
@@ -57,6 +61,8 @@
     modified?: boolean;
     onreset?: () => void;
     resetHint?: string;
+    onclear?: () => void;
+    placeholder?: string;
   } = $props();
 
   const uid = `nf-${Math.random().toString(36).slice(2, 9)}`;
@@ -94,7 +100,11 @@
   function commit() {
     const v = parse(text);
     if (v === undefined) {
-      text = fmt(shown(value));
+      if (onclear && text.trim() === '') {
+        if (Number.isFinite(value)) onclear();
+        return;
+      }
+      text = Number.isFinite(value) ? fmt(shown(value)) : '';
       return;
     }
     const m = clampModel(model(v));
@@ -111,7 +121,7 @@
     }
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
-      const base = parse(text) ?? shown(value);
+      const base = parse(text) ?? (Number.isFinite(value) ? shown(value) : 0);
       const k = e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
       const next = clampModel(model(roundShown(base + (e.key === 'ArrowUp' ? 1 : -1) * dstep * k)));
       text = fmt(shown(next));
@@ -123,7 +133,7 @@
   let scrub: { x: number; start: number; pointer: number } | null = null;
   function scrubStart(e: PointerEvent) {
     if (disabled || e.button !== 0) return;
-    scrub = { x: e.clientX, start: shown(value), pointer: e.pointerId };
+    scrub = { x: e.clientX, start: Number.isFinite(value) ? shown(value) : 0, pointer: e.pointerId };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     onbegin?.();
     e.preventDefault();
@@ -176,6 +186,7 @@
     class="input tabular"
     class:bad={invalid}
     inputmode="decimal"
+    {placeholder}
     {disabled}
     bind:value={text}
     onfocus={(e) => {

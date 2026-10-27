@@ -10,17 +10,38 @@
 // - Le document est mémorisé sur le poste 400 ms après chaque modification.
 // - Préparation de l'impression : buse mémorisée par imprimante, placement et
 //   adhésion dans le document (annulables comme le reste).
+// - Profils de l'utilisateur (copies modifiées, imports) mémorisés sur le
+//   poste à côté des profils livrés, jamais écrasés.
 
 import { EngineClient } from './engine';
 import { FILAMENT_FILES, MODEL_FILES, PRINTER_FILES } from './catalog';
 import { storageKey } from './app';
 import { renderThumb } from './thumbs';
 import { theme } from './theme.svelte';
-import type { Adhesion, FilamentProfile, FrameData, Issue, LoadResult, ModelInfo, NozzleSetup, Placement, PrinterProfile, Setup, Values } from './types';
+import { text as textOf } from './text';
+import type {
+  Adhesion,
+  AnyProfile,
+  FilamentProfile,
+  FrameData,
+  ImportedItem,
+  ImportReport,
+  Issue,
+  LoadResult,
+  ModelInfo,
+  NozzleSetup,
+  Placement,
+  PrinterProfile,
+  ProfileKind,
+  Setup,
+  Values,
+} from './types';
 
 const DOC_KEY = storageKey('document.v1');
 /** Modèles ouverts par l'utilisateur (texte complet), mémorisés sur le poste. */
 const USER_KEY = storageKey('user-models.v1');
+/** Profils de l'utilisateur (TOML), mémorisés sur le poste. */
+const PROFILES_KEY = storageKey('user-profiles.v1');
 /** Taille des vignettes (px CSS). */
 const THUMB = 44;
 
@@ -41,6 +62,38 @@ function readUserFiles(): UserFile[] {
 /** Identifiant d'un modèle de l'utilisateur d'après son nom de fichier. */
 const userId = (file: string) =>
   'user/' + file.replace(/\.weave$/i, '').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+/** Identifiant d'un profil d'après son nom (minuscules ASCII et `_`, comme l'import du moteur). */
+const profileSlug = (name: string) =>
+  name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+/** Profil de l'utilisateur : texte TOML et d'où il vient. */
+export interface UserProfile {
+  id: string;
+  kind: ProfileKind;
+  text: string;
+  origin:
+    | { type: 'copy'; from: string; name: string }
+    | { type: 'import'; file: string; report: ImportReport }
+    | { type: 'file'; file: string };
+  /** Valeurs à la création (copie, import) : chaque valeur modifiée depuis a son ↺. */
+  initial: AnyProfile;
+}
+
+function readUserProfiles(): UserProfile[] {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILES_KEY) ?? '[]') as UserProfile[];
+  } catch {
+    return [];
+  }
+}
+
+const BUILTIN: Record<ProfileKind, { id: string; text: string }[]> = { printer: PRINTER_FILES, filament: FILAMENT_FILES };
 /** Au-delà, un geste passe en calcul au relâchement (ms). */
 const SLOW_MS = 60;
 const MAX_HISTORY = 100;
@@ -86,8 +139,13 @@ export interface CatalogEntry {
 
 export interface ProfileEntry<T> {
   id: string;
+  source: 'builtin' | 'user';
+  text: string;
+  /** Profil lu (même aux valeurs fautives, pour l'éditeur). */
   profile?: T;
+  /** Erreurs de lecture ou de valeurs : le profil ne se charge pas. */
   issues?: Issue[];
+  user?: UserProfile;
 }
 
 class Store {
@@ -113,6 +171,7 @@ class Store {
   #thumbRun: Promise<void> | null = null;
   #thumbAgain = false;
   #userFiles: UserFile[] = readUserFiles();
+  #userProfiles: UserProfile[] = readUserProfiles();
 
   frame = $state.raw<FrameData | null>(null);
   computing = $state(false);
@@ -129,6 +188,7 @@ class Store {
   #probe = false;
   #dirty = false;
   #saveTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Ce qui est chargé dans le moteur : identifiant du modèle, texte des profils. */
   #loaded = { model: '', printer: '', filament: '', setup: '' };
   /** Messages de la préparation refusée par le moteur. */
   #setupIssues: Issue[] = [];
@@ -189,26 +249,46 @@ class Store {
   }
 
   async #start() {
-    const read = async <T>(kind: 'model' | 'printer' | 'filament', id: string, text: string) => {
-      const r = JSON.parse(kind === 'model' ? await this.engine.read(text) : await this.engine.readProfile(kind, text)) as LoadResult<T>;
-      return r.ok ? { id, info: r.model, profile: r.profile } : { id, issues: r.issues };
+    const read = async (id: string, text: string) => {
+      const r = JSON.parse(await this.engine.read(text)) as LoadResult<never>;
+      return r.ok ? { id, info: r.model } : { id, issues: r.issues };
     };
-    const [models, printers, filaments] = await Promise.all([
+    const [models] = await Promise.all([
       Promise.all([
-        ...MODEL_FILES.map(async (f) => ({ ...(await read<never>('model', f.id, f.text)), source: 'builtin' as const, text: f.text })),
-        ...this.#userFiles.map(async (f) => ({ ...(await read<never>('model', f.id, f.text)), source: 'user' as const, file: f.file, text: f.text })),
+        ...MODEL_FILES.map(async (f) => ({ ...(await read(f.id, f.text)), source: 'builtin' as const, text: f.text })),
+        ...this.#userFiles.map(async (f) => ({ ...(await read(f.id, f.text)), source: 'user' as const, file: f.file, text: f.text })),
       ]),
-      Promise.all(PRINTER_FILES.map((f) => read<PrinterProfile>('printer', f.id, f.text))),
-      Promise.all(FILAMENT_FILES.map((f) => read<FilamentProfile>('filament', f.id, f.text))),
+      this.#readProfiles(),
     ]);
     this.catalog = models;
-    this.printers = printers;
-    this.filaments = filaments;
     const d = this.doc;
     if (!this.catalog.some((f) => f.id === d.model)) d.model = MODEL_FILES[0]?.id ?? '';
-    if (!PRINTER_FILES.some((f) => f.id === d.printer)) d.printer = PRINTER_FILES[0]?.id ?? '';
-    if (!FILAMENT_FILES.some((f) => f.id === d.filament)) d.filament = FILAMENT_FILES[0]?.id ?? '';
+    if (!this.printers.some((f) => f.id === d.printer)) d.printer = PRINTER_FILES[0]?.id ?? '';
+    if (!this.filaments.some((f) => f.id === d.filament)) d.filament = FILAMENT_FILES[0]?.id ?? '';
     await this.#sync();
+  }
+
+  async #entry<T>(kind: ProfileKind, id: string, text: string, user?: UserProfile): Promise<ProfileEntry<T>> {
+    const r = JSON.parse(await this.engine.readProfile(kind, text)) as LoadResult<T>;
+    const issues = r.issues?.filter((i) => i.severity === 'error');
+    return { id, source: user ? 'user' : 'builtin', text, profile: r.profile, issues: issues?.length ? issues : undefined, user };
+  }
+
+  /** Listes des imprimantes et des filaments : livrés, puis ceux de l'utilisateur. */
+  async #readProfiles() {
+    const list = <T>(kind: ProfileKind) =>
+      Promise.all([
+        ...BUILTIN[kind].map((f) => this.#entry<T>(kind, f.id, f.text)),
+        ...this.#userProfiles.filter((u) => u.kind === kind).map((u) => this.#entry<T>(kind, u.id, u.text, u)),
+      ]);
+    const [printers, filaments] = await Promise.all([list<PrinterProfile>('printer'), list<FilamentProfile>('filament')]);
+    this.printers = printers;
+    this.filaments = filaments;
+  }
+
+  /** Texte TOML d'un profil (livré ou de l'utilisateur). */
+  profileText(kind: ProfileKind, id: string): string | undefined {
+    return BUILTIN[kind].find((f) => f.id === id)?.text ?? this.#userProfiles.find((u) => u.kind === kind && u.id === id)?.text;
   }
 
   async #load<T>(target: 'model' | 'printer' | 'filament', text: string | undefined): Promise<LoadResult<T> | null> {
@@ -230,27 +310,34 @@ class Store {
         }),
       );
     }
-    if (d.printer !== this.#loaded.printer) {
+    // Profils comparés par leur texte : un profil modifié se recharge.
+    const printerText = this.profileText('printer', d.printer);
+    if (printerText === undefined) issues.push({ code: 'profile.not_found', severity: 'error', field: 'printer' });
+    if (printerText !== undefined && printerText !== this.#loaded.printer) {
       todo.push(
-        this.#load<PrinterProfile>('printer', PRINTER_FILES.find((x) => x.id === d.printer)?.text).then((p) => {
+        this.#load<PrinterProfile>('printer', printerText).then((p) => {
           this.printer = p?.ok ? (p.profile ?? null) : null;
           if (p && !p.ok) issues.push(...p.issues);
-          this.#loaded.printer = d.printer;
+          this.#loaded.printer = printerText;
         }),
       );
     }
-    if (d.filament !== this.#loaded.filament) {
+    const filamentText = this.profileText('filament', d.filament);
+    if (filamentText === undefined) issues.push({ code: 'profile.not_found', severity: 'error', field: 'filament' });
+    if (filamentText !== undefined && filamentText !== this.#loaded.filament) {
       todo.push(
-        this.#load<FilamentProfile>('filament', FILAMENT_FILES.find((x) => x.id === d.filament)?.text).then((f) => {
+        this.#load<FilamentProfile>('filament', filamentText).then((f) => {
           this.filament = f?.ok ? (f.profile ?? null) : null;
           if (f && !f.ok) issues.push(...f.issues);
-          this.#loaded.filament = d.filament;
+          this.#loaded.filament = filamentText;
         }),
       );
     }
-    if (todo.length) {
+    if (todo.length || issues.length) {
       await Promise.all(todo);
-      this.loadIssues = [...issues, ...this.#setupIssues];
+      // Un profil dont le chargement échoue garde ses messages jusqu'au suivant.
+      const kept = todo.length ? [] : this.loadIssues.filter((i) => !this.#setupIssues.includes(i) && i.code !== 'profile.not_found');
+      this.loadIssues = [...kept, ...issues, ...this.#setupIssues];
     }
     const setup = JSON.stringify($state.snapshot(this.setup));
     if (setup !== this.#loaded.setup) {
@@ -415,8 +502,8 @@ class Store {
           this.thumbs = {};
           this.#thumbTheme = theme.applied;
         }
-        const printer = PRINTER_FILES.find((x) => x.id === this.doc.printer)?.text ?? '';
-        const filament = FILAMENT_FILES.find((x) => x.id === this.doc.filament)?.text ?? '';
+        const printer = this.profileText('printer', this.doc.printer) ?? '';
+        const filament = this.profileText('filament', this.doc.filament) ?? '';
         for (const e of this.catalog) {
           if (e.id in this.thumbs || !e.info) continue;
           const pts = await this.engine.thumbnail(e.text, printer, filament);
@@ -461,6 +548,149 @@ class Store {
     this.catalog = this.catalog.filter((e) => e.id !== id);
     if (this.doc.model === id) this.select('model', MODEL_FILES[0]?.id ?? '');
     return removed && { file: removed.file, text: removed.text };
+  }
+
+  #saveProfiles() {
+    try {
+      localStorage.setItem(PROFILES_KEY, JSON.stringify(this.#userProfiles));
+    } catch {
+      /* stockage indisponible ou plein : le profil reste pour la session */
+    }
+  }
+
+  /** Identifiant libre `user/<nom>` (suffixe -2, -3… si besoin). */
+  #freeId(kind: ProfileKind, name: string): string {
+    const base = `user/${profileSlug(name) || kind}`;
+    const taken = (id: string) => !!this.profileText(kind, id);
+    let id = base;
+    for (let n = 2; taken(id); n++) id = `${base}-${n}`;
+    return id;
+  }
+
+  /**
+   * Enregistre un profil de l'utilisateur : nouveau (copie, import) ou
+   * modifié (même identifiant). Contrôlé par le moteur ; refusé s'il a une
+   * erreur. Le profil enregistré devient le profil choisi.
+   */
+  async saveProfile(
+    kind: ProfileKind,
+    profile: AnyProfile,
+    opts: { id?: string; origin?: UserProfile['origin']; initial?: AnyProfile; select?: boolean } = {},
+  ): Promise<{ ok: true; id: string } | { ok: false; issues: Issue[] }> {
+    const p = $state.snapshot(profile) as AnyProfile;
+    const info = kind === 'printer' ? (p as PrinterProfile).printer : (p as FilamentProfile).filament;
+    const id = opts.id ?? this.#freeId(kind, textOf(info.name));
+    info.id = id.replace(/^user\//, '');
+    const r = JSON.parse(await this.engine.checkProfile(kind, JSON.stringify(p))) as { ok: boolean; issues: Issue[]; toml?: string };
+    if (!r.ok || !r.toml) return { ok: false, issues: r.issues };
+    const old = this.#userProfiles.find((u) => u.id === id && u.kind === kind);
+    const user: UserProfile = {
+      id,
+      kind,
+      text: r.toml,
+      origin: opts.origin ?? old?.origin ?? { type: 'file', file: `${info.id}.toml` },
+      initial: opts.initial ?? old?.initial ?? p,
+    };
+    this.#userProfiles = [...this.#userProfiles.filter((u) => !(u.id === id && u.kind === kind)), user];
+    this.#saveProfiles();
+    await this.#readProfiles();
+    if (opts.select !== false && this.doc[kind] !== id) this.select(kind, id);
+    else void this.#sync();
+    return { ok: true, id };
+  }
+
+  /** Ajoute tel quel un profil de l'utilisateur (import, annulation d'une suppression). */
+  async #addUser(user: UserProfile) {
+    this.#userProfiles = [...this.#userProfiles.filter((u) => !(u.id === user.id && u.kind === user.kind)), user];
+    this.#saveProfiles();
+    await this.#readProfiles();
+  }
+
+  /** Retire un profil de l'utilisateur ; rend de quoi le remettre (`restoreProfile`). */
+  async deleteProfile(kind: ProfileKind, id: string): Promise<UserProfile | undefined> {
+    const removed = this.#userProfiles.find((u) => u.kind === kind && u.id === id);
+    if (!removed) return undefined;
+    this.#userProfiles = this.#userProfiles.filter((u) => u !== removed);
+    this.#saveProfiles();
+    await this.#readProfiles();
+    if (this.doc[kind] === id) {
+      // Retour au profil d'où il venait (copie, base de l'import), sinon au premier livré.
+      const o = removed.origin;
+      const from = o.type === 'copy' ? o.from : o.type === 'import' ? o.report.base : '';
+      this.select(kind, this.profileText(kind, from) !== undefined ? from : (BUILTIN[kind][0]?.id ?? ''));
+    }
+    return removed;
+  }
+
+  async restoreProfile(user: UserProfile, select = true) {
+    await this.#addUser(user);
+    if (select) this.select(user.kind, user.id);
+  }
+
+  /**
+   * Fichier de profil déposé ou ouvert : un profil FabWeave (`.toml`) est
+   * ajouté tel quel ; un fichier de trancheur (`.ini`, `.json`) rend les
+   * profils trouvés, à confirmer (`addImported`).
+   */
+  async readProfileFile(file: string, text: string): Promise<{ added: ProfileEntry<AnyProfile>[] } | { items: ImportedItem[] } | { issues: Issue[] }> {
+    if (/\.toml$/i.test(file)) {
+      const kind: ProfileKind | undefined = /format\s*=\s*"fabweave\.printer"/.test(text)
+        ? 'printer'
+        : /format\s*=\s*"fabweave\.filament"/.test(text)
+          ? 'filament'
+          : /^\s*\[printer\]/m.test(text)
+            ? 'printer'
+            : /^\s*\[filament\]/m.test(text)
+              ? 'filament'
+              : undefined;
+      if (!kind) return { issues: [{ code: 'import.no_profile', severity: 'error' }] };
+      const r = JSON.parse(await this.engine.readProfile(kind, text)) as LoadResult<AnyProfile>;
+      if (!r.profile) return { issues: r.issues ?? [] };
+      const info = kind === 'printer' ? (r.profile as PrinterProfile).printer : (r.profile as FilamentProfile).filament;
+      const id = this.#freeId(kind, info.id || textOf(info.name));
+      await this.#addUser({ id, kind, text, origin: { type: 'file', file }, initial: r.profile });
+      this.select(kind, id);
+      const entry = (kind === 'printer' ? this.printers : this.filaments).find((e) => e.id === id) as ProfileEntry<AnyProfile>;
+      return { added: [entry] };
+    }
+    const bases = (kind: ProfileKind) => {
+      // Profil choisi en premier : il sert de base s'il convient.
+      const first = BUILTIN[kind].find((f) => f.id === this.doc[kind]);
+      return [first, ...BUILTIN[kind].filter((f) => f !== first)].filter(Boolean).map((f) => f!.text);
+    };
+    const r = JSON.parse(await this.engine.importProfiles(text, JSON.stringify({ printers: bases('printer'), filaments: bases('filament') }))) as
+      | { ok: true; profiles: ImportedItem[] }
+      | { ok: false; issues: Issue[] };
+    return r.ok ? { items: r.profiles } : { issues: r.issues };
+  }
+
+  /** Ajoute les profils importés choisis ; le dernier de chaque sorte devient le profil choisi. */
+  async addImported(file: string, items: ImportedItem[]): Promise<string[]> {
+    const ids: string[] = [];
+    for (const it of items) {
+      const info = it.kind === 'printer' ? (it.profile as PrinterProfile).printer : (it.profile as FilamentProfile).filament;
+      const id = this.#freeId(it.kind, textOf(info.name));
+      info.id = id.replace(/^user\//, '');
+      // Texte du moteur, identifiant mis à jour (le profil peut avoir des
+      // erreurs à corriger dans l'éditeur).
+      const text = it.toml.replace(/^id = ".*"$/m, `id = "${info.id}"`);
+      await this.#addUser({ id, kind: it.kind, text, origin: { type: 'import', file, report: it.report }, initial: it.profile });
+      ids.push(id);
+    }
+    const last = (kind: ProfileKind) => [...items].reverse().findIndex((i) => i.kind === kind);
+    this.edit((d) => {
+      for (const kind of ['printer', 'filament'] as const) {
+        const k = last(kind);
+        if (k >= 0) d[kind] = ids[items.length - 1 - k];
+      }
+    });
+    return ids;
+  }
+
+  /** Profil en TOML pour l'export (`<identifiant>.toml`). */
+  exportProfile(kind: ProfileKind, id: string): { name: string; text: string } | undefined {
+    const text = this.profileText(kind, id);
+    return text === undefined ? undefined : { name: `${id.replace(/^user\//, '')}.toml`, text };
   }
 
   /** Fichier à exporter pour les valeurs courantes (G-code, ou paquet
