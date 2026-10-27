@@ -26,6 +26,8 @@ export interface ModelMeta {
   source?: string;
   license?: string;
   recommended_nozzle: number[];
+  /** Adhésion conseillée par le modèle (l'utilisateur choisit). */
+  recommended_adhesion?: 'none' | 'brim' | 'raft';
 }
 
 export interface ModelInfo {
@@ -59,8 +61,17 @@ export interface Zone {
 
 export interface PrinterProfile {
   printer: { id: string; name: Text; model: string; firmware: 'prusa' | 'marlin' | 'klipper' | 'bambu' };
-  bed: { size: [number, number]; max_height: number; origin: 'corner' | 'center'; exclude?: Zone[] };
-  nozzle: { diameter: number };
+  bed: { size: [number, number]; max_height: number; origin: 'corner' | 'center'; shape?: 'rectangle' | 'circle'; exclude?: Zone[] };
+  nozzle: {
+    diameter: number;
+    high_flow?: boolean;
+    abrasive?: boolean;
+    choices?: number[];
+    high_flow_available?: boolean;
+    abrasive_available?: boolean;
+    clearance_radius?: number;
+    clearance_height?: number;
+  };
   layers: { layer_height: number; first_layer_height: number };
 }
 
@@ -100,8 +111,45 @@ export interface Note {
   text: Text;
 }
 
+/** Préparation de l'impression (`fabweave_core::setup::Setup`). */
+export interface NozzleSetup {
+  diameter?: number;
+  high_flow?: boolean;
+  abrasive?: boolean;
+}
+
+export interface Placement {
+  x?: number;
+  y?: number;
+  rotation: number;
+  copies: [number, number];
+  spacing?: number;
+}
+
+export type Adhesion =
+  | { type: 'none' }
+  | { type: 'brim'; width: number; gap: number }
+  | { type: 'raft'; layers: number; gap: number; margin: number };
+
+export interface Setup {
+  nozzle: NozzleSetup;
+  placement: Placement;
+  adhesion: Adhesion;
+}
+
+/** Buse montée et ce qu'elle change (profils effectifs). */
+export interface NozzleReport {
+  diameter: number;
+  high_flow: boolean;
+  abrasive: boolean;
+  layer_height: number;
+  first_layer_height: number;
+  max_volumetric: number;
+}
+
 export interface Report {
   notes: Note[];
+  nozzle: NozzleReport | null;
   params: Values;
   stats: Stats | null;
   offset: [number, number, number] | null;
@@ -116,6 +164,8 @@ export interface FrameData {
   positions: Float32Array;
   kinds: Uint8Array;
   speeds: Float32Array;
+  /** 1 : mouvement imprimé hors du volume ou dans une zone exclue. */
+  outside: Uint8Array;
   report: Report;
   /** Durée du calcul dans le worker (ms). */
   ms: number;

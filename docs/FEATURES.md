@@ -65,7 +65,8 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | ENG-16 | Mesures : nombre de points et de segments, longueur imprimée, déplacements, temps, filament, débit max, Z max, encombrement | v0.1 | fait |
 | ENG-17 | Bambu Lab : paquet `.gcode.3mf` (G-code, MD5, `slice_info.config`, `model_settings.config`, `plate_1.json`, vignettes PNG) et G-code brut, tous deux pour la carte SD (ADR-0005, proposée) | v0.3 | fait, à valider sur la X1E |
 | ENG-19 | Dialecte Bambu : en-tête `HEADER_BLOCK`, `M73 L` + `M991` à chaque couche (paliers de hauteur pour les parcours continus), progression `M73 P R` | v0.3 | fait, à valider sur la X1E |
-| ENG-18 | Adhésion au plateau générée par le moteur : bordure (*brim*) autour de l'empreinte de la première couche, ou radeau (*raft*) sous la pièce ; emprise incluse dans le contrôle du volume | v0.3 | prévu |
+| ENG-18 | Adhésion au plateau générée par le moteur : bordure (*brim*) autour de l'empreinte de la première couche (extérieur seulement, boucles de la plus éloignée à la plus proche), ou radeau (*raft*) sous la pièce (base et contact pleins, intermédiaires espacés, écart de décollage) ; empreinte en grille et carte des distances, contours par carrés marchants ; emprise incluse dans le contrôle du volume ; le modèle peut seulement conseiller (`recommended_adhesion`) | v0.3 | fait |
+| ENG-21 | Préparation de l'impression hors du modèle (`Setup`) : position, rotation, copies en grille pièce par pièce (écart ≥ rayon de dégagement de la tête, pièce ≤ hauteur libre sous le portique), rappelée en tête du G-code ; pièce hors plateau montrée, segments en cause surlignés, export refusé | v0.3 | fait |
 
 ## Profils imprimante et filament (PRF)
 
@@ -82,9 +83,9 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | PRF-05 | Cône de dégagement de la buse (angle, hauteur) : champs du profil, transmis au script (`printer.nozzle_cone_angle`, `_height`) ; valeurs des machines du fablab à mesurer | v0.3 | en cours |
 | PRF-06 | Facteur d'étirement des ponts par filament | v0.2 | prévu |
 | PRF-07 | Édition, duplication, import / export des profils (filaments et imprimantes) dans l'application ; origine de chaque valeur ; profils livrés jamais écrasés | v0.3 | prévu |
-| PRF-08 | Plateau rond (delta), origine au centre | v0.3 | prévu |
+| PRF-08 | Plateau rond (`shape = "circle"`, delta), origine au centre ; dépassement radial ; dessiné rond | v0.3 | fait |
 | PRF-10 | Import de profils filament et imprimante depuis PrusaSlicer (`.ini`), OrcaSlicer et Bambu Studio (`.json`) ; rapport des valeurs reprises, ignorées, manquantes ; gabarits « à relire » | v0.3 | prévu |
-| PRF-11 | Sélecteur de buse à côté de l'imprimante (diamètre courant ou libre, HF, abrasive) sans dupliquer le profil ; recalcul immédiat ; réglages par buse (première couche, débit max) ; mémorisé par imprimante | v0.3 | prévu |
+| PRF-11 | Sélecteur de buse à côté de l'imprimante (diamètres du profil ou libre, HF, abrasive) sans dupliquer le profil ; recalcul immédiat ; couches par buse (`layers.by_nozzle`, interpolées pour un diamètre libre et signalé), débit max par buse (`speed.by_nozzle` du filament) ; mémorisé par imprimante ; filament abrasif dans une buse qui ne l'est pas signalé | v0.3 | fait |
 
 ## Catalogue de modèles (CAT)
 
@@ -140,7 +141,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | SAFE-03 | Garde-buse : carte de hauteur, collisions du cône surlignées | v0.5 | prévu |
 | SAFE-04 | Segments trop courts / trop nombreux par seconde (planificateur) | v0.5 | prévu |
 | SAFE-05 | Porte-à-faux, ponts trop longs, largeur incohérente avec la buse | v0.5 | prévu |
-| SAFE-06 | Avertissement si la buse diffère de la buse recommandée par le modèle | v0.3 | prévu |
+| SAFE-06 | Avertissement si la buse montée diffère de la buse recommandée par le modèle | v0.3 | fait |
 
 ## Interface et fichiers (UI)
 
@@ -153,7 +154,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | UI-05 | Catalogue : catégories, recherche (nom, description, catégorie, étiquettes, sans accents), étiquettes, fiche du modèle (buses conseillées signalées si la buse diffère, auteur, source, licence) | v0.2 | fait |
 | UI-06 | Ouvrir (`⌘O`) / glisser-déposer un `.weave` ; « Mes modèles » mémorisés sur le poste, retirables (« Annuler » dans le message) ; erreurs du script avec leur ligne | v0.2 | fait |
 | UI-07 | Revenir aux valeurs par défaut du modèle : toutes, ou une par son ↺ | v0.1 | fait |
-| UI-08 | Placement sur le plateau, copies multiples | v0.3 | prévu |
+| UI-08 | Section « Plateau » : position, rotation, copies, écart, adhésion (conseil du modèle rappelé) ; buse sous l'imprimante ; segments hors plateau en rouge dans la vue | v0.3 | fait |
 | UI-09 | Calcul au relâchement quand le premier calcul d'un geste dépasse 60 ms (barre d'état orange) | v0.1 | fait |
 | UI-10 | Mesures et dimensions dans l'unité d'affichage (mm, pouces) | v0.1 | fait |
 

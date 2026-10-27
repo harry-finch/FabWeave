@@ -73,6 +73,40 @@ fn every_model_prints_with_default_values() {
 }
 
 #[test]
+fn every_model_takes_a_brim_and_a_raft() {
+    let mut w = bench(
+        "profiles/printers/prusa_core_one.toml",
+        "profiles/filaments/generic_pla.toml",
+    );
+    for adhesion in [json!({ "type": "brim" }), json!({ "type": "raft" })] {
+        w.set_setup(serde_json::from_value(json!({ "adhesion": adhesion })).unwrap())
+            .unwrap();
+        for file in catalogue() {
+            let src = std::fs::read_to_string(&file).unwrap();
+            w.load_model(&src).unwrap();
+            let ev = w.evaluate(&Map::new());
+            let codes: Vec<_> = ev
+                .issues
+                .iter()
+                .filter(|i| !i.is_error() && i.code == "adhesion.skipped")
+                .collect();
+            assert!(
+                codes.is_empty(),
+                "{} {adhesion}: adhésion non ajoutée",
+                file.display()
+            );
+            let errors: Vec<_> = ev.issues.iter().filter(|i| i.is_error()).collect();
+            assert!(
+                errors.is_empty(),
+                "{} {adhesion}: {errors:?}",
+                file.display()
+            );
+            w.gcode(&ev).unwrap();
+        }
+    }
+}
+
+#[test]
 fn every_model_survives_its_parameter_bounds() {
     let mut w = bench(
         "profiles/printers/prusa_core_one.toml",

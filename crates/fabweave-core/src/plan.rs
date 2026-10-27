@@ -4,8 +4,10 @@
 //!
 //! Rien n'est corrigé en silence : chaque vitesse réduite est attribuée à son
 //! plafond (première couche, machine, débit, axe Z) et comptée ; un parcours
-//! hors du volume d'impression ou dans une zone exclue du plateau est une
-//! erreur.
+//! hors du volume d'impression (plateau rectangulaire ou rond) ou dans une
+//! zone exclue du plateau est une erreur. Le plan est tout de même calculé,
+//! les mouvements en cause marqués (`Move::outside`) pour que la vue montre
+//! où la pièce dépasse ; l'export, lui, est refusé.
 //!
 //! Temps estimé : avec les accélérations du profil, chaque mouvement suit un
 //! trapèze de vitesse (accélération, palier, freinage) ; la vitesse de
@@ -18,7 +20,7 @@ use serde::Serialize;
 
 use crate::issue::Issue;
 use crate::path::{Bounds, MoveKind, Speed, Toolpath};
-use crate::profile::{Accelerations, FilamentProfile, Origin, PrinterProfile, Zone};
+use crate::profile::{Accelerations, BedShape, FilamentProfile, Origin, PrinterProfile, Zone};
 
 /// Longueur sous laquelle deux points sont confondus (mm).
 pub const MIN_SEGMENT: f64 = 1e-4;
@@ -64,6 +66,8 @@ pub struct Move {
     /// Durée estimée du mouvement (s), rétraction et saut compris
     /// (progression affichée par l'imprimante).
     pub time: f64,
+    /// Mouvement imprimé hors du volume d'impression ou dans une zone exclue.
+    pub outside: bool,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
@@ -129,36 +133,72 @@ fn grow(b: &mut Option<Bounds>, p: [f64; 3]) {
     }
 }
 
-/// Calcule le plan d'impression. `None` si le parcours ne peut pas être
-/// imprimé (les messages disent pourquoi).
+/// Centre du plateau (repère machine).
+pub fn bed_centre(printer: &PrinterProfile) -> [f64; 2] {
+    let [bx, by] = printer.bed.size;
+    match printer.bed.origin {
+        Origin::Corner => [bx / 2.0, by / 2.0],
+        Origin::Center => [0.0, 0.0],
+    }
+}
+
+/// Calcule le plan d'impression, la pièce centrée sur le plateau. `None` si
+/// le parcours ne peut pas être imprimé ni montré (les messages disent
+/// pourquoi).
 pub fn plan(
     path: &Toolpath,
     printer: &PrinterProfile,
     filament: &FilamentProfile,
+) -> (Option<Plan>, Vec<Issue>) {
+    plan_at(path, printer, filament, None)
+}
+
+/// Comme [`plan`], le centre de l'encombrement posé en `target` (repère
+/// machine) plutôt qu'au centre du plateau.
+pub fn plan_at(
+    path: &Toolpath,
+    printer: &PrinterProfile,
+    filament: &FilamentProfile,
+    target: Option<[f64; 2]>,
 ) -> (Option<Plan>, Vec<Issue>) {
     let mut issues = Vec::new();
     let Some(model_bounds) = path.bounds().filter(|_| path.extruding_moves() > 0) else {
         return (None, vec![Issue::error("path.empty")]);
     };
 
-    // Placement : centre de l'encombrement au centre du plateau.
+    // Placement : centre de l'encombrement au point demandé.
     let c = model_bounds.center();
+    let centre = bed_centre(printer);
+    let t = target.unwrap_or(centre);
+    let offset = [t[0] - c[0], t[1] - c[1], 0.0];
     let [bx, by] = printer.bed.size;
-    let offset = match printer.bed.origin {
-        Origin::Corner => [bx / 2.0 - c[0], by / 2.0 - c[1], 0.0],
-        Origin::Center => [-c[0], -c[1], 0.0],
+    let (lo, hi) = (
+        [centre[0] - bx / 2.0, centre[1] - by / 2.0],
+        [centre[0] + bx / 2.0, centre[1] + by / 2.0],
+    );
+    let round = printer.bed.shape == BedShape::Circle;
+    // Dépassement d'un point du plateau (mm, négatif dedans).
+    let beyond = |x: f64, y: f64| {
+        if round {
+            (x - centre[0]).hypot(y - centre[1]) - bx / 2.0
+        } else {
+            (lo[0] - x).max(x - hi[0]).max(lo[1] - y).max(y - hi[1])
+        }
     };
-    let (lo, hi) = match printer.bed.origin {
-        Origin::Corner => ([0.0, 0.0], [bx, by]),
-        Origin::Center => ([-bx / 2.0, -by / 2.0], [bx / 2.0, by / 2.0]),
+    let overflow = if round {
+        path.points
+            .iter()
+            .map(|p| beyond(p.x + offset[0], p.y + offset[1]))
+            .fold(0.0_f64, f64::max)
+    } else {
+        (0..2)
+            .map(|i| {
+                let a = lo[i] - (model_bounds.min[i] + offset[i]);
+                let b = model_bounds.max[i] + offset[i] - hi[i];
+                a.max(b)
+            })
+            .fold(0.0_f64, f64::max)
     };
-    let overflow = (0..2)
-        .map(|i| {
-            let a = lo[i] - (model_bounds.min[i] + offset[i]);
-            let b = model_bounds.max[i] + offset[i] - hi[i];
-            a.max(b)
-        })
-        .fold(0.0_f64, f64::max);
     if overflow > 1e-6 {
         issues.push(
             Issue::error("path.out_of_bed")
@@ -176,13 +216,33 @@ pub fn plan(
                 .value(model_bounds.max[2]),
         );
     }
-    if crate::issue::has_error(&issues) {
-        return (None, issues);
-    }
     excluded_zones(path, offset, &printer.bed.exclude, &mut issues);
-    if crate::issue::has_error(&issues) {
-        return (None, issues);
-    }
+    let max_height = printer.bed.max_height;
+    let zones: Vec<([f64; 2], [f64; 2])> = printer
+        .bed
+        .exclude
+        .iter()
+        .map(|z| {
+            (
+                [z.min[0] + 1e-6, z.min[1] + 1e-6],
+                [z.max[0] - 1e-6, z.max[1] - 1e-6],
+            )
+        })
+        .collect();
+    // Mouvement imprimé hors du volume ou dans une zone (repère machine).
+    let off_limits = |a: &crate::path::WayPoint, b: &crate::path::WayPoint| {
+        let (pa, pb) = (
+            [a.x + offset[0], a.y + offset[1]],
+            [b.x + offset[0], b.y + offset[1]],
+        );
+        beyond(pa[0], pa[1]) > 1e-6
+            || beyond(pb[0], pb[1]) > 1e-6
+            || a.z.min(b.z) < -1e-9
+            || a.z.max(b.z) > max_height
+            || zones
+                .iter()
+                .any(|(lo, hi)| segment_hits_box(pa, pb, *lo, *hi))
+    };
 
     let pts = &path.points;
     let min_print_z = pts
@@ -225,6 +285,7 @@ pub fn plan(
         skipped: false,
         first_layer: pts[0].z < first_layer_top,
         time: 0.0,
+        outside: false,
     });
 
     for i in 1..pts.len() {
@@ -244,6 +305,7 @@ pub fn plan(
             skipped: false,
             first_layer,
             time: 0.0,
+            outside: false,
         };
         if length < MIN_SEGMENT {
             m.skipped = true;
@@ -313,6 +375,7 @@ pub fn plan(
             fan = fan.max(filament.cooling.bridge_fan);
         }
 
+        m.outside = off_limits(a, b);
         m.e = area * length * mult / f_area;
         m.speed = v;
         m.requested = requested;
@@ -731,8 +794,9 @@ mod tests {
         // Contour de 30 mm autour de la zone : il ne la touche pas.
         assert!(super::plan(&square(15.0), &pr, &filament()).0.is_some());
         // Contour de 8 mm : ses quatre côtés sont dans la zone.
-        let (none, issues) = super::plan(&square(4.0), &pr, &filament());
-        assert!(none.is_none());
+        let (shown, issues) = super::plan(&square(4.0), &pr, &filament());
+        // Plan gardé pour la vue, mouvements en cause marqués.
+        assert!(shown.unwrap().moves[1..].iter().all(|m| m.outside));
         assert_eq!(issues[0].code, "path.excluded_zone");
         assert_eq!(issues[0].count, Some(4));
         assert_eq!(issues[0].field.as_deref(), Some("printer.bed.exclude[0]"));
@@ -798,10 +862,44 @@ mod tests {
             ],
             ..Default::default()
         };
-        let (plan_, issues) = plan(&big, &printer(), &filament());
-        assert!(plan_.is_none());
+        let (shown, issues) = plan(&big, &printer(), &filament());
+        assert!(shown.unwrap().moves[1].outside);
         assert_eq!(issues[0].code, "path.out_of_bed");
         assert!((issues[0].value.unwrap() - 75.0).abs() < 1e-9);
+
+        // Placement demandé, plateau rond.
+        let small = Toolpath {
+            points: vec![
+                wp(-10.0, 0.0, 0.2, MoveKind::Travel, Speed::Factor(1.0)),
+                wp(10.0, 0.0, 0.2, MoveKind::Print, Speed::Factor(1.0)),
+            ],
+            ..Default::default()
+        };
+        let (at, issues) = plan_at(&small, &printer(), &filament(), Some([20.0, 30.0]));
+        assert!(!crate::issue::has_error(&issues));
+        assert_eq!(at.unwrap().offset, [20.0, 30.0, 0.0]);
+        let (edge, issues) = plan_at(&small, &printer(), &filament(), Some([5.0, 30.0]));
+        assert_eq!(issues[0].code, "path.out_of_bed");
+        assert!(edge.unwrap().moves[1].outside);
+        let mut delta = printer();
+        delta.bed.shape = crate::profile::BedShape::Circle;
+        delta.bed.size = [200.0, 200.0];
+        delta.bed.origin = Origin::Center;
+        // Diagonale de ±75 mm : ses bouts sont hors du disque de rayon 100
+        // (75 √2 ≈ 106), alors qu'elle tiendrait dans un plateau carré.
+        let corner = Toolpath {
+            points: vec![
+                wp(-75.0, -75.0, 0.2, MoveKind::Travel, Speed::Factor(1.0)),
+                wp(75.0, 75.0, 0.2, MoveKind::Print, Speed::Factor(1.0)),
+            ],
+            ..Default::default()
+        };
+        let (_, issues) = plan(&corner, &delta, &filament());
+        assert_eq!(issues[0].code, "path.out_of_bed");
+        assert!((issues[0].value.unwrap() - (75.0 * 2.0_f64.sqrt() - 100.0)).abs() < 1e-9);
+        assert!(!crate::issue::has_error(
+            &plan(&small, &delta, &filament()).1
+        ));
 
         let same = wp(1.0, 1.0, 0.2, MoveKind::Print, Speed::Factor(1.0));
         let (none, issues) = plan(

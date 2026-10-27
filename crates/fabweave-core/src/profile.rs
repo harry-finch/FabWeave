@@ -6,10 +6,12 @@
 //! produisent une erreur à code stable, avec la ligne dans le fichier.
 //!
 //! Profil imprimante v2 (FabWeave 0.3) : zones exclues du plateau,
-//! accélérations, cône de la buse, vignettes, nom par langue. Champs ajoutés
-//! tous facultatifs : un profil v1 se lit tel quel (migration sans
-//! changement), et un lecteur v1 refuse un profil v2 sur son numéro de
-//! version plutôt que sur un champ inconnu.
+//! accélérations, cône de la buse, vignettes, nom par langue, buses
+//! proposées et couches par buse, dégagement de la tête (copies), plateau
+//! rond. Profil filament v2 : débit maximal par buse. Champs ajoutés tous
+//! facultatifs : un profil v1 se lit tel quel (migration sans changement),
+//! et un lecteur v1 refuse un profil v2 sur son numéro de version plutôt
+//! que sur un champ inconnu.
 
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +23,7 @@ pub const PRINTER_FORMAT: &str = "fabweave.printer";
 pub const FILAMENT_FORMAT: &str = "fabweave.filament";
 /// Version du profil imprimante (v1 lue sans changement).
 pub const PRINTER_VERSION: u32 = 2;
-pub const FILAMENT_VERSION: u32 = 1;
+pub const FILAMENT_VERSION: u32 = 2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -66,11 +68,23 @@ pub struct PrinterInfo {
     pub source: Option<String>,
 }
 
+/// Forme du plateau.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BedShape {
+    #[default]
+    Rectangle,
+    /// Plateau rond (delta) : `size = [diamètre, diamètre]`.
+    Circle,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Bed {
-    /// Surface imprimable X, Y (mm).
+    /// Surface imprimable X, Y (mm) ; diamètre deux fois pour un plateau rond.
     pub size: [f64; 2],
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub shape: BedShape,
     /// Hauteur d'impression maximale (mm).
     pub max_height: f64,
     pub origin: Origin,
@@ -107,6 +121,24 @@ pub struct Nozzle {
     /// Hauteur du cône sous le bloc de chauffe (mm).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cone_height: Option<f64>,
+    /// Diamètres proposés par le sélecteur de buse (mm), `diameter` compris.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub choices: Vec<f64>,
+    /// L'imprimante accepte une buse haut débit (HF) ; une buse abrasive.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub high_flow_available: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub abrasive_available: bool,
+    /// Dégagement de la tête pour l'impression pièce par pièce (copies) :
+    /// rayon autour de la buse (mm) et hauteur libre sous le portique (mm).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clearance_radius: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clearance_height: Option<f64>,
+}
+
+fn is_default<T: Default + PartialEq>(v: &T) -> bool {
+    *v == T::default()
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -163,6 +195,19 @@ pub struct LayerDefaults {
     /// Hauteur de couche conseillée aux modèles (`printer.layer_height`).
     pub layer_height: f64,
     pub first_layer_height: f64,
+    /// Hauteurs pour les autres buses (sélecteur de buse).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub by_nozzle: Vec<NozzleLayers>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct NozzleLayers {
+    pub diameter: f64,
+    pub layer_height: f64,
+    /// Sinon celle du profil.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_layer_height: Option<f64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -290,6 +335,41 @@ pub struct Speeds {
     pub first_layer: f64,
     /// Débit volumétrique maximal (mm³/s).
     pub max_volumetric: f64,
+    /// Débit maximal selon la buse (plus grosse buse, buse haut débit).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub by_nozzle: Vec<NozzleFlow>,
+}
+
+/// Débit maximal pour une buse : s'applique si `diameter` et `high_flow`
+/// (quand ils sont donnés) correspondent ; la plus précise l'emporte.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct NozzleFlow {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diameter: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high_flow: Option<bool>,
+    pub max_volumetric: f64,
+}
+
+/// Diamètres égaux au micromètre près.
+pub fn same_diameter(a: f64, b: f64) -> bool {
+    (a - b).abs() < 1e-6
+}
+
+impl Speeds {
+    /// Débit maximal pour cette buse.
+    pub fn max_volumetric_for(&self, diameter: f64, high_flow: bool) -> f64 {
+        self.by_nozzle
+            .iter()
+            .filter(|e| e.diameter.is_none_or(|d| same_diameter(d, diameter)))
+            .filter(|e| e.high_flow.is_none_or(|h| h == high_flow))
+            // Plus précise d'abord ; à égalité, la première du fichier
+            // (`max_by_key` garde la dernière : parcours à rebours).
+            .rev()
+            .max_by_key(|e| usize::from(e.diameter.is_some()) + usize::from(e.high_flow.is_some()))
+            .map_or(self.max_volumetric, |e| e.max_volumetric)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -460,6 +540,22 @@ pub fn parse_printer(src: &str) -> Result<PrinterProfile, Vec<Issue>> {
             );
         }
     }
+    if p.bed.shape == BedShape::Circle && !same_diameter(p.bed.size[0], p.bed.size[1]) {
+        out.push(Issue::error("profile.invalid_bed").field("bed.size"));
+    }
+    let n = &p.nozzle;
+    let mut sizes: Vec<(&str, f64)> = n.choices.iter().map(|d| ("nozzle.choices", *d)).collect();
+    sizes.extend(n.clearance_radius.map(|v| ("nozzle.clearance_radius", v)));
+    sizes.extend(n.clearance_height.map(|v| ("nozzle.clearance_height", v)));
+    for e in &p.layers.by_nozzle {
+        sizes.push(("layers.by_nozzle.diameter", e.diameter));
+        sizes.push(("layers.by_nozzle.layer_height", e.layer_height));
+        sizes.extend(
+            e.first_layer_height
+                .map(|v| ("layers.by_nozzle.first_layer_height", v)),
+        );
+    }
+    positive(&sizes, &mut out);
     for t in &p.gcode.thumbnails {
         if ThumbnailSpec::parse(t).is_none() {
             out.push(
@@ -512,6 +608,19 @@ pub fn parse_filament(src: &str) -> Result<FilamentProfile, Vec<Issue>> {
         ],
         &mut out,
     );
+    let flows: Vec<(&str, f64)> = f
+        .speed
+        .by_nozzle
+        .iter()
+        .flat_map(|e| {
+            [
+                ("speed.by_nozzle.max_volumetric", Some(e.max_volumetric)),
+                ("speed.by_nozzle.diameter", e.diameter),
+            ]
+        })
+        .filter_map(|(k, v)| v.map(|v| (k, v)))
+        .collect();
+    positive(&flows, &mut out);
     non_negative(
         &[
             ("filament.pressure_advance", f.filament.pressure_advance),

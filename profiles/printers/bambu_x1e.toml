@@ -40,6 +40,13 @@ exclude = [
 diameter = 0.4
 high_flow = false
 abrasive = true
+# Buses de Bambu Studio pour la X1E (0,2 mm en acier inoxydable, les
+# autres en acier trempé). Dégagement de la tête pour les copies
+# (extruder_clearance_radius / _height_to_rod de Bambu Studio).
+choices = [0.2, 0.4, 0.6, 0.8]
+abrasive_available = true
+clearance_radius = 57.0
+clearance_height = 34.0
 
 [limits]
 max_print_speed = 300.0
@@ -53,6 +60,12 @@ jerk = 9.0
 [layers]
 layer_height = 0.2
 first_layer_height = 0.2
+# Hauteurs par buse : profils « Standard » de Bambu Studio.
+by_nozzle = [
+    { diameter = 0.2, layer_height = 0.1, first_layer_height = 0.1 },
+    { diameter = 0.6, layer_height = 0.3, first_layer_height = 0.3 },
+    { diameter = 0.8, layer_height = 0.4, first_layer_height = 0.4 },
+]
 
 [gcode]
 # Vignette dans le G-code (bloc THUMBNAIL_BLOCK de Bambu Studio).

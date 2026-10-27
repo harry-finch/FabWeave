@@ -77,9 +77,12 @@
   const travelMat = new THREE.LineBasicMaterial();
   const printLines = new THREE.LineSegments(new THREE.BufferGeometry(), printMat);
   const travelLines = new THREE.LineSegments(new THREE.BufferGeometry(), travelMat);
-  scene.add(bed, printLines, travelLines);
+  // Mouvements imprimés hors du volume ou dans une zone exclue : surlignés.
+  const outsideMat = new THREE.LineBasicMaterial();
+  const outsideLines = new THREE.LineSegments(new THREE.BufferGeometry(), outsideMat);
+  scene.add(bed, printLines, travelLines, outsideLines);
 
-  const TOKENS = ['view-bg', 'view-bed', 'view-bed-edge', 'view-grid', 'view-bed-exclude', 'path-low', 'path-high', 'path-travel'] as const;
+  const TOKENS = ['view-bg', 'view-bed', 'view-bed-edge', 'view-grid', 'view-bed-exclude', 'path-low', 'path-high', 'path-travel', 'danger'] as const;
   let colors: Record<(typeof TOKENS)[number], THREE.Color> = Object.fromEntries(TOKENS.map((k) => [k, new THREE.Color()])) as never;
 
   function readColors() {
@@ -91,6 +94,7 @@
     grid.color = colors['view-grid'];
     exclude.color = colors['view-bed-exclude'];
     travelMat.color = colors['path-travel'];
+    outsideMat.color = colors['danger'];
   }
 
   function render() {
@@ -110,15 +114,34 @@
     if (!p) return;
     const [w, h] = p.bed.size;
     const [x0, y0] = p.bed.origin === 'center' ? [-w / 2, -h / 2] : [0, 0];
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), bedFill);
-    plane.position.set(x0 + w / 2, y0 + h / 2, -0.05);
+    const [cx, cy] = [x0 + w / 2, y0 + h / 2];
+    const round = p.bed.shape === 'circle';
+    const r = w / 2;
+    const plane = new THREE.Mesh(round ? new THREE.CircleGeometry(r, 128) : new THREE.PlaneGeometry(w, h), bedFill);
+    plane.position.set(cx, cy, -0.05);
+    // Grille tous les 10 mm, coupée au bord d'un plateau rond.
     const lines: number[] = [];
-    for (let x = 10; x < w; x += 10) lines.push(x0 + x, y0, 0, x0 + x, y0 + h, 0);
-    for (let y = 10; y < h; y += 10) lines.push(x0, y0 + y, 0, x0 + w, y0 + y, 0);
+    for (let x = 10; x < w; x += 10) {
+      const half = round ? Math.sqrt(Math.max(0, r * r - (x0 + x - cx) ** 2)) : h / 2;
+      lines.push(x0 + x, cy - half, 0, x0 + x, cy + half, 0);
+    }
+    for (let y = 10; y < h; y += 10) {
+      const half = round ? Math.sqrt(Math.max(0, r * r - (y0 + y - cy) ** 2)) : w / 2;
+      lines.push(cx - half, y0 + y, 0, cx + half, y0 + y, 0);
+    }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(lines, 3));
+    const edgePts: number[] = [];
+    if (round) {
+      for (let k = 0; k <= 128; k++) {
+        const a = (k / 128) * Math.PI * 2;
+        edgePts.push(cx + r * Math.cos(a), cy + r * Math.sin(a), 0);
+      }
+    } else {
+      edgePts.push(x0, y0, 0, x0 + w, y0, 0, x0 + w, y0 + h, 0, x0, y0 + h, 0, x0, y0, 0);
+    }
     const edge = new THREE.BufferGeometry();
-    edge.setAttribute('position', new THREE.Float32BufferAttribute([x0, y0, 0, x0 + w, y0, 0, x0 + w, y0 + h, 0, x0, y0 + h, 0, x0, y0, 0], 3));
+    edge.setAttribute('position', new THREE.Float32BufferAttribute(edgePts, 3));
     bed.add(plane, new THREE.LineSegments(g, grid), new THREE.Line(edge, bedEdge));
     // Zones exclues (repère machine) : contour et hachures à 45°, tous les 3 mm.
     const hatch: number[] = [];
@@ -145,8 +168,10 @@
   function buildPath(f: FrameData | null) {
     printLines.geometry.dispose();
     travelLines.geometry.dispose();
+    outsideLines.geometry.dispose();
     const pg = new THREE.BufferGeometry();
     const tg = new THREE.BufferGeometry();
+    const og = new THREE.BufferGeometry();
     const n = f ? f.kinds.length : 0;
     if (f && n > 1) {
       const pos = new THREE.BufferAttribute(f.positions, 3);
@@ -170,15 +195,19 @@
       }
       const prints: number[] = [];
       const travels: number[] = [];
-      for (let i = 1; i < n; i++) (f.kinds[i] === 0 ? travels : prints).push(i - 1, i);
+      const outside: number[] = [];
+      for (let i = 1; i < n; i++) (f.kinds[i] === 0 ? travels : f.outside[i] ? outside : prints).push(i - 1, i);
       pg.setAttribute('position', pos);
       pg.setAttribute('color', new THREE.BufferAttribute(col, 3));
       pg.setIndex(prints);
       tg.setAttribute('position', pos);
       tg.setIndex(travels);
+      og.setAttribute('position', pos);
+      og.setIndex(outside);
     }
     printLines.geometry = pg;
     travelLines.geometry = tg;
+    outsideLines.geometry = og;
   }
 
   /** Cadre la pièce (ou le plateau) vue de devant, à gauche, en hauteur. */

@@ -23,6 +23,14 @@ origin = "corner"
 diameter = 0.4
 high_flow = false
 abrasive = false
+# Buses de PrusaSlicer pour cette imprimante ; haut débit (HF) et buse
+# abrasive (ObXidian) proposées. Dégagement de la tête pour les copies
+# (extruder_clearance_radius / _height de PrusaSlicer).
+choices = [0.25, 0.3, 0.4, 0.5, 0.6, 0.8]
+high_flow_available = true
+abrasive_available = true
+clearance_radius = 45.0
+clearance_height = 13.0
 
 [limits]
 max_print_speed = 200.0
@@ -38,6 +46,15 @@ jerk = 8.0
 [layers]
 layer_height = 0.2
 first_layer_height = 0.2
+# Hauteurs par buse : profil d'impression par défaut de chaque buse dans
+# PrusaSlicer (première couche à 0,2 mm partout).
+by_nozzle = [
+    { diameter = 0.25, layer_height = 0.12 },
+    { diameter = 0.3, layer_height = 0.16 },
+    { diameter = 0.5, layer_height = 0.2 },
+    { diameter = 0.6, layer_height = 0.25 },
+    { diameter = 0.8, layer_height = 0.4 },
+]
 
 [gcode]
 # Vignettes lues par l'écran (réglage `thumbnails` de PrusaSlicer).

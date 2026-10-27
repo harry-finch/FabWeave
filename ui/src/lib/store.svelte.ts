@@ -8,13 +8,15 @@
 // - Calcul en direct ; si le premier calcul d'un geste dépasse 60 ms, les
 //   suivants attendent le relâchement (`deferred`, signalé dans la barre d'état).
 // - Le document est mémorisé sur le poste 400 ms après chaque modification.
+// - Préparation de l'impression : buse mémorisée par imprimante, placement et
+//   adhésion dans le document (annulables comme le reste).
 
 import { EngineClient } from './engine';
 import { FILAMENT_FILES, MODEL_FILES, PRINTER_FILES } from './catalog';
 import { storageKey } from './app';
 import { renderThumb } from './thumbs';
 import { theme } from './theme.svelte';
-import type { FilamentProfile, FrameData, Issue, LoadResult, ModelInfo, PrinterProfile, Values } from './types';
+import type { Adhesion, FilamentProfile, FrameData, Issue, LoadResult, ModelInfo, NozzleSetup, Placement, PrinterProfile, Setup, Values } from './types';
 
 const DOC_KEY = storageKey('document.v1');
 /** Modèles ouverts par l'utilisateur (texte complet), mémorisés sur le poste. */
@@ -49,7 +51,16 @@ interface Doc {
   filament: string;
   /** Valeurs modifiées par l'utilisateur, par modèle. */
   values: Record<string, Values>;
+  /** Buse montée, par imprimante (vide : celle du profil). */
+  nozzles: Record<string, NozzleSetup>;
+  placement: Placement;
+  adhesion: Adhesion;
 }
+
+export const DEFAULT_PLACEMENT: Placement = { rotation: 0, copies: [1, 1] };
+/** Réglages proposés à la première activation (valeurs par défaut du moteur). */
+export const BRIM: Extract<Adhesion, { type: 'brim' }> = { type: 'brim', width: 5, gap: 0.1 };
+export const RAFT: Extract<Adhesion, { type: 'raft' }> = { type: 'raft', layers: 3, gap: 0.2, margin: 3 };
 
 function readSaved(): Partial<Doc> {
   try {
@@ -88,7 +99,7 @@ class Store {
   printers = $state<ProfileEntry<PrinterProfile>[]>([]);
   filaments = $state<ProfileEntry<FilamentProfile>[]>([]);
 
-  doc = $state<Doc>({ model: '', printer: 'prusa_mk4s', filament: 'generic_pla', values: {} });
+  doc = $state<Doc>({ model: '', printer: 'prusa_mk4s', filament: 'generic_pla', values: {}, nozzles: {}, placement: DEFAULT_PLACEMENT, adhesion: { type: 'none' } });
 
   model = $state<ModelInfo | null>(null);
   printer = $state<PrinterProfile | null>(null);
@@ -118,11 +129,21 @@ class Store {
   #probe = false;
   #dirty = false;
   #saveTimer: ReturnType<typeof setTimeout> | undefined;
-  #loaded = { model: '', printer: '', filament: '' };
+  #loaded = { model: '', printer: '', filament: '', setup: '' };
+  /** Messages de la préparation refusée par le moteur. */
+  #setupIssues: Issue[] = [];
 
   constructor() {
     const s = readSaved();
-    this.doc = { model: s.model ?? '', printer: s.printer ?? 'prusa_mk4s', filament: s.filament ?? 'generic_pla', values: s.values ?? {} };
+    this.doc = {
+      model: s.model ?? '',
+      printer: s.printer ?? 'prusa_mk4s',
+      filament: s.filament ?? 'generic_pla',
+      values: s.values ?? {},
+      nozzles: s.nozzles ?? {},
+      placement: { ...DEFAULT_PLACEMENT, ...s.placement },
+      adhesion: s.adhesion ?? { type: 'none' },
+    };
     this.engine.onReady = (v) => {
       this.version = v;
       this.status = 'ready';
@@ -150,6 +171,16 @@ class Store {
 
   get filamentId() {
     return this.doc.filament;
+  }
+
+  /** Buse choisie pour l'imprimante courante. */
+  get nozzle(): NozzleSetup {
+    return this.doc.nozzles[this.doc.printer] ?? {};
+  }
+
+  /** Préparation envoyée au moteur. */
+  get setup(): Setup {
+    return { nozzle: this.nozzle, placement: this.doc.placement, adhesion: this.doc.adhesion };
   }
 
   /** Valeurs modifiées du modèle affiché. */
@@ -219,7 +250,15 @@ class Store {
     }
     if (todo.length) {
       await Promise.all(todo);
-      this.loadIssues = issues;
+      this.loadIssues = [...issues, ...this.#setupIssues];
+    }
+    const setup = JSON.stringify($state.snapshot(this.setup));
+    if (setup !== this.#loaded.setup) {
+      const r = JSON.parse(await this.engine.setup(setup)) as { ok: boolean; issues?: Issue[] };
+      this.#loaded.setup = setup;
+      const kept = this.loadIssues.filter((i) => !this.#setupIssues.includes(i));
+      this.#setupIssues = r.ok ? [] : (r.issues ?? []);
+      this.loadIssues = [...kept, ...this.#setupIssues];
     }
     this.compute();
   }
@@ -329,6 +368,30 @@ class Store {
       if (id) delete next[id];
       d.values[d.model] = id ? next : {};
     });
+  }
+
+  /** Buse de l'imprimante courante (fusionne avec le choix précédent). */
+  setNozzle(patch: NozzleSetup) {
+    this.edit((d) => {
+      const next = { ...(d.nozzles[d.printer] ?? {}), ...patch };
+      for (const k of Object.keys(next) as (keyof NozzleSetup)[]) if (next[k] === undefined) delete next[k];
+      d.nozzles = { ...d.nozzles, [d.printer]: next };
+    });
+  }
+
+  /** Placement ; les modifications successives d'un même champ fusionnent. */
+  setPlacement(patch: Partial<Placement>, key?: string) {
+    this.edit((d) => {
+      const next = { ...d.placement, ...patch };
+      for (const k of ['x', 'y', 'spacing'] as const) if (next[k] === undefined) delete next[k];
+      d.placement = next;
+    }, key && `placement.${key}`);
+  }
+
+  setAdhesion(a: Adhesion, key?: string) {
+    this.edit((d) => {
+      d.adhesion = a;
+    }, key && `adhesion.${key}`);
   }
 
   select(kind: 'model' | 'printer' | 'filament', id: string) {

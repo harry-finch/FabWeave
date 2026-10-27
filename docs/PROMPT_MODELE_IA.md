@@ -22,7 +22,7 @@ script Rhai         ← construit le parcours et se termine par lui
 
 ## 2. En-tête TOML (lu strictement : tout champ inconnu est une erreur)
 
-`[meta]` : `name` et `category` (obligatoires), `description` (2 à 4 phrases), `author`, `tags` (liste), `source` et `license` (obligatoires si tu reprends un modèle existant, par exemple FullControl, GPL-3.0), `recommended_nozzle` (liste de diamètres en mm).
+`[meta]` : `name` et `category` (obligatoires), `description` (2 à 4 phrases), `author`, `tags` (liste), `source` et `license` (obligatoires si tu reprends un modèle existant, par exemple FullControl, GPL-3.0), `recommended_nozzle` (liste de diamètres en mm), `recommended_adhesion` (`"brim"` ou `"raft"` si la pièce tient mal au plateau : petite empreinte, pièce haute ; l'utilisateur décide). Ne génère jamais toi-même de bordure, de radeau, de copies ni de placement : l'application s'en charge.
 
 Les textes affichés s'écrivent en français et en anglais : `name = { fr = "Abat-jour torsadé", en = "Twisted lampshade" }`.
 

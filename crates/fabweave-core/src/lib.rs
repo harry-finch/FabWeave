@@ -8,6 +8,7 @@
 // un `Result` n'a pas d'effet mesurable.
 #![allow(clippy::result_large_err)]
 
+pub mod adhesion;
 pub mod fill;
 pub mod format;
 pub mod gcode;
@@ -21,6 +22,7 @@ pub mod plan;
 pub mod points;
 pub mod profile;
 pub mod script;
+pub mod setup;
 pub mod template;
 pub mod workbench;
 

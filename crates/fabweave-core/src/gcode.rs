@@ -5,7 +5,8 @@
 //!
 //! Couches : les parcours continus ou non planaires n'en ont pas ; une couche
 //! commence quand l'impression dépasse d'une hauteur de couche du profil le
-//! début de la précédente (paliers de hauteur atteinte). Chaque dialecte les
+//! début de la précédente (paliers de hauteur atteinte), et le compte repart
+//! du plateau à chaque copie imprimée pièce par pièce. Chaque dialecte les
 //! annonce à sa façon :
 //! - Prusa, Marlin : commentaires `;LAYER_CHANGE`, `;Z:`, `;HEIGHT:` (ceux de
 //!   PrusaSlicer, lus par les visionneuses et OctoPrint) ;
@@ -34,6 +35,7 @@ use crate::params::ParamValue;
 use crate::path::{MoveKind, Toolpath};
 use crate::plan::Plan;
 use crate::profile::{Accelerations, FilamentProfile, Firmware, ImageFormat, PrinterProfile};
+use crate::setup::{Adhesion, Setup};
 use crate::template::TemplateEngine;
 
 /// Tout ce qu'il faut pour écrire un G-code.
@@ -44,6 +46,8 @@ pub struct Job<'a> {
     pub plan: &'a Plan,
     pub printer: &'a PrinterProfile,
     pub filament: &'a FilamentProfile,
+    /// Préparation choisie (rappelée en commentaire).
+    pub setup: &'a Setup,
 }
 
 macro_rules! line {
@@ -278,10 +282,21 @@ pub fn layer_starts(job: &Job) -> Vec<usize> {
     let lh = job.printer.layers.layer_height;
     let mut out = Vec::new();
     let mut top: Option<f64> = None;
+    let mut restart = false;
     for (i, m) in job.plan.moves.iter().enumerate().skip(1) {
         let w = &job.path.points[i];
+        restart |= job.path.starts.contains(&i);
         if m.skipped || w.kind == MoveKind::Travel {
             continue;
+        }
+        if restart {
+            // Début d'une pièce : copie suivante (pièce par pièce), on repart
+            // du plateau ; mais la première pièce, posée à la hauteur de la
+            // bordure, reste dans la même couche.
+            restart = false;
+            if top.is_some_and(|t| w.z < t - 0.5 * lh) {
+                top = None;
+            }
         }
         if top.is_none_or(|t| w.z >= t + 0.99 * lh) {
             out.push(i);
@@ -440,6 +455,46 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
     }
     line!(g, "; printer = {}", p.printer.name.get("fr"));
     line!(g, "; filament = {}", f.filament.name.get("fr"));
+    line!(
+        g,
+        "; nozzle = {}{}{}",
+        num(p.nozzle.diameter, 2),
+        if p.nozzle.high_flow { " HF" } else { "" },
+        if p.nozzle.abrasive { " abrasive" } else { "" }
+    );
+    let pl = &job.setup.placement;
+    if pl.rotation != 0.0 {
+        line!(g, "; rotation = {}", num(pl.rotation, 2));
+    }
+    if pl.copies != [1, 1] {
+        line!(
+            g,
+            "; copies = {} x {} (pièce par pièce)",
+            pl.copies[0],
+            pl.copies[1]
+        );
+    }
+    match job.setup.adhesion {
+        Adhesion::None => {}
+        Adhesion::Brim { width, gap } => {
+            line!(
+                g,
+                "; adhesion = brim, width {} mm, gap {} mm",
+                num(width, 2),
+                num(gap, 2)
+            )
+        }
+        Adhesion::Raft {
+            layers,
+            gap,
+            margin,
+        } => line!(
+            g,
+            "; adhesion = raft, {layers} layers, gap {} mm, margin {} mm",
+            num(gap, 2),
+            num(margin, 2)
+        ),
+    }
     g.push('\n');
     g.push_str(&start);
     g.push('\n');
@@ -658,6 +713,7 @@ p
             plan: &pl,
             printer: &pr,
             filament: &fi,
+            setup: &Setup::default(),
         })
         .unwrap()
     }
@@ -821,6 +877,7 @@ p",
             plan: &pl,
             printer: &p,
             filament: &fi,
+            setup: &Setup::default(),
         })
         .unwrap_err();
         assert_eq!(e[0].code, "profile.template_error");
@@ -921,6 +978,40 @@ p",
 
         // Sans vignette dans le profil : aucune.
         assert!(!two_layers(crate::testing::MARLIN).contains("thumbnail"));
+    }
+
+    #[test]
+    fn copies_restart_the_layer_count_and_the_setup_is_recorded() {
+        let src = "[meta]\nname = \"t\"\ncategory = \"t\"\n---\nlet p = new_path();\np.travel_to(-5, -5, 0.2);\nfor k in 0..5 { let z = 0.2 * (k + 1); p.print_to(5, -5, z, 0.45, 0.2); p.print_to(5, 5, z, 0.45, 0.2); p.print_to(-5, 5, z, 0.45, 0.2); p.print_to(-5, -5, z, 0.45, 0.2); }\np";
+        let mut w = crate::Workbench::default();
+        w.set_printer(crate::testing::X1E).unwrap();
+        w.set_filament(crate::testing::PLA).unwrap();
+        w.load_model(src).unwrap();
+        let one = w.gcode(&w.evaluate(&serde_json::Map::new())).unwrap();
+        assert!(one.contains("; total layer number: 5\n"));
+        let mut setup = Setup {
+            adhesion: Adhesion::Brim {
+                width: 3.0,
+                gap: 0.1,
+            },
+            ..Default::default()
+        };
+        setup.nozzle.diameter = Some(0.6);
+        w.set_setup(setup.clone()).unwrap();
+        let single = w.gcode(&w.evaluate(&serde_json::Map::new())).unwrap();
+        let per_copy = single.matches("\nM73 L").count();
+        setup.placement.copies = [2, 1];
+        w.set_setup(setup).unwrap();
+        let g = w.gcode(&w.evaluate(&serde_json::Map::new())).unwrap();
+        // La deuxième copie repart du plateau : ses couches s'ajoutent à celles
+        // de la première (bordure comprise dans la première couche).
+        let layers = g.matches("\nM73 L").count();
+        assert_eq!(layers, 2 * per_copy, "{per_copy} couches par copie");
+        assert!(g.contains(&format!("; total layer number: {layers}\n")));
+        assert!(g.contains("; nozzle = 0.6 abrasive\n"));
+        assert!(g.contains("; copies = 2 x 1 (pièce par pièce)\n"));
+        assert!(g.contains("; adhesion = brim, width 3 mm, gap 0.1 mm\n"));
+        assert!(g.contains("M862") || g.contains("; HEADER_BLOCK_START"));
     }
 
     #[test]

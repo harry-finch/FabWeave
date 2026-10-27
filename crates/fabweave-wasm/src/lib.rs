@@ -46,6 +46,7 @@ pub struct Frame {
     positions: Vec<f32>,
     kinds: Vec<u8>,
     speeds: Vec<f32>,
+    outside: Vec<u8>,
     report: String,
 }
 
@@ -65,6 +66,12 @@ impl Frame {
     /// Vitesse obtenue du mouvement qui arrive à chaque point (mm/s).
     pub fn take_speeds(&mut self) -> Vec<f32> {
         std::mem::take(&mut self.speeds)
+    }
+
+    /// 1 pour un mouvement imprimé hors du volume d'impression ou dans une
+    /// zone exclue du plateau (surligné dans la vue), 0 sinon.
+    pub fn take_outside(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.outside)
     }
 
     /// Mesures, messages et journal du script (JSON).
@@ -134,12 +141,30 @@ impl Engine {
         }
     }
 
+    /// Préparation de l'impression (buse, placement, adhésion ; JSON de
+    /// `fabweave_core::setup::Setup`). JSON : `{ ok }` ou `{ ok, issues }`
+    /// (la préparation précédente est alors gardée).
+    pub fn set_setup(&mut self, setup_json: &str) -> String {
+        self.last = None;
+        let setup = match serde_json::from_str::<fabweave_core::setup::Setup>(setup_json) {
+            Ok(s) => s,
+            Err(e) => {
+                return issues_json(&[Issue::error("setup.invalid").detail(e.to_string())]);
+            }
+        };
+        match self.bench.set_setup(setup) {
+            Ok(()) => json!({ "ok": true }).to_string(),
+            Err(e) => issues_json(&e),
+        }
+    }
+
     /// Calcule le parcours pour des valeurs de curseurs (`{ "id": valeur }`).
     pub fn evaluate(&mut self, values_json: &str) -> Frame {
         let ev = self.bench.evaluate(&values(values_json));
         let n = ev.path.as_ref().map_or(0, |p| p.points.len());
-        let (mut positions, mut kinds, mut speeds) = (
+        let (mut positions, mut kinds, mut speeds, mut outside) = (
             Vec::with_capacity(n * 3),
+            Vec::with_capacity(n),
             Vec::with_capacity(n),
             Vec::with_capacity(n),
         );
@@ -153,6 +178,7 @@ impl Engine {
                 ]);
                 kinds.push(p.kind as u8);
                 speeds.push(m.speed as f32);
+                outside.push(u8::from(m.outside));
             }
         }
         // Annotations dans le repère de la machine.
@@ -170,6 +196,18 @@ impl Engine {
             "stats": ev.plan.as_ref().map(|p| &p.stats),
             "offset": ev.plan.as_ref().map(|p| p.offset),
             "first_layer_top": ev.plan.as_ref().map(|p| p.first_layer_top),
+            // Buse montée et ce qu'elle change (profils effectifs).
+            "nozzle": match (&ev.printer, &ev.filament) {
+                (Some(p), Some(f)) => json!({
+                    "diameter": p.nozzle.diameter,
+                    "high_flow": p.nozzle.high_flow,
+                    "abrasive": p.nozzle.abrasive,
+                    "layer_height": p.layers.layer_height,
+                    "first_layer_height": p.layers.first_layer_height,
+                    "max_volumetric": f.speed.max_volumetric,
+                }),
+                _ => Value::Null,
+            },
             "points": n,
             "issues": ev.issues,
             "log": ev.log,
@@ -180,6 +218,7 @@ impl Engine {
             positions,
             kinds,
             speeds,
+            outside,
             report,
         }
     }

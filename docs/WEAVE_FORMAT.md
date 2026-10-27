@@ -82,6 +82,7 @@ path
 | `source` | chaîne | non | URL d'origine (obligatoire pour un modèle repris d'ailleurs). |
 | `license` | chaîne | non | Licence d'origine (`"GPL-3.0"` pour FullControl). |
 | `recommended_nozzle` | liste de nombres | non | Diamètres de buse conseillés (mm). Une autre buse produit l'avertissement `nozzle.not_recommended`. |
+| `recommended_adhesion` | `"none"`, `"brim"` ou `"raft"` | non | Adhésion conseillée, rappelée à l'utilisateur ; jamais appliquée d'office (le choix est le sien). |
 
 « texte » = chaîne ou table par langue.
 
@@ -259,7 +260,7 @@ Mesurée sur Apple M4 (voir [ADR-0002](adr/0002-format-weave-toml-et-rhai.md)) :
 ## 4. Ce que fait le moteur
 
 1. Contrôle les valeurs des paramètres, exécute le script.
-2. Centre l'encombrement de la pièce sur le plateau ; refuse une pièce qui dépasse le plateau, descend sous Z = 0, dépasse la hauteur d'impression ou passe dans une zone exclue du plateau (purge, pinces).
+2. Prépare le parcours selon les choix de l'utilisateur (section 6, « Préparation ») : rotation, copies, bordure ou radeau. Place le centre de l'encombrement au point choisi (centre du plateau par défaut) ; refuse une pièce qui dépasse le plateau, descend sous Z = 0, dépasse la hauteur d'impression ou passe dans une zone exclue du plateau (purge, pinces).
 3. Pour chaque mouvement : extrusion relative `E` = section × longueur 3D × multiplicateur de débit ÷ section du filament ; vitesse = demande du script, plafonnée (première couche, machine, débit volumétrique, axe Z) ; ventilateur (première couche, filament, script, ponts) ; durée avec les accélérations du profil (trapèze de vitesse, passage des angles limité par le *jerk*).
 4. Écrit le G-code : vignettes du profil, gabarit de démarrage, `M83`, accélérations, mouvements (seuls les axes qui changent) avec progression `M73 P R` et changements de couche dans le dialecte du profil, consignes de température après la première couche, gabarit de fin, métadonnées (temps estimé, filament) lues par les imprimantes Prusa.
 
@@ -288,7 +289,12 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `path.excluded_zone` | erreur | La pièce passe dans une zone exclue du plateau (`field` : `printer.bed.exclude[i]`, `name` : nom de la zone par langue, `count` : segments en cause). |
 | `path.duplicates_skipped` | info (avertissement au-delà d'un point sur dix) | Points confondus avec le précédent, ignorés. |
 | `speed.limited_first_layer`, `speed.limited_machine`, `speed.limited_flow`, `speed.limited_z` | info | Vitesse plafonnée (nombre de segments, valeur du plafond). |
-| `nozzle.not_recommended` | avertissement | Buse hors de `recommended_nozzle`. |
+| `nozzle.not_recommended` | avertissement | Buse montée hors de `recommended_nozzle`. |
+| `nozzle.custom` | info | Diamètre libre, hors des buses du profil : hauteurs de couche interpolées. |
+| `nozzle.not_abrasive` | avertissement | Filament abrasif dans une buse qui ne l'est pas. |
+| `setup.invalid`, `setup.out_of_range`, `setup.too_many_copies`, `setup.high_flow_unavailable`, `setup.abrasive_unavailable` | erreur | Préparation refusée (valeur hors domaine, buse non proposée par l'imprimante). |
+| `copies.too_close`, `copies.too_tall`, `copies.clearance_unknown` | erreur | Copies pièce par pièce impossibles : écart sous le rayon de dégagement de la tête, pièce plus haute que l'espace libre sous le portique, dégagement absent du profil. |
+| `adhesion.skipped` | avertissement | Bordure ou radeau non ajouté (empreinte de la première couche introuvable). |
 
 ## 6. Profils
 
@@ -299,19 +305,37 @@ Deux fichiers TOML, lus strictement comme l'en-tête des modèles : `profiles/pr
 | Imprimante | Contenu |
 | --- | --- |
 | `[printer]` | `id`, `name` (texte, ou table par langue `{ fr = "…", en = "…" }`), `model` (annoncé au firmware : `M862.3` des Prusa, `printer_model_id` du paquet Bambu, `C13` pour la X1E), `firmware` (`prusa`, `marlin`, `klipper`, `bambu` ; tout autre nom est refusé), `source` |
-| `[bed]` | `size = [x, y]`, `max_height`, `origin = "corner"` ou `"center"`, `plate` (facultatif : type de plaque, variable `bed_type` ; Bambu Lab : `"Textured PEI Plate"`, `"Cool Plate"`, `"Engineering Plate"`, `"High Temp Plate"`), `exclude` (facultatif : zones interdites à la pièce, `{ name = { fr, en }, min = [x, y], max = [x, y] }` en repère machine ; dessinées hachurées sur le plateau ; erreur `path.excluded_zone` si un mouvement imprimé y passe) |
-| `[nozzle]` | `diameter`, `high_flow`, `abrasive`, `cone_angle` et `cone_height` (facultatifs : cône de dégagement, pente maximale en degrés de 0 à 90 exclus, hauteur en mm ; transmis au script) |
+| `[bed]` | `size = [x, y]` (diamètre deux fois pour un plateau rond), `shape` (`"rectangle"` par défaut, ou `"circle"`), `max_height`, `origin = "corner"` ou `"center"`, `plate` (facultatif : type de plaque, variable `bed_type` ; Bambu Lab : `"Textured PEI Plate"`, `"Cool Plate"`, `"Engineering Plate"`, `"High Temp Plate"`), `exclude` (facultatif : zones interdites à la pièce, `{ name = { fr, en }, min = [x, y], max = [x, y] }` en repère machine ; dessinées hachurées sur le plateau ; erreur `path.excluded_zone` si un mouvement imprimé y passe) |
+| `[nozzle]` | `diameter`, `high_flow`, `abrasive` (buse livrée) ; `choices` (diamètres proposés par le sélecteur de buse), `high_flow_available`, `abrasive_available` (l'imprimante accepte ces buses) ; `clearance_radius`, `clearance_height` (dégagement de la tête pour les copies pièce par pièce : rayon autour de la buse, hauteur libre sous le portique ; `extruder_clearance_*` des trancheurs) ; `cone_angle` et `cone_height` (cône de dégagement, pente maximale en degrés de 0 à 90 exclus, hauteur en mm ; transmis au script) ; tous facultatifs |
 | `[limits]` | `max_print_speed`, `travel_speed`, `max_z_speed` (mm/s) ; facultatifs : `acceleration` (impression, mm/s²), `travel_acceleration` et `first_layer_acceleration` (sinon `acceleration`, qu'ils exigent), `jerk` (saut de vitesse dans un angle, mm/s, 8 par défaut ; pour l'estimation seulement) |
-| `[layers]` | `layer_height`, `first_layer_height` (transmis au script) |
+| `[layers]` | `layer_height`, `first_layer_height` (transmis au script) ; `by_nozzle = [{ diameter, layer_height, first_layer_height? }, …]` : hauteurs pour les autres buses |
 | `[gcode]` | `start`, `end` : gabarits (ci-dessous) ; `thumbnails` (facultatif) : vignettes du parcours intégrées au G-code, `["16x16/QOI", "380x285/PNG"]` comme le réglage de PrusaSlicer (PNG ou QOI, 1 024 px de côté au plus ; `profile.invalid_thumbnail` sinon) |
 
 | Filament | Contenu |
 | --- | --- |
 | `[filament]` | `id`, `name`, `type` (`PLA`, `PETG`, `FLEX`…), `diameter`, `density` (g/cm³), `flow_multiplier`, `pressure_advance`, `abrasive` |
 | `[temperature]` | `first_layer`, `nozzle`, `bed_first_layer`, `bed`, `probe` (palpage), `idle`, `chamber` |
-| `[speed]` | `nominal` (pour `set_speed_factor(1)`), `first_layer` (plafond), `max_volumetric` (mm³/s) |
+| `[speed]` | `nominal` (pour `set_speed_factor(1)`), `first_layer` (plafond), `max_volumetric` (mm³/s) ; `by_nozzle = [{ diameter?, high_flow?, max_volumetric }, …]` (v2) : débit maximal selon la buse, l'entrée qui correspond le plus précisément l'emporte (diamètre et HF, puis l'un des deux ; à égalité, la première) |
 | `[cooling]` | `fan`, `first_layer_fan`, `bridge_fan` (%) |
 | `[retraction]` | `length`, `speed`, `z_hop`, `min_travel` |
+
+### Préparation de l'impression
+
+Choisie par l'utilisateur dans l'application (sections « Machine » et « Plateau ») ou en ligne de commande, jamais par le modèle. JSON du moteur (`fabweave_core::setup::Setup`, tous les champs facultatifs) :
+
+```json
+{
+  "nozzle": { "diameter": 0.6, "high_flow": true, "abrasive": false },
+  "placement": { "x": 125, "y": 105, "rotation": 30, "copies": [2, 1], "spacing": 45 },
+  "adhesion": { "type": "brim", "width": 5, "gap": 0.1 }
+}
+```
+
+- **Buse** : sans diamètre, celle du profil. Le moteur dérive des profils « effectifs » (les profils livrés ne changent pas) : diamètre transmis au script et aux gabarits (`M862.1` des Prusa), hauteurs de couche de `layers.by_nozzle` (interpolées entre les buses connues pour un diamètre libre, message `nozzle.custom`), débit maximal de `speed.by_nozzle` du filament.
+- **Placement** : `x`, `y` = centre de l'encombrement en repère machine (centre du plateau par défaut) ; `rotation` en degrés autour de ce centre ; `copies = [colonnes, rangées]` en grille centrée, imprimées **pièce par pièce** (la buse finit une copie avant la suivante, le compteur de couches repart du plateau) ; `spacing` = écart entre copies, par défaut le rayon de dégagement de la tête (`clearance_radius`), qu'il ne peut pas descendre sous ; une pièce plus haute que `clearance_height` ne peut pas être copiée. 100 copies au plus.
+- **Adhésion** : `{"type": "none"}`, `{"type": "brim", "width": 5, "gap": 0.1}` (bordure de cette largeur, à cet écart de la pièce, boucles de 1,125 × la buse, extérieur seulement) ou `{"type": "raft", "layers": 3, "gap": 0.2, "margin": 3}` (radeau débordant de `margin`, couche de base à la hauteur de première couche, autres à la hauteur de couche, lignes de 1,25 × la buse ; la pièce est rehaussée de l'épaisseur du radeau plus `gap`). L'emprise compte dans les contrôles du plateau et des zones exclues.
+
+La préparation est rappelée en tête du G-code (`; nozzle = …`, `; copies = …`, `; adhesion = …`).
 
 ### Gabarits de G-code
 

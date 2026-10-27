@@ -10,6 +10,8 @@
 //!
 //! options : --printer <profil.toml>  --filament <profil.toml>
 //!           --set <id>=<valeur> (répétable)  --json
+//!           --nozzle <mm>  --high-flow  --rotate <degrés>  --copies <NxM>
+//!           --at <x>,<y>  --brim <mm>  --raft <couches>
 //! ```
 //!
 //! Profils par défaut : Prusa MK4S et PLA générique (livrés avec FabWeave).
@@ -32,6 +34,13 @@ options :
   --printer <profil.toml>   profil imprimante (défaut : Prusa MK4S)
   --filament <profil.toml>  profil filament (défaut : PLA générique)
   --set <id>=<valeur>       valeur d'un paramètre (répétable)
+  --nozzle <mm>             buse montée (défaut : celle du profil)
+  --high-flow               buse haut débit
+  --rotate <degrés>         rotation sur le plateau
+  --copies <NxM>            copies en grille, imprimées pièce par pièce
+  --at <x>,<y>              centre de la pièce sur le plateau (mm)
+  --brim <mm>               bordure de cette largeur
+  --raft <couches>          radeau de ce nombre de couches
   -o <sortie>               export : .gcode, ou .gcode.3mf (paquet Bambu Lab)
   --json                    sortie JSON
 codes de sortie : 0 aucun message bloquant, 1 erreurs, 2 mauvaise utilisation";
@@ -44,6 +53,7 @@ struct Args {
     output: Option<String>,
     values: Map<String, Value>,
     json: bool,
+    setup: fabweave_core::setup::Setup,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -60,6 +70,12 @@ fn parse_args() -> Result<Args, String> {
         output: None,
         values: Map::new(),
         json: false,
+        setup: Default::default(),
+    };
+    let number = |name: &str, v: &str| {
+        v.trim()
+            .parse::<f64>()
+            .map_err(|_| format!("{name} {v} : nombre attendu"))
     };
     while let Some(arg) = it.next() {
         let mut value = |name: &str| it.next().ok_or(format!("{name} : valeur manquante"));
@@ -68,6 +84,43 @@ fn parse_args() -> Result<Args, String> {
             "--filament" => a.filament = Some(value("--filament")?),
             "-o" | "--output" => a.output = Some(value("-o")?),
             "--json" => a.json = true,
+            "--nozzle" => a.setup.nozzle.diameter = Some(number("--nozzle", &value("--nozzle")?)?),
+            "--high-flow" => a.setup.nozzle.high_flow = Some(true),
+            "--rotate" => a.setup.placement.rotation = number("--rotate", &value("--rotate")?)?,
+            "--copies" => {
+                let v = value("--copies")?;
+                let (x, y) = v
+                    .split_once('x')
+                    .ok_or(format!("--copies {v} : NxM attendu"))?;
+                let n = |s: &str| {
+                    s.trim()
+                        .parse::<u32>()
+                        .map_err(|_| format!("--copies {v} : NxM attendu"))
+                };
+                a.setup.placement.copies = [n(x)?, n(y)?];
+            }
+            "--at" => {
+                let v = value("--at")?;
+                let (x, y) = v.split_once(',').ok_or(format!("--at {v} : x,y attendu"))?;
+                a.setup.placement.x = Some(number("--at", x)?);
+                a.setup.placement.y = Some(number("--at", y)?);
+            }
+            "--brim" => {
+                let width = number("--brim", &value("--brim")?)?;
+                a.setup.adhesion = fabweave_core::setup::Adhesion::Brim { width, gap: 0.1 };
+            }
+            "--raft" => {
+                let v = value("--raft")?;
+                let layers = v
+                    .trim()
+                    .parse::<u32>()
+                    .map_err(|_| format!("--raft {v} : nombre de couches attendu"))?;
+                a.setup.adhesion = fabweave_core::setup::Adhesion::Raft {
+                    layers,
+                    gap: 0.2,
+                    margin: 3.0,
+                };
+            }
             "--set" => {
                 let kv = value("--set")?;
                 let (k, v) = kv
@@ -119,6 +172,9 @@ fn hint(code: &str) -> &'static str {
         "path.too_high" => "la pièce dépasse la hauteur d'impression",
         "path.below_bed" => "un point descend sous Z = 0",
         "path.excluded_zone" => "la pièce passe dans une zone exclue du plateau (purge…)",
+        "copies.too_close" => "copies trop proches : la tête heurterait la copie déjà imprimée",
+        "copies.too_tall" => "pièce trop haute pour être copiée pièce par pièce (portique)",
+        "nozzle.custom" => "buse hors des buses du profil : hauteurs de couche interpolées",
         "path.invalid_width" | "path.invalid_height" => {
             "largeur et hauteur du boudin doivent être positives"
         }
@@ -202,6 +258,14 @@ fn run() -> Result<bool, String> {
         .map_err(|e| fail_load("profil imprimante", e))?;
     w.set_filament(filament.as_deref().unwrap_or(PLA))
         .map_err(|e| fail_load("profil filament", e))?;
+    w.set_setup(a.setup.clone()).map_err(|e| {
+        let lines: Vec<String> = e.iter().map(describe).collect();
+        format!(
+            "préparation refusée :
+{}",
+            lines.join("\n")
+        )
+    })?;
     let source = read(&a.model)?;
     let model = match w.load_model(&source) {
         Ok(m) => m.clone(),

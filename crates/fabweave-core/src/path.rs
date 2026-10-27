@@ -82,6 +82,10 @@ pub struct Note {
 pub struct Toolpath {
     pub points: Vec<WayPoint>,
     pub notes: Vec<Note>,
+    /// Indice du premier point de chaque pièce imprimée l'une après l'autre
+    /// (copies) ; vide pour une pièce seule. Le compteur de couches repart
+    /// à chaque pièce.
+    pub starts: Vec<usize>,
 }
 
 impl Toolpath {

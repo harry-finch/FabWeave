@@ -38,6 +38,12 @@ Pour une Bambu Lab (carte SD), une sortie en `.gcode.3mf` donne le paquet que li
 cargo run --release -p fabweave-cli -- export models/vases/ripple_vase.weave -o vase.gcode.3mf --printer profiles/printers/bambu_x1e.toml
 ```
 
+La préparation de l'impression se choisit aussi en ligne de commande (buse, placement, copies, adhésion) :
+
+```bash
+cargo run --release -p fabweave-cli -- export models/mecanique/hex_adapter.weave -o hex.gcode --nozzle 0.6 --high-flow --brim 5 --copies 2x1 --rotate 30
+```
+
 Faire écrire un modèle par une IA : donner [docs/PROMPT_MODELE_IA.md](docs/PROMPT_MODELE_IA.md) comme instructions, puis vérifier le fichier obtenu avec `fabweave check`.
 
 ## Développer

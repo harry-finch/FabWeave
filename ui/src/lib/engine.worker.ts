@@ -9,6 +9,7 @@ type Request =
   | { kind: 'read'; id: number; text: string }
   | { kind: 'read-profile'; id: number; profile: 'printer' | 'filament'; text: string }
   | { kind: 'gcode'; id: number; values: string }
+  | { kind: 'setup'; id: number; setup: string }
   | { kind: 'gcode-3mf'; id: number; values: string }
   | { kind: 'thumbnail'; id: number; model: string; printer: string; filament: string };
 
@@ -37,17 +38,21 @@ onmessage = async (ev: MessageEvent<Request>) => {
       const positions = f.take_positions();
       const kinds = f.take_kinds();
       const speeds = f.take_speeds();
+      const outside = f.take_outside();
       const report = JSON.parse(f.report());
       f.free();
       const ms = performance.now() - t0;
-      post({ kind: 'frame', id: req.id, frame: { positions, kinds, speeds, report, ms } }, [
+      post({ kind: 'frame', id: req.id, frame: { positions, kinds, speeds, outside, report, ms } }, [
         positions.buffer as ArrayBuffer,
         kinds.buffer as ArrayBuffer,
         speeds.buffer as ArrayBuffer,
+        outside.buffer as ArrayBuffer,
       ]);
     } else if (req.kind === 'load') {
       const fn = { model: e.load_model, printer: e.set_printer, filament: e.set_filament }[req.target];
       post({ kind: 'result', id: req.id, ok: true, value: fn.call(e, req.text) });
+    } else if (req.kind === 'setup') {
+      post({ kind: 'result', id: req.id, ok: true, value: e.set_setup(req.setup) });
     } else if (req.kind === 'read') {
       post({ kind: 'result', id: req.id, ok: true, value: read_model(req.text) });
     } else if (req.kind === 'read-profile') {

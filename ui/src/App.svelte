@@ -13,6 +13,8 @@
   import ParamsPanel from './components/ParamsPanel.svelte';
   import Viewport from './components/Viewport.svelte';
   import CatalogPicker from './components/CatalogPicker.svelte';
+  import NozzleFields from './components/NozzleFields.svelte';
+  import PlatePanel from './components/PlatePanel.svelte';
   import { store, type ExportFormat } from './lib/store.svelte';
   import { ui } from './lib/ui.svelte';
   import { labelled, t } from './lib/i18n.svelte';
@@ -32,6 +34,8 @@
   const modified = $derived(Object.keys(store.current).length > 0);
 
   const currentEntry = $derived(store.catalog.find((e) => e.id === store.modelId));
+  /** Buse montée (choix de l'utilisateur, sinon celle du profil). */
+  const nozzleNow = $derived(store.nozzle.diameter ?? store.printer?.nozzle.diameter);
 
   // Ouverture d'un modèle : ⌘O, menu du catalogue, ou dépôt d'un fichier n'importe où.
   let fileInput = $state<HTMLInputElement>();
@@ -174,7 +178,7 @@
           <dl class="metrics sheet">
             {#if meta.recommended_nozzle.length}
               <dt>{t('model.nozzles')}</dt>
-              <dd class="tabular" class:warn={store.printer && !meta.recommended_nozzle.some((d) => Math.abs(d - store.printer!.nozzle.diameter) < 1e-6)}>
+              <dd class="tabular" class:warn={nozzleNow !== undefined && !meta.recommended_nozzle.some((d) => Math.abs(d - nozzleNow) < 1e-6)}>
                 {meta.recommended_nozzle.map((d) => numTrim(d, 2)).join(' · ')} mm
               </dd>
             {/if}
@@ -220,6 +224,7 @@
             {#each store.printers as p (p.id)}<option value={p.id}>{p.profile ? text(p.profile.printer.name) : p.id}</option>{/each}
           </select>
         </Field>
+        {#if store.printer}<NozzleFields printer={store.printer} />{/if}
         <Field label={t('machine.filament')}>
           <select class="input select" value={store.filamentId} onchange={(e) => store.select('filament', (e.currentTarget as HTMLSelectElement).value)}>
             {#each store.filaments as f (f.id)}<option value={f.id}>{f.profile ? text(f.profile.filament.name) : f.id}</option>{/each}
@@ -227,13 +232,22 @@
         </Field>
         {#if store.printer}
           <dl class="metrics">
-            <dt>{t('machine.nozzle')}</dt>
-            <dd class="tabular">{numTrim(store.printer.nozzle.diameter, 2)} mm</dd>
+            {#if report?.nozzle}
+              <dt>{t('nozzle.layers')}</dt>
+              <dd class="tabular">{numTrim(report.nozzle.layer_height, 3)} mm · {t('nozzle.first')} {numTrim(report.nozzle.first_layer_height, 3)} mm</dd>
+              <dt><span use:tip={t('nozzle.maxFlowHint')}>{t('nozzle.maxFlow')}</span></dt>
+              <dd class="tabular">{num(report.nozzle.max_volumetric, 1)} mm³/s</dd>
+            {/if}
             <dt>{t('machine.bed')}</dt>
             <dd class="tabular">{dims([store.printer.bed.size[0], store.printer.bed.size[1], store.printer.bed.max_height], 0)}</dd>
           </dl>
         {/if}
       </Section>
+      {#if store.printer}
+        <Section id="plate" title={t('plate.section')} step={4}>
+          <PlatePanel printer={store.printer} />
+        </Section>
+      {/if}
       <Section id="metrics" title={t('metrics.section')}>
         <dl class="metrics">
           <dt><span use:tip={t('metrics.timeHint')}>{t('metrics.time')}</span></dt>
@@ -398,38 +412,10 @@
     font-size: var(--fs-lg);
   }
 
-  .note {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: var(--fs-sm);
-  }
-
   .credit {
     margin: 0;
     color: var(--text-muted);
     font-size: var(--fs-xs);
-  }
-
-  .metrics {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 6px var(--s2);
-    margin: 0;
-  }
-
-  .metrics dt {
-    color: var(--text-secondary);
-    font-size: var(--fs-sm);
-  }
-
-  .metrics dd {
-    margin: 0;
-    text-align: right;
-  }
-
-  .metrics dd.strong {
-    font-weight: 600;
-    font-size: var(--fs-lg);
   }
 
   .steps {

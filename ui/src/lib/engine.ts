@@ -77,6 +77,11 @@ export class EngineClient {
     return this.#call({ kind: 'load', target, text });
   }
 
+  /** Préparation (buse, placement, adhésion) ; réponse JSON `{ ok, issues? }`. */
+  setup(setup: string): Promise<string> {
+    return this.#call({ kind: 'setup', setup });
+  }
+
   /** Description d'un modèle sans le charger (catalogue). */
   read(text: string): Promise<string> {
     return this.#call({ kind: 'read', text });

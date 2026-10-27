@@ -2,7 +2,7 @@
 # « @COREONE » de PrusaSlicer (PrusaResearch 2.5.13).
 
 format = "fabweave.filament"
-version = 1
+version = 2
 
 [filament]
 id = "generic_petg"
@@ -26,6 +26,16 @@ chamber = 35.0
 nominal = 35.0
 first_layer = 20.0
 max_volumetric = 10.0
+# Débit maximal par buse (PrusaSlicer : Generic PETG @PG 0.6 et 0.8, @COREONE HF0.4 à HF0.8) ; buse haut débit sans
+# diamètre : HF 0,4 et toute autre.
+by_nozzle = [
+    { diameter = 0.6, max_volumetric = 17.0 },
+    { diameter = 0.8, max_volumetric = 22.0 },
+    { high_flow = true, max_volumetric = 21.0 },
+    { diameter = 0.5, high_flow = true, max_volumetric = 24.0 },
+    { diameter = 0.6, high_flow = true, max_volumetric = 27.0 },
+    { diameter = 0.8, high_flow = true, max_volumetric = 34.0 },
+]
 
 [cooling]
 fan = 40.0

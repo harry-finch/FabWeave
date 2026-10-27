@@ -3,7 +3,7 @@
 # Input Shaper : les modèles de FabWeave impriment lentement.
 
 format = "fabweave.filament"
-version = 1
+version = 2
 
 [filament]
 id = "generic_pla"
@@ -27,6 +27,15 @@ chamber = 20.0
 nominal = 40.0
 first_layer = 20.0
 max_volumetric = 15.0
+# Débit maximal par buse (PrusaSlicer : Generic PLA @PG 0.8, @COREONE HF0.4 à HF0.8) ; buse haut débit sans
+# diamètre : HF 0,4 et toute autre.
+by_nozzle = [
+    { diameter = 0.8, max_volumetric = 19.0 },
+    { high_flow = true, max_volumetric = 21.0 },
+    { diameter = 0.5, high_flow = true, max_volumetric = 24.0 },
+    { diameter = 0.6, high_flow = true, max_volumetric = 28.0 },
+    { diameter = 0.8, high_flow = true, max_volumetric = 35.0 },
+]
 
 [cooling]
 fan = 100.0

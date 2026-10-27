@@ -54,6 +54,17 @@ pub struct Meta {
     pub license: Option<String>,
     /// Diamètres de buse conseillés (mm) ; vide : tous.
     pub recommended_nozzle: Vec<f64>,
+    /// Adhésion conseillée ; l'utilisateur choisit (le modèle ne l'impose pas).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recommended_adhesion: Option<RecommendedAdhesion>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RecommendedAdhesion {
+    None,
+    Brim,
+    Raft,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -143,6 +154,7 @@ struct RawMeta {
     license: Option<String>,
     #[serde(default)]
     recommended_nozzle: Vec<f64>,
+    recommended_adhesion: Option<RecommendedAdhesion>,
 }
 
 #[derive(Deserialize)]
@@ -283,6 +295,7 @@ pub fn parse(source: &str) -> Result<Model, Vec<Issue>> {
             source: m.source,
             license: m.license,
             recommended_nozzle: m.recommended_nozzle,
+            recommended_adhesion: m.recommended_adhesion,
         },
         params,
         script: source[s_start..].to_string(),

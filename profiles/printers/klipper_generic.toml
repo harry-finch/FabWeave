@@ -28,6 +28,11 @@ exclude = [
 
 [nozzle]
 diameter = 0.4
+choices = [0.2, 0.4, 0.6, 0.8]
+# Dégagement de la tête pour les copies : valeurs prudentes, à mesurer
+# (rayon autour de la buse, hauteur libre sous le portique).
+clearance_radius = 35.0
+clearance_height = 25.0
 
 [limits]
 max_print_speed = 250.0
@@ -41,6 +46,12 @@ jerk = 5.0
 [layers]
 layer_height = 0.2
 first_layer_height = 0.2
+# Autres buses : moitié du diamètre environ.
+by_nozzle = [
+    { diameter = 0.2, layer_height = 0.1, first_layer_height = 0.15 },
+    { diameter = 0.6, layer_height = 0.3, first_layer_height = 0.3 },
+    { diameter = 0.8, layer_height = 0.4, first_layer_height = 0.4 },
+]
 
 [gcode]
 thumbnails = ["32x32/PNG", "300x300/PNG"]

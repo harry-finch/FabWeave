@@ -1,6 +1,8 @@
 //! Poste de travail : un modèle compilé, un profil imprimante, un profil
-//! filament, et l'enchaînement valeurs → script → plan → G-code. Utilisé tel
-//! quel par le pont WebAssembly et par les exemples en ligne de commande.
+//! filament, la préparation choisie par l'utilisateur (buse, placement,
+//! adhésion), et l'enchaînement valeurs → script → préparation → plan →
+//! G-code. Utilisé tel quel par le pont WebAssembly et par l'outil en ligne
+//! de commande.
 
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
@@ -10,24 +12,30 @@ use crate::issue::{has_error, Issue};
 use crate::model::{self, Model};
 use crate::params::{resolve, ParamValue};
 use crate::path::Toolpath;
-use crate::plan::{plan, Plan};
+use crate::plan::{plan_at, Plan};
 use crate::profile::{parse_filament, parse_printer, FilamentProfile, PrinterProfile};
 use crate::script::{Compiled, Limits, PrinterContext, RunOutput, ScriptEngine};
+use crate::setup::{arrange, Setup};
 
 pub struct Workbench {
     scripts: ScriptEngine,
     model: Option<(Model, Compiled)>,
     printer: Option<PrinterProfile>,
     filament: Option<FilamentProfile>,
+    setup: Setup,
 }
 
 /// Résultat d'un calcul.
 pub struct Evaluation {
     pub params: IndexMap<String, ParamValue>,
+    /// Parcours préparé (rotation, copies, adhésion), repère du modèle.
     pub path: Option<Toolpath>,
     pub plan: Option<Plan>,
     pub issues: Vec<Issue>,
     pub log: Vec<String>,
+    /// Profils tels que la buse choisie les rend (ceux du G-code).
+    pub printer: Option<PrinterProfile>,
+    pub filament: Option<FilamentProfile>,
 }
 
 impl Default for Workbench {
@@ -43,6 +51,7 @@ impl Workbench {
             model: None,
             printer: None,
             filament: None,
+            setup: Setup::default(),
         }
     }
 
@@ -65,6 +74,21 @@ impl Workbench {
         Ok(self.filament.as_ref().expect("profil chargé"))
     }
 
+    /// Préparation de l'impression ; refusée (et l'ancienne gardée) si une
+    /// valeur sort de son domaine.
+    pub fn set_setup(&mut self, setup: Setup) -> Result<(), Vec<Issue>> {
+        let issues = setup.check();
+        if has_error(&issues) {
+            return Err(issues);
+        }
+        self.setup = setup;
+        Ok(())
+    }
+
+    pub fn setup(&self) -> &Setup {
+        &self.setup
+    }
+
     pub fn model(&self) -> Option<&Model> {
         self.model.as_ref().map(|(m, _)| m)
     }
@@ -77,9 +101,19 @@ impl Workbench {
         self.filament.as_ref()
     }
 
-    /// Ce que le script sait de la machine.
+    /// Profils tels que la buse choisie les rend, et les messages du choix.
+    pub fn effective(&self) -> Option<(PrinterProfile, FilamentProfile, Vec<Issue>)> {
+        match (&self.printer, &self.filament) {
+            (Some(p), Some(f)) => Some(self.setup.effective(p, f)),
+            _ => None,
+        }
+    }
+
+    /// Ce que le script sait de la machine (buse choisie comprise).
     pub fn printer_context(&self) -> Option<PrinterContext> {
-        self.printer.as_ref().map(|p| PrinterContext {
+        let eff = self.effective();
+        let p = eff.as_ref().map(|e| &e.0).or(self.printer.as_ref());
+        p.map(|p| PrinterContext {
             nozzle_diameter: p.nozzle.diameter,
             layer_height: p.layers.layer_height,
             first_layer_height: p.layers.first_layer_height,
@@ -125,19 +159,19 @@ impl Workbench {
             plan: None,
             issues: self.missing(),
             log: Vec::new(),
+            printer: None,
+            filament: None,
         };
         if !ev.issues.is_empty() {
             return ev;
         }
         let (m, c) = self.model.as_ref().expect("modèle chargé");
-        let (printer, filament) = (
-            self.printer.as_ref().expect("profil"),
-            self.filament.as_ref().expect("profil"),
-        );
+        let (printer, filament, nozzle_issues) = self.effective().expect("profils");
         let (params, issues) = resolve(&m.params, values);
         ev.params = params;
         ev.issues = issues;
-        let nozzle = printer.nozzle.diameter;
+        ev.issues.extend(nozzle_issues);
+        let nozzle = printer.nozzle.diameter; // buse choisie
         if !m.meta.recommended_nozzle.is_empty()
             && !m
                 .meta
@@ -160,11 +194,23 @@ impl Workbench {
         ev.log = out.log;
         ev.issues.extend(out.issues);
         if let Some(path) = out.path {
-            let (pl, issues) = plan(&path, printer, filament);
+            let (path, issues) = arrange(&path, &self.setup, &printer);
+            ev.issues.extend(issues);
+            let pl = &self.setup.placement;
+            let target = match (pl.x, pl.y) {
+                (None, None) => None,
+                (x, y) => {
+                    let c = crate::plan::bed_centre(&printer);
+                    Some([x.unwrap_or(c[0]), y.unwrap_or(c[1])])
+                }
+            };
+            let (pl, issues) = plan_at(&path, &printer, &filament, target);
             ev.issues.extend(issues);
             ev.plan = pl;
             ev.path = Some(path);
         }
+        ev.printer = Some(printer);
+        ev.filament = Some(filament);
         ev
     }
 
@@ -174,15 +220,18 @@ impl Workbench {
         if !missing.is_empty() {
             return Err(missing);
         }
-        match (&ev.path, &ev.plan) {
-            (Some(path), Some(plan)) if !has_error(&ev.issues) => emit(&Job {
-                model: &self.model.as_ref().expect("modèle").0,
-                params: &ev.params,
-                path,
-                plan,
-                printer: self.printer.as_ref().expect("profil"),
-                filament: self.filament.as_ref().expect("profil"),
-            }),
+        match (&ev.path, &ev.plan, &ev.printer, &ev.filament) {
+            (Some(path), Some(plan), Some(printer), Some(filament)) if !has_error(&ev.issues) => {
+                emit(&Job {
+                    model: &self.model.as_ref().expect("modèle").0,
+                    params: &ev.params,
+                    path,
+                    plan,
+                    printer,
+                    filament,
+                    setup: &self.setup,
+                })
+            }
             _ => Err(ev.issues.iter().filter(|i| i.is_error()).cloned().collect()),
         }
     }
@@ -200,8 +249,8 @@ impl Workbench {
             &g,
             path,
             plan,
-            self.printer.as_ref().expect("profil"),
-            self.filament.as_ref().expect("profil"),
+            ev.printer.as_ref().expect("profil"),
+            ev.filament.as_ref().expect("profil"),
         ))
     }
 }
