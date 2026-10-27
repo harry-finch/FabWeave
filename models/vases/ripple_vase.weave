@@ -4,7 +4,7 @@ version = 1
 [meta]
 name = { fr = "Vase à ondulations", en = "Ripple vase" }
 category = { fr = "Vases et luminaires", en = "Vases & lamps" }
-description = { fr = "Paroi d'un seul boudin large, imprimée en spirale continue. La buse ondule vers l'intérieur et l'extérieur à chaque tour, avec un demi-pas de décalage d'un tour à l'autre : la paroi se tisse d'elle-même. Branches en étoile, torsion et renflement en option. Sans fond.", en = "A single wide bead wall printed as one continuous spiral. The nozzle ripples in and out on every turn, shifted by half a ripple from one turn to the next, so the wall weaves itself. Optional star tips, twist and bulge. No bottom." }
+description = { fr = "Paroi d'un seul boudin large, imprimée en spirale continue. La buse ondule vers l'intérieur et l'extérieur à chaque tour, avec un demi-pas de décalage d'un tour à l'autre : la paroi se tisse d'elle-même. Branches en étoile, torsion et renflement en option ; fond plein d'une ou deux couches, qui épouse les ondulations.", en = "A single wide bead wall printed as one continuous spiral. The nozzle ripples in and out on every turn, shifted by half a ripple from one turn to the next, so the wall weaves itself. Optional star tips, twist and bulge; optional one or two layer solid bottom that follows the ripples." }
 author = "Andrew Gleadall (FullControl) ; port FabWeave"
 tags = ["vase", "spirale", "texture", "fullcontrol"]
 source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/ripple_texture.ipynb"
@@ -29,6 +29,17 @@ default = 40
 min = 5
 max = 150
 step = 1
+
+[params.bottom]
+type = "choice"
+label = { fr = "Fond", en = "Bottom" }
+help = { fr = "Couches pleines sous la spirale, au contour exact de la base (ondulations comprises). La spirale démarre sur la dernière, sans couture. Sans fond, le vase est un manchon ouvert, comme l'original.", en = "Solid layers under the spiral, following the exact outline of the base (ripples included). The spiral starts on the last one, without a seam. Without a bottom the vase is an open sleeve, like the original." }
+default = "none"
+options = [
+    { value = "none", label = { fr = "Aucun", en = "None" } },
+    { value = "1", label = { fr = "1 couche", en = "1 layer" } },
+    { value = "2", label = { fr = "2 couches", en = "2 layers" } },
+]
 
 [params.twist]
 type = "float"
@@ -148,40 +159,87 @@ max = 100
 step = 5
 ---
 // Port de « ripple texture demo » de FullControl (A. Gleadall, GPL-3.0).
-// Une seule spirale : Z monte continûment de `eh` par tour.
+// Une seule spirale : Z monte continûment de `eh` par tour. Fond (ajout
+// FabWeave) : couches pleines au contour du tour de spirale qui les suit.
 
 let ew = printer.nozzle_diameter * params.width_factor;   // largeur du boudin
 let eh = printer.nozzle_diameter * params.height_factor;  // montée par tour
-let layers = floor(params.height / eh).to_int();
 let segs = params.ripple_segments;
 let ripples = params.ripples_per_layer + 0.5;             // demi-pas de décalage
 let layer_segs = ripples * segs;                          // points par tour
-let total = floor(layers * layer_segs).to_int();
-let z0 = 0.8 * eh;          // premier tour un peu écrasé contre le plateau
 let twist = params.twist / 100.0;
 let boost = params.first_layer_boost / 100.0;
 
+// Fond : couche 1 à la hauteur de première couche du profil, couche 2 à + eh.
+let nb = if params.bottom == "2" { 2 } else if params.bottom == "1" { 1 } else { 0 };
+let fh = printer.first_layer_height;
+let z_bottom = if nb == 0 { 0.0 } else { fh + (nb - 1) * eh };
+let layers = floor((params.height - z_bottom) / eh).to_int();
+let total = floor(layers * layer_segs).to_int();
+let z0 = if nb == 0 { 0.8 * eh } else { z_bottom };       // premier tour écrasé, ou posé sur le fond
+
+// Forme : angle et rayon au tour `tv` (flottant ; négatif pour le fond), hauteur `z` dans la spirale.
+let angle_at = |tv| tv * TAU * (1.0 + twist / layers) - TAU / 4;  // départ devant, au milieu
+let radius_at = |tv, z| params.inner_radius
+    + params.ripple_depth * (0.5 + 0.5 * cos(ripples * tv * TAU))
+    + params.tip_length * pow(0.5 - 0.5 * cos(params.star_tips * tv * TAU), params.tip_pointiness)
+    + params.bulge * sin(z / params.height * 0.5 * TAU);
+
 let path = new_path();
+
+// Le fond : couche j au contour du tour (j − nb) ; la dernière se termine au
+// départ de la spirale. Lignes de 1,125 × buse, croisées d'une couche à l'autre,
+// qui mordent de 15 % sur le boudin du contour. Vitesse nominale du filament
+// (plafonnée en première couche), et non celle, lente, de la paroi.
+let fw = printer.nozzle_diameter * 1.125;
+path.set_speed_factor(1);
+for j in 0..nb {
+    let z = fh + j * eh;
+    let h = if j == 0 { fh } else { eh };
+    let contour = points();
+    let n = ceiling(layer_segs).to_int();
+    for i in 0..=n {
+        let tv = j - nb + i / n.to_float();
+        let r = radius_at.call(tv, 0.0);
+        let a = angle_at.call(tv);
+        contour.push(r * cos(a), r * sin(a), z);
+    }
+    let chains = contour.fill_lines(fw, if j % 2 == 0 { PI / 4 } else { -PI / 4 }, ew / 2 + fw * 0.35);
+    let last = j == nb - 1;
+    if !last {
+        path.travel_to(contour);
+        path.print_points(contour, ew, h);
+        if j == 0 {
+            path.note(#{ fr: "Fond : contour, puis remplissage", en: "Bottom: outline, then infill" });
+        }
+    }
+    for c in chains {
+        path.travel_to(c);
+        path.print_points(c, fw, h);
+    }
+    if last {
+        path.travel_to(contour);
+        path.print_points(contour, ew, h);
+    }
+}
+
 path.set_speed(params.speed / 2);
 let full_speed = false;
-
-for t in 0..total {
+let t_start = if nb == 0 { 0 } else { 1 };                // sur le fond, le point 0 clôt le contour
+for t in t_start..total {
     let tv = t / layer_segs;                              // 0 → layers
     let z = tv * eh;
-    let a = tv * TAU * (1.0 + twist / layers) - TAU / 4;  // départ devant, au milieu
-    let r = params.inner_radius
-        + params.ripple_depth * (0.5 + 0.5 * cos(ripples * tv * TAU))
-        + params.tip_length * pow(0.5 - 0.5 * cos(params.star_tips * tv * TAU), params.tip_pointiness)
-        + params.bulge * sin(z / params.height * 0.5 * TAU);
-    // Premier tour : la hauteur du boudin grandit pour combler l'écart au plateau.
-    let h = if tv < 1.0 { eh * (1.0 + tv * boost) } else { eh };
+    let r = radius_at.call(tv, z);
+    // Premier tour : la hauteur du boudin s'ajuste à l'écart réel sous la buse
+    // (sur le plateau : grandit pour combler l'écart ; sur le fond : part de presque rien).
+    let h = if tv >= 1.0 { eh } else if nb == 0 { eh * (1.0 + tv * boost) } else { eh * max(tv, 0.1) };
     if tv >= 1.0 && !full_speed {
         path.set_speed(params.speed);
         full_speed = true;
     }
-    path.print_polar(r, a, z0 + z, ew, h);
-    if t == 0 {
-        path.note(#{ fr: "Départ, devant au milieu", en: "Start, front middle" });
+    path.print_polar(r, angle_at.call(tv), z0 + z, ew, h);
+    if t == t_start {
+        path.note(#{ fr: "Départ de la spirale, devant au milieu", en: "Spiral start, front middle" });
     }
 }
 path.note(#{ fr: "Fin de la spirale", en: "End of the spiral" });

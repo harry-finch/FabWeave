@@ -91,10 +91,14 @@ fn every_model_survives_its_parameter_bounds() {
                 let mut values = Map::new();
                 values.insert(id.clone(), v.clone());
                 let ev = w.evaluate(&values);
-                // Les seules erreurs admises aux bornes : pièce trop grande pour le plateau.
+                // Les seules erreurs admises aux bornes : pièce trop grande pour
+                // le plateau, ou refus expliqué du modèle (`fail`).
                 for i in ev.issues.iter().filter(|i| i.is_error()) {
                     assert!(
-                        matches!(i.code, "path.out_of_bed" | "path.too_high"),
+                        matches!(
+                            i.code,
+                            "path.out_of_bed" | "path.too_high" | "model.failure"
+                        ),
                         "{} {id} = {v}: {i:?}",
                         file.display()
                     );

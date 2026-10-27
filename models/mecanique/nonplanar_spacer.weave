@@ -1,0 +1,161 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Entretoise non planaire", en = "Nonplanar spacer" }
+category = { fr = "Mécanique", en = "Mechanical" }
+description = { fr = "Rondelle épaisse imprimée en anneaux concentriques dont la hauteur ondule : chaque anneau monte un peu plus que le précédent sur les crêtes, sans jamais changer de couche. La matière se superpose en tuiles et la pièce encaisse bien l'écrasement. Une buse fine et pointue passe mieux au-dessus des crêtes.", en = "Thick washer printed as concentric rings whose height waves: each ring rises a little more than the previous one on the crests, without ever changing layer. Material overlaps like tiles and the part takes compression well. A slim, pointy nozzle clears the crests best." }
+author = "Andrew Gleadall (FullControl) ; port FabWeave"
+tags = ["non planaire", "rondelle", "entretoise", "fullcontrol"]
+source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/nonplanar_spacer.ipynb"
+license = "GPL-3.0"
+recommended_nozzle = [0.4]
+
+[params.waves]
+type = "int"
+label = { fr = "Ondes", en = "Waves" }
+help = { fr = "Nombre d'ondes sur le tour de la rondelle.", en = "Number of waves around the washer." }
+default = 6
+min = 1
+max = 10
+
+[params.thickness]
+type = "float"
+label = { fr = "Épaisseur", en = "Thickness" }
+unit = "mm"
+help = { fr = "Épaisseur totale de la pièce, au sommet des ondes de l'anneau extérieur.", en = "Total part thickness, at the wave tops of the outer ring." }
+default = 4
+min = 1
+max = 10
+step = 0.1
+
+[params.hole]
+type = "float"
+label = { fr = "Trou", en = "Hole" }
+unit = "mm"
+help = { fr = "Diamètre du trou central.", en = "Diameter of the centre hole." }
+default = 8
+min = 3
+max = 30
+step = 0.1
+
+[params.diameter_ratio]
+type = "float"
+label = { fr = "Rapport diam.", en = "Diameter ratio" }
+unit = "×"
+help = { fr = "Diamètre extérieur = trou × ce rapport.", en = "Outer diameter = hole × this ratio." }
+default = 3
+min = 1.5
+max = 5
+step = 0.1
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+help = { fr = "Vitesse d'impression ; le plafond de vitesse de l'axe Z s'applique sur les pentes.", en = "Print speed; the Z axis speed limit applies on slopes." }
+default = 8
+min = 2
+max = 40
+step = 0.5
+
+[params.material_factor]
+type = "float"
+label = { fr = "Matière", en = "Material" }
+unit = "×"
+help = { fr = "Épaisseur de matière en multiple du diamètre de buse : hauteur de couche au creux des ondes, plutôt largeur au sommet.", en = "Material thickness as a multiple of the nozzle diameter: layer height in the wave troughs, more like line width on the crests." }
+advanced = true
+default = 1
+min = 0.5
+max = 1.5
+step = 0.05
+
+[params.width_ratio]
+type = "float"
+label = { fr = "Largeur/haut.", en = "Width/height" }
+unit = "×"
+help = { fr = "Rapport largeur sur hauteur du boudin ; 2 conseillé pour cette structure.", en = "Bead width-to-height ratio; 2 is recommended for this structure." }
+advanced = true
+default = 2
+min = 1
+max = 4
+step = 0.1
+
+[params.overlap]
+type = "float"
+label = { fr = "Recouvrement", en = "Overlap" }
+unit = "%"
+help = { fr = "Recouvrement latéral entre anneaux voisins, en % de la largeur ; 10 à 20 % conseillés.", en = "Lateral overlap between neighbouring rings, as % of the width; 10 to 20% recommended." }
+advanced = true
+default = 20
+min = 0
+max = 40
+step = 1
+
+[params.contraction]
+type = "float"
+label = { fr = "Contraction", en = "Contraction" }
+unit = "×"
+help = { fr = "Rentre les crêtes vers le centre, pour que la matière s'écrase sur l'anneau précédent. Trop faible : la structure s'effondre ; trop fort : la buse frotte. 1 à 1,2 conseillé.", en = "Pulls the crests inwards so the material squashes onto the previous ring. Too low: the structure collapses; too high: the nozzle scrapes. 1 to 1.2 recommended." }
+advanced = true
+default = 1.2
+min = 0
+max = 2
+step = 0.05
+
+[params.purge]
+type = "bool"
+label = { fr = "Spirale purge", en = "Purge spiral" }
+help = { fr = "Petite spirale dans le trou pour établir le débit avant la pièce ; à détacher ensuite.", en = "Small spiral inside the hole to settle the flow before the part; snap it off afterwards." }
+advanced = true
+default = true
+---
+// Port de « nonplanar spacer » de FullControl (A. Gleadall, GPL-3.0).
+// Anneaux concentriques de l'intérieur vers l'extérieur ; sur l'anneau k, Z
+// ondule entre 0 et (k / (anneaux − 1)) × hauteur, et le rayon recule de
+// Z × contraction sur les crêtes.
+
+let eh = printer.nozzle_diameter * params.material_factor;
+let ew = eh * params.width_ratio;
+let r1 = params.hole / 2;
+let r2 = r1 * params.diameter_ratio;
+let pitch = ew * (1 - params.overlap / 100);
+let height = params.thickness - eh;               // montée de la buse au-dessus de la première couche
+let rings = floor((r2 - r1) / pitch).to_int();
+if rings < 2 {
+    fail(#{ fr: "Moins de deux anneaux : augmenter le rapport de diamètres ou le trou.",
+            en: "Fewer than two rings: increase the diameter ratio or the hole." });
+}
+if height <= 0 {
+    fail(#{ fr: "Épaisseur inférieure à la matière déposée : augmenter l'épaisseur.",
+            en: "Thickness below the deposited material: increase the thickness." });
+}
+let waves = params.waves;
+let segs = waves * 2 * (128 / (waves * 2));           // division entière voulue : un point pile sur chaque crête et chaque creux
+let z0 = 0.8 * eh;
+
+let path = new_path();
+path.set_fan(100);
+path.set_speed(params.speed);
+path.travel_to(0, 0, z0);
+
+// Spirale de purge dans le trou (si la place le permet).
+let passes = min(floor((r1 - ew) / ew).to_int() - 1, 3);
+if params.purge && passes > 0 {
+    let purge = spiral(0, 0, z0, ew / 2, r1 - ew, 0, passes, floor(200 / passes).to_int());
+    path.print_points(purge, ew, eh);
+    path.note(#{ fr: "Spirale de purge (à détacher)", en: "Purge spiral (snap off)" });
+}
+
+for ring in 0..rings {
+    let lift = height * ring / (rings - 1).to_float();
+    for seg in 0..=segs {
+        let a = seg / segs.to_float() * TAU;
+        let z = lift * (0.5 - 0.5 * cos(a * waves));
+        let r = r1 + ew / 2 + ring * pitch - z * params.contraction;
+        path.print_polar(r, a, z0 + z, ew, eh);
+    }
+}
+path.note(#{ fr: "Fin", en: "End" });
+path.note_at(0, 0, z0 + params.thickness * 2, #{ fr: "Buse pointue conseillée", en: "A pointy nozzle is best" });
+path

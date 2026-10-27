@@ -1,0 +1,129 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Adaptateur hexagonal", en = "Hex adapter" }
+category = { fr = "Mécanique", en = "Mechanical" }
+description = { fr = "Bague à six pans : un hexagone dans un hexagone, pour loger un écrou ou une tête de vis dans une empreinte plus grande. Chaque couche est un seul trait qui va et vient entre les deux parois en zigzag, sans déplacement : pièce rapide et rigide. Les jeux se règlent au dixième.", en = "Six-sided bushing: a hexagon inside a hexagon, to fit a nut or bolt head into a larger socket. Each layer is a single line zigzagging between the two walls, with no travel move: a quick, stiff part. Clearances adjust to a tenth of a millimetre." }
+author = "Andrew Gleadall (FullControl) ; port FabWeave"
+tags = ["hexagone", "écrou", "adaptateur", "fullcontrol"]
+source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/hex_adapter.ipynb"
+license = "GPL-3.0"
+recommended_nozzle = [0.4, 0.6]
+
+[params.inner_size]
+type = "float"
+label = { fr = "Six pans int.", en = "Inner hex" }
+unit = "mm"
+help = { fr = "Cote sur plats du trou hexagonal (distance entre deux parois opposées), par exemple 10 mm pour un écrou M6.", en = "Across-flats size of the hexagonal hole (distance between two opposite walls), e.g. 10 mm for an M6 nut." }
+default = 10
+min = 3
+max = 40
+step = 0.1
+
+[params.outer_size]
+type = "float"
+label = { fr = "Six pans ext.", en = "Outer hex" }
+unit = "mm"
+help = { fr = "Cote sur plats de l'hexagone extérieur.", en = "Across-flats size of the outer hexagon." }
+default = 16
+min = 6
+max = 60
+step = 0.1
+
+[params.height]
+type = "float"
+label = { fr = "Épaisseur", en = "Thickness" }
+unit = "mm"
+default = 4
+min = 0.6
+max = 30
+step = 0.2
+
+[params.inner_oversize]
+type = "float"
+label = { fr = "Jeu intérieur", en = "Inner play" }
+unit = "mm"
+help = { fr = "Agrandit le trou (rayon des sommets) : positif = plus lâche.", en = "Enlarges the hole (corner radius): positive = looser." }
+default = 0.2
+min = -0.5
+max = 1
+step = 0.05
+
+[params.outer_undersize]
+type = "float"
+label = { fr = "Jeu extérieur", en = "Outer play" }
+unit = "mm"
+help = { fr = "Réduit l'hexagone extérieur (rayon des sommets) : positif = plus petit.", en = "Shrinks the outer hexagon (corner radius): positive = smaller." }
+default = 0.2
+min = -0.5
+max = 1
+step = 0.05
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+help = { fr = "Largeur d'extrusion en multiple du diamètre de buse.", en = "Extrusion width as a multiple of the nozzle diameter." }
+advanced = true
+default = 1.5
+min = 1
+max = 2.5
+step = 0.05
+
+[params.height_factor]
+type = "float"
+label = { fr = "Hauteur couche", en = "Layer height" }
+unit = "×"
+help = { fr = "Hauteur de couche en multiple du diamètre de buse.", en = "Layer height as a multiple of the nozzle diameter." }
+advanced = true
+default = 0.5
+min = 0.25
+max = 0.75
+step = 0.05
+---
+// Port de « hex adapter » de FullControl (A. Gleadall, GPL-3.0).
+// Un sixième de couche : sommet extérieur, milieu du côté extérieur, deux
+// sommets intérieurs, milieu du côté suivant, sommet extérieur suivant ;
+// six fois tourné, puis empilé.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let layers = floor(params.height / eh).to_int();
+if params.outer_size - params.inner_size < 2 * ew {
+    fail(#{ fr: "Paroi plus fine que deux boudins : agrandir le six pans extérieur ou réduire l'intérieur.",
+            en: "Wall thinner than two beads: enlarge the outer hex or reduce the inner one." });
+}
+
+// Les parois se mesurent au bord du boudin : centre de la ligne décalé d'une demi-largeur.
+let k = 2.0 / sqrt(3.0);                           // cote sur plats → rayon des sommets
+let r_in = (params.inner_size + ew / 2) / 2 * k + params.inner_oversize;
+let r_out = (params.outer_size - ew / 2) / 2 * k - params.outer_undersize;
+
+let o = polygon(0, 0, 0, r_out, 6, PI);            // sommets à π, π + 60°, …
+let i = polygon(0, 0, 0, r_in, 6, PI);
+let o0 = o.point(0);
+let o1 = o.point(1);
+let o2 = o.point(2);
+let o5 = o.point(5);
+let i0 = i.point(0);
+let i1 = i.point(1);
+let unit = points();
+unit.push(o0[0], o0[1], 0);
+unit.push((o0[0] + o5[0]) / 2, (o0[1] + o5[1]) / 2, 0);
+unit.push(i0[0], i0[1], 0);
+unit.push(i1[0], i1[1], 0);
+unit.push((o1[0] + o2[0]) / 2, (o1[1] + o2[1]) / 2, 0);
+// Le sommet o1 qui clôt le sixième ouvre le sixième suivant : ajouté une
+// seule fois, à la fin de la couche (o0, qui ouvre la couche suivante).
+let layer = unit.polar_copies(6, 0, 0);
+layer.push(o0[0], o0[1], 0);
+
+let path = new_path();
+let z0 = 0.8 * eh;                                 // première couche un peu écrasée
+let all = layer.translate(0, 0, z0).repeat_z(layers, eh);
+path.travel_to(all);
+path.note(#{ fr: "Départ", en: "Start" });
+path.print_points(all, ew, eh);
+path.note(#{ fr: "Fin", en: "End" });
+path

@@ -1,12 +1,12 @@
 # FabWeave
 
-Générateur de **G-code direct** pour l'impression 3D FDM, à partir de **modèles paramétriques**, pour makers et fablabs. On choisit un modèle dans le catalogue (vase à ondulations, tamis à ponts tendus, ressort non planaire, panier tressé…), on règle ses curseurs, on voit le parcours de la buse se mettre à jour en direct en 3D, et on exporte un G-code prêt pour **son imprimante et son filament** : centrage sur le plateau, extrusion calculée, débit et vitesse Z plafonnés selon les profils, G-code de démarrage et de fin de la machine.
+Générateur de **G-code direct** pour l'impression 3D FDM, à partir de **modèles paramétriques**, pour makers et fablabs. On choisit un modèle dans le catalogue (vase à ondulations, abat-jour, tamis à ponts tendus, ressort-soufflet, entretoise non planaire, défis de porte-à-faux…), on règle ses curseurs, on voit le parcours de la buse se mettre à jour en direct en 3D, et on exporte un G-code prêt pour **son imprimante et son filament** : centrage sur le plateau, extrusion calculée, débit et vitesse Z plafonnés selon les profils, G-code de démarrage et de fin de la machine.
 
 Inspiré de [FullControl](https://fullcontrol.xyz) (Andrew Gleadall, Loughborough University), dans le même écosystème que [FabSpeed](../FabSpeed) et [FabVents](../FabVents) : même langage visuel, mêmes conventions, sans compte ni serveur.
 
 Les modèles sont de simples fichiers texte `.weave` : un en-tête TOML (description, curseurs) et un script [Rhai](https://rhai.rs) qui trace le parcours. Un modèle s'écrit à la main ou se fait générer par une IA à partir d'une spécification courte, puis se glisse dans l'application.
 
-> État : **v0.1 en cours** (moteur, premier G-code, interface de base). Voir [STATUS.md](STATUS.md) et [ROADMAP.md](ROADMAP.md).
+> État : **v0.1 validée** (vase imprimé sur la CORE One) ; **v0.2 en cours** : catalogue de onze modèles, ouverture de `.weave`, outil `fabweave`, prompt pour IA. Voir [STATUS.md](STATUS.md) et [ROADMAP.md](ROADMAP.md).
 
 ## Lancer
 

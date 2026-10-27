@@ -185,7 +185,7 @@ fn read(path: &str) -> Result<String, String> {
 }
 
 fn run() -> Result<bool, String> {
-    let a = parse_args()?;
+    let mut a = parse_args()?;
     let mut w = Workbench::default();
     let printer = a.printer.as_deref().map(read).transpose()?;
     let filament = a.filament.as_deref().map(read).transpose()?;
@@ -212,6 +212,14 @@ fn run() -> Result<bool, String> {
             return Ok(false);
         }
     };
+    // `--set forme=1` : une valeur d'un paramètre `choice` reste une chaîne.
+    for (id, v) in a.values.iter_mut() {
+        if let (Some(def), Value::Number(n)) = (model.params.get(id), &*v) {
+            if matches!(def.kind, fabweave_core::model::ParamKind::Choice { .. }) {
+                *v = Value::String(n.to_string());
+            }
+        }
+    }
 
     match a.command.as_str() {
         "export" => {
@@ -291,13 +299,19 @@ fn run() -> Result<bool, String> {
             }
             for (k, (label, values)) in runs.iter().enumerate() {
                 let ev = w.evaluate(values);
-                // Aux bornes, une pièce trop grande pour le plateau n'est pas une faute du modèle.
+                // Aux bornes, une pièce trop grande pour le plateau, ou un refus
+                // expliqué du modèle (`fail`, combinaison impossible avec les
+                // autres valeurs par défaut), n'est pas une faute du modèle.
                 let blocking: Vec<&Issue> = ev
                     .issues
                     .iter()
                     .filter(|i| {
                         i.is_error()
-                            && (k == 0 || !matches!(i.code, "path.out_of_bed" | "path.too_high"))
+                            && (k == 0
+                                || !matches!(
+                                    i.code,
+                                    "path.out_of_bed" | "path.too_high" | "model.failure"
+                                ))
                     })
                     .collect();
                 ok &= blocking.is_empty();

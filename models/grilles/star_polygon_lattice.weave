@@ -1,0 +1,135 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Treillis en étoiles", en = "Star-polygon lattice" }
+category = { fr = "Grilles et treillis", en = "Grids & lattices" }
+description = { fr = "Treillis plat de polygones étoilés, tracé d'un seul trait par couche : rangée de dents vers le bas, retour en miroir vers le haut, puis rangée suivante. L'angle des pointes règle la souplesse : imprimé en TPU, il s'étire et se plie comme un tissu. Sous-famille M1 de l'article de recherche cité par FullControl.", en = "Flat lattice of star polygons, drawn in one line per layer: a row of teeth pointing down, a mirrored return pointing up, then the next row. The tip angle sets the stiffness: printed in TPU it stretches and bends like fabric. Sub-family M1 of the research paper cited by FullControl." }
+author = "Andrew Gleadall (FullControl) ; port FabWeave"
+tags = ["treillis", "TPU", "souple", "recherche", "fullcontrol"]
+source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/star_polygon_lattice.ipynb"
+license = "GPL-3.0"
+recommended_nozzle = [0.4, 0.6]
+
+[params.alpha]
+type = "float"
+label = { fr = "Angle pointes", en = "Tip angle" }
+unit = "°"
+help = { fr = "Angle aux sommets des polygones étoilés : petit = pointes fines et treillis souple ; grand = mailles presque hexagonales, plus raides.", en = "Angle at the star-polygon corners: small = slim tips and a soft lattice; large = almost hexagonal cells, stiffer." }
+default = 30
+min = 15
+max = 150
+step = 1
+
+[params.strut]
+type = "float"
+label = { fr = "Barreau", en = "Strut length" }
+unit = "mm"
+help = { fr = "Longueur de chaque barreau du treillis.", en = "Length of each lattice strut." }
+default = 4.33
+min = 1.5
+max = 15
+step = 0.01
+
+[params.units_x]
+type = "int"
+label = { fr = "Mailles long.", en = "Cells along" }
+help = { fr = "Nombre de mailles dans la longueur (X).", en = "Number of cells along the length (X)." }
+default = 10
+min = 2
+max = 25
+
+[params.units_y]
+type = "int"
+label = { fr = "Mailles larg.", en = "Cells across" }
+help = { fr = "Nombre de mailles dans la largeur (Y) ; le treillis a 2 × ce nombre − 1 bandes.", en = "Number of cells across (Y); the lattice has 2 × this − 1 bands." }
+default = 3
+min = 1
+max = 8
+
+[params.layers]
+type = "int"
+label = { fr = "Couches", en = "Layers" }
+default = 2
+min = 1
+max = 20
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+help = { fr = "Largeur des barreaux en multiple du diamètre de buse (1 à 1,5 conseillé).", en = "Strut width as a multiple of the nozzle diameter (1 to 1.5 recommended)." }
+advanced = true
+default = 1.25
+min = 0.8
+max = 2
+step = 0.05
+
+[params.height_factor]
+type = "float"
+label = { fr = "Hauteur couche", en = "Layer height" }
+unit = "×"
+help = { fr = "Hauteur de couche en multiple du diamètre de buse (0,25 à 0,5 conseillé).", en = "Layer height as a multiple of the nozzle diameter (0.25 to 0.5 recommended)." }
+advanced = true
+default = 0.5
+min = 0.25
+max = 0.75
+step = 0.05
+---
+// Port de « star polygon lattice » (sous-famille M1) de FullControl
+// (A. Gleadall, GPL-3.0). Motif : trois barreaux qui descendent puis
+// remontent à y = 0 ; rangée = motif répété en X ; bande = rangée + son
+// miroir en Y parcouru à l'envers ; treillis = bandes décalées en X une sur deux.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let l = params.strut;
+let a = rad(params.alpha);
+
+// Motif : P0 = (0, 0) → P1 → P2 → P3 (P3 revient à y = 0).
+let p1x = l * cos(-a / 2);
+let p1y = l * sin(-a / 2);
+let p2x = p1x + l * cos(rad(-60) + a / 2);
+let p2y = p1y + l * sin(rad(-60) + a / 2);
+let p3x = p2x + l * cos(rad(120) - a / 2);
+let repeat_x = p3x;                       // pas du motif le long d'une rangée
+let row_dx = -(p2x - p1x);                // décalage en X d'une bande sur deux
+let row_dy = -(p1y + p2y);                // écart en Y entre bandes
+
+// Une bande : aller (dents vers le bas), retour en miroir (dents vers le haut).
+let band = points();
+for k in 0..params.units_x {
+    band.push(k * repeat_x, 0, 0);
+    band.push(k * repeat_x + p1x, p1y, 0);
+    band.push(k * repeat_x + p2x, p2y, 0);
+}
+let n = params.units_x;
+band.push(n * repeat_x, 0, 0);
+for k in 0..n {
+    let i = n - 1 - k;
+    band.push(i * repeat_x + p2x, -p2y, 0);
+    band.push(i * repeat_x + p1x, -p1y, 0);
+    band.push(i * repeat_x, 0, 0);
+}
+
+let lattice = points();
+let bands = params.units_y * 2 - 1;
+for b in 0..bands {
+    let dx = if b % 2 == 1 { row_dx } else { 0.0 };
+    lattice += band.translate(dx, row_dy * b, 0);
+}
+// Trois traits sacrifiés pour revenir au départ et commencer la couche
+// suivante en régime établi (comme l'original).
+let last = lattice.point(-1);
+lattice.push(-repeat_x, last[1], 0);
+lattice.push(-repeat_x, 0, 0);
+lattice.push(0, 0, 0);
+
+let z0 = 0.8 * eh;
+let all = lattice.translate(0, 0, z0).repeat_z(params.layers, eh);
+let path = new_path();
+path.travel_to(all);
+path.note(#{ fr: "TPU ou matière souple conseillé", en: "TPU or another flexible material recommended" });
+path.print_points(all, ew, eh);
+path.note_at(-repeat_x, row_dy * (bands - 1) / 2, z0, #{ fr: "Retour au départ (traits sacrifiés)", en: "Return to start (sacrificial lines)" });
+path

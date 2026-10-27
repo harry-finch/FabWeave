@@ -66,13 +66,14 @@ Variables fournies : `params.<id>` (constantes), `printer.nozzle_diameter`, `pri
 **Listes de points calculées en natif** (≈ 70 fois plus rapides qu'une boucle de script : à préférer). Angles en radians, sens antihoraire ; une forme fermée répète son premier point.
 
 - Formes : `line(x0, y0, z0, x1, y1, z1, segments)`, `arc(cx, cy, z, r, start, sweep, segments)`, `circle(cx, cy, z, r, start, segments)`, `polygon(cx, cy, z, r, sides, start)`, `rectangle(x0, y0, z, dx, dy)`, `spiral(cx, cy, z, r_start, r_end, start, turns, segments_per_turn)`, `helix(cx, cy, z_start, r_start, r_end, start, turns, pitch, segments_per_turn)` (Z monte de `pitch` par tour : mode vase), `zigzag(x0, y0, z, length, spacing, lines)` (lignes parallèles à X en aller-retour), `sine(x0, y0, z, length, amplitude, period, segments_per_period)`, `points()` puis `pts.push(x, y, z)`.
-- Transformations (renvoient une nouvelle liste) : `a + b`, `pts.translate(dx, dy, dz)`, `pts.rotate(angle, cx, cy)`, `pts.scale(k, cx, cy)`, `pts.mirror_x(x)`, `pts.mirror_y(y)`, `pts.reverse()`, `pts.copies(n, dx, dy, dz)`, `pts.repeat_z(n, dz)`, `pts.polar_copies(n, cx, cy)`, `pts.subdivide(max_length)`.
+- Transformations (renvoient une nouvelle liste) : `a + b`, `pts.translate(dx, dy, dz)`, `pts.rotate(angle, cx, cy)`, `pts.scale(k, cx, cy)`, `pts.mirror_x(x)`, `pts.mirror_y(y)`, `pts.reverse()`, `pts.copies(n, dx, dy, dz)`, `pts.repeat_z(n, dz)`, `pts.polar_copies(n, cx, cy)`, `pts.subdivide(max_length)`, `pts.slice(from, to)` (indices `from` ≤ i < `to`, négatif = depuis la fin ; `b.slice(1, b.len())` évite un point en double avant `a + b`).
 - Déformations par une fonction (vitesse d'une boucle de script) : `pts.modulate_z(|t, x, y, z| dz)`, `pts.modulate_r(cx, cy, |t, angle, z| dr)` ; `t` va de 0 à 1 le long de la liste, `angle` est l'angle polaire (−π à π).
+- Remplissage d'un contour fermé : `contour.fill_lines(spacing, angle, inset)` → tableau de chaînes (listes de points) à imprimer chacune d'un trait : `for c in contour.fill_lines(0.45, PI / 4, 0.6) { path.travel_to(c); path.print_points(c, 0.45, 0.2); }`. Lignes parallèles à `angle`, espacées de `spacing`, arrêtées à `inset` mm du bord ; contour quelconque (même en étoile). Pour un fond plein, tourner l'angle de 90° d'une couche à l'autre.
 - `pts.len()`, `pts.point(i)` → `[x, y, z]` (`-1` : le dernier).
 
 **Messages** : `warn("…")` signale un risque (le parcours est produit) ; `fail("…")` refuse des valeurs incohérentes. Texte simple ou `#{ fr: "…", en: "…" }`.
 
-**Maths** : `sin cos tan asin acos atan sqrt exp ln log`, `atan2(y, x)`, `pow(x, y)`, `hypot(x, y)`, `min`, `max`, `clamp(x, lo, hi)`, `lerp(a, b, t)`, `rad(degrés)`, `deg(radians)`, `floor(x)`, `round(x)`, `abs(x)`, `x.to_int()`, `x.to_float()`.
+**Maths** : `sin cos tan asin acos atan sqrt exp ln log`, `atan2(y, x)`, `pow(x, y)`, `hypot(x, y)`, `min`, `max`, `clamp(x, lo, hi)`, `lerp(a, b, t)`, `rad(degrés)`, `deg(radians)`, `floor(x)`, `round(x)`, `ceiling(x)` (renvoient un flottant, acceptent un entier), `abs(x)`, `x.to_int()`, `x.to_float()`.
 
 ## 4. Pièges à éviter absolument
 

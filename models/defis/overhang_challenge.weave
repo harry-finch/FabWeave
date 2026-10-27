@@ -1,0 +1,121 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Défi porte-à-faux", en = "Overhang challenge" }
+category = { fr = "Défis d'impression", en = "Print challenges" }
+description = { fr = "Un pilier, puis un plateau imprimé dans le vide à 90° sans aucun support : la buse tourne en spirale autour du pilier, chaque tour accroché au bord du précédent, lentement et ventilateur à fond. Quelques couches pleines par-dessus. Principe des « arcs en porte-à-faux » du défi de FullControl ; modèle écrit pour FabWeave.", en = "A pillar, then a plate printed in mid-air at 90° with no support at all: the nozzle spirals around the pillar, each turn hooked onto the edge of the previous one, slowly and with full fan. A few solid layers on top. Same \"arc overhang\" principle as FullControl's challenge; model written for FabWeave." }
+author = "FabWeave, d'après FullControl (A. Gleadall)"
+tags = ["porte-à-faux", "sans support", "défi", "fullcontrol"]
+source = "https://fullcontrol.xyz"
+recommended_nozzle = [0.4]
+
+[params.pillar_radius]
+type = "float"
+label = { fr = "Rayon pilier", en = "Pillar radius" }
+unit = "mm"
+default = 5
+min = 2
+max = 20
+step = 0.5
+
+[params.pillar_height]
+type = "float"
+label = { fr = "Haut. pilier", en = "Pillar height" }
+unit = "mm"
+default = 10
+min = 1
+max = 60
+step = 0.5
+
+[params.plate_radius]
+type = "float"
+label = { fr = "Rayon plateau", en = "Plate radius" }
+unit = "mm"
+help = { fr = "Rayon du plateau en porte-à-faux ; tout ce qui dépasse le pilier est imprimé dans le vide.", en = "Radius of the overhanging plate; everything beyond the pillar is printed in mid-air." }
+default = 20
+min = 5
+max = 60
+step = 0.5
+
+[params.spacing]
+type = "float"
+label = { fr = "Écart des tours", en = "Turn spacing" }
+unit = "×"
+help = { fr = "Avancée de chaque tour de spirale, en fraction de la largeur du boudin : un écart faible accroche mieux chaque tour au précédent.", en = "How far each spiral turn steps out, as a fraction of the bead width: a small step hooks each turn better onto the previous one." }
+default = 0.6
+min = 0.3
+max = 1
+step = 0.05
+
+[params.overhang_speed]
+type = "float"
+label = { fr = "Vitesse vide", en = "Mid-air speed" }
+unit = "mm/s"
+help = { fr = "Vitesse dans le vide : lente, pour que chaque tour fige avant d'en porter un autre.", en = "Speed in mid-air: slow, so each turn sets before carrying another." }
+default = 4
+min = 1
+max = 20
+step = 0.5
+
+[params.top_layers]
+type = "int"
+label = { fr = "Couches dessus", en = "Top layers" }
+help = { fr = "Couches pleines imprimées sur le plateau, croisées.", en = "Solid, crossed layers printed on top of the plate." }
+default = 2
+min = 0
+max = 10
+---
+// Pilier plein (spirales alternées vers l'extérieur et vers l'intérieur),
+// puis spirale dans le vide qui part du bord du pilier, puis couches pleines.
+
+let w = printer.nozzle_diameter * 1.125;
+let h = printer.layer_height;
+let fh = printer.first_layer_height;
+let rp = params.pillar_radius;
+let rmax = params.plate_radius;
+if rmax <= rp + w {
+    fail(#{ fr: "Plateau pas plus large que le pilier : aucun porte-à-faux.", en: "Plate no wider than the pillar: no overhang." });
+}
+
+let path = new_path();
+let layers = max(1, round((params.pillar_height - fh) / h).to_int() + 1);
+for k in 0..layers {
+    let z = fh + k * h;
+    let turns = max(1.0, (rp - w / 2) / w);
+    let disc = spiral(0, 0, z, w / 2, rp - w / 2, k * 0.7, turns, 60);
+    if k % 2 == 1 {
+        disc = disc.reverse();
+    }
+    if k == 0 {
+        path.travel_to(disc);
+    }
+    path.print_points(disc, w, if k == 0 { fh } else { h });
+}
+let z_pillar = fh + (layers - 1) * h;
+
+// Spirale dans le vide : de 1 largeur à l'intérieur du bord du pilier jusqu'au rayon voulu.
+let z = z_pillar + h;
+let r0 = rp - w;
+let step = w * params.spacing;
+let turns = (rmax - w / 2 - r0) / step;
+let segs = clamp(round(TAU * rmax / 1.0), 60, 360).to_int();   // ≈ 1 mm par segment au bord
+let air = spiral(0, 0, z, r0, rmax - w / 2, 0, turns, segs);
+path.travel_to(air);
+path.note(#{ fr: "Départ dans le vide : lent, ventilateur à fond", en: "Mid-air start: slow, full fan" });
+path.set_fan(100);
+path.set_speed(params.overhang_speed);
+path.print_points(air, w, h);
+path.reset_fan();
+path.set_speed_factor(1);
+
+// Couches pleines croisées sur tout le plateau.
+let rim = circle(0, 0, 0, rmax - w / 2, 0, segs);
+for k in 0..params.top_layers {
+    let zk = z + (k + 1) * h;
+    for c in rim.translate(0, 0, zk).fill_lines(w, if k % 2 == 0 { PI / 4 } else { -PI / 4 }, w / 2) {
+        path.travel_to(c);
+        path.print_points(c, w, h);
+    }
+}
+path

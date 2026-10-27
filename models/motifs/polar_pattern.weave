@@ -1,0 +1,115 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Motifs polaires", en = "Polar patterns" }
+category = { fr = "Motifs", en = "Patterns" }
+description = { fr = "Étoiles et polygones étoilés tracés d'un seul trait : des sommets répartis sur le cercle, un sur deux rentré vers le centre. Un rayon intérieur négatif passe de l'autre côté du centre (double étoile) ; le saut relie un sommet sur deux, sur trois… Petites pièces décoratives, dessous de verre, gabarits.", en = "Stars and star polygons drawn in one line: corners spread around the circle, every other one pulled towards the centre. A negative inner radius crosses to the other side of the centre (double star); the skip joins every second, third… corner. Small decorative parts, coasters, templates." }
+author = "Andrew Gleadall (FullControl) ; adaptation FabWeave"
+tags = ["étoile", "polygone", "motif", "fullcontrol"]
+source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/fractional_design_engine_polar.ipynb"
+license = "GPL-3.0"
+recommended_nozzle = [0.4, 0.6]
+
+[params.radius]
+type = "float"
+label = { fr = "Rayon", en = "Radius" }
+unit = "mm"
+help = { fr = "Rayon des sommets extérieurs.", en = "Radius of the outer corners." }
+default = 20
+min = 3
+max = 90
+step = 0.5
+
+[params.tips]
+type = "int"
+label = { fr = "Branches", en = "Tips" }
+help = { fr = "Nombre de sommets extérieurs.", en = "Number of outer corners." }
+default = 5
+min = 2
+max = 24
+
+[params.inner]
+type = "float"
+label = { fr = "Rayon intérieur", en = "Inner radius" }
+unit = "×"
+help = { fr = "Rayon des sommets intérieurs, en fraction du rayon : 1 = polygone, 0,5 = étoile, négatif = double étoile qui traverse le centre.", en = "Radius of the inner corners, as a fraction of the radius: 1 = polygon, 0.5 = star, negative = double star crossing the centre." }
+default = 0.5
+min = -1
+max = 1
+step = 0.05
+
+[params.skip]
+type = "int"
+label = { fr = "Saut", en = "Skip" }
+help = { fr = "1 : sommets voisins ; 2 ou plus : le trait saute des sommets et tourne plusieurs fois avant de se refermer (polygone étoilé).", en = "1: neighbouring corners; 2 or more: the line skips corners and goes round several times before closing (star polygon)." }
+default = 1
+min = 1
+max = 11
+
+[params.layers]
+type = "int"
+label = { fr = "Couches", en = "Layers" }
+default = 3
+min = 1
+max = 100
+
+[params.twist]
+type = "float"
+label = { fr = "Rotation", en = "Twist" }
+unit = "°"
+help = { fr = "Rotation du motif d'une couche à la suivante.", en = "Rotation of the pattern from one layer to the next." }
+default = 0
+min = -10
+max = 10
+step = 0.5
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+advanced = true
+default = 1.5
+min = 1
+max = 2.5
+step = 0.05
+
+[params.height_factor]
+type = "float"
+label = { fr = "Hauteur couche", en = "Layer height" }
+unit = "×"
+advanced = true
+default = 0.5
+min = 0.25
+max = 0.75
+step = 0.05
+---
+// D'après « fractional design engine (polar) » de FullControl (A. Gleadall,
+// GPL-3.0) : l'original lit des listes d'angles et de rayons ; ici elles sont
+// engendrées (2 × branches sommets, rayon alterné, angle × saut).
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let n = params.tips * 2;
+let layer = points();
+for k in 0..=n {
+    let a = TAU * k * params.skip / n.to_float();
+    let r = if k % 2 == 0 { params.radius } else { params.radius * params.inner };
+    layer.push(r * cos(a), r * sin(a), 0);
+}
+if params.skip > 1 && params.tips % params.skip == 0 {
+    warn(#{ fr: "Le saut divise le nombre de branches : le trait repasse sur le même polygone.",
+            en: "The skip divides the number of tips: the line retraces the same polygon." });
+}
+
+let z0 = 0.8 * eh;
+let path = new_path();
+for l in 0..params.layers {
+    let ring = layer.rotate(rad(params.twist) * l, 0, 0).translate(0, 0, z0 + l * eh);
+    if l == 0 {
+        path.travel_to(ring);
+        path.note(#{ fr: "Départ et fin", en: "Start and end" });
+    }
+    path.print_points(ring, ew, eh);
+}
+path

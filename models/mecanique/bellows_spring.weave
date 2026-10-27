@@ -1,0 +1,149 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Ressort-soufflet", en = "Bellows spring" }
+category = { fr = "Mécanique", en = "Mechanical" }
+description = { fr = "Ressort de compression d'une seule paroi, imprimé en spirale continue : le rayon va et vient en dents de scie le long de la hauteur, et les plis peuvent tourner en hélice. Pente constante, donc porte-à-faux maîtrisé ; deux portées droites aux extrémités. En TPU ou en PETG, il se comprime et revient.", en = "Single-wall compression spring printed as one continuous spiral: the radius zigzags in and out along the height, and the folds can twist into a helix. Constant slope, so overhangs stay under control; two straight lands at the ends. In TPU or PETG it compresses and springs back." }
+author = "FabWeave"
+tags = ["ressort", "soufflet", "spirale", "non planaire", "TPU"]
+recommended_nozzle = [0.4, 0.6]
+
+[params.radius]
+type = "float"
+label = { fr = "Rayon", en = "Radius" }
+unit = "mm"
+help = { fr = "Rayon intérieur des plis (creux).", en = "Inner radius of the folds (troughs)." }
+default = 15
+min = 5
+max = 50
+step = 0.5
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+default = 40
+min = 10
+max = 150
+step = 1
+
+[params.depth]
+type = "float"
+label = { fr = "Profondeur", en = "Fold depth" }
+unit = "mm"
+help = { fr = "Saillie des plis au-delà du rayon.", en = "How far the folds stick out beyond the radius." }
+default = 4
+min = 0.5
+max = 15
+step = 0.1
+
+[params.pitch]
+type = "float"
+label = { fr = "Pas des plis", en = "Fold pitch" }
+unit = "mm"
+help = { fr = "Hauteur d'un pli complet (creux, crête, creux). Plus il est court par rapport à la profondeur, plus la pente est forte.", en = "Height of one complete fold (trough, crest, trough). The shorter it is compared with the depth, the steeper the slope." }
+default = 10
+min = 2
+max = 40
+step = 0.5
+
+[params.starts]
+type = "int"
+label = { fr = "Hélice", en = "Helix starts" }
+help = { fr = "0 : plis en anneaux (soufflet). 1 à 4 : plis en hélice à autant de filets ; le ressort tourne un peu en se comprimant.", en = "0: ring folds (bellows). 1 to 4: helical folds with that many starts; the spring twists a little as it compresses." }
+default = 1
+min = 0
+max = 4
+
+[params.land]
+type = "float"
+label = { fr = "Portées", en = "End lands" }
+unit = "mm"
+help = { fr = "Hauteur des parties droites en bas et en haut, qui appuient à plat.", en = "Height of the straight parts at the bottom and top, which bear flat." }
+default = 2
+min = 0
+max = 20
+step = 0.5
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+default = 15
+min = 2
+max = 60
+step = 0.5
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+help = { fr = "Épaisseur de paroi en multiple du diamètre de buse : la raideur du ressort en dépend.", en = "Wall thickness as a multiple of the nozzle diameter: the spring stiffness depends on it." }
+advanced = true
+default = 2
+min = 1
+max = 3
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+help = { fr = "Montée par tour en multiple du diamètre de buse.", en = "Rise per turn as a multiple of the nozzle diameter." }
+advanced = true
+default = 0.5
+min = 0.2
+max = 0.75
+step = 0.05
+
+[params.segments]
+type = "int"
+label = { fr = "Points/tour", en = "Points/turn" }
+advanced = true
+default = 120
+min = 24
+max = 360
+---
+// Paroi en spirale continue ; rayon = rayon + profondeur × dent de scie de
+// la phase φ = z / pas − filets × tours. Avec des filets, la crête des plis
+// est une hélice. Une enveloppe adoucit l'entrée et la sortie des portées.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let turns = floor(params.height / eh).to_int();
+let n = params.segments;
+let total = turns * n;
+let h_folds = params.height - 2 * params.land;
+if h_folds < params.pitch / 2 {
+    fail(#{ fr: "Portées trop hautes : moins d'un demi-pli entre elles.", en: "End lands too tall: less than half a fold between them." });
+}
+let slope = deg(atan(2 * params.depth / params.pitch));   // angle de la paroi avec la verticale
+if slope > 50 {
+    warn(#{ fr: `Pente des plis de ${round(slope).to_int()}° : au-delà de 50°, le porte-à-faux s'affaisse. Allonger le pas ou réduire la profondeur.`,
+            en: `Fold slope of ${round(slope).to_int()}°: beyond 50° the overhang sags. Lengthen the pitch or reduce the depth.` });
+}
+let z0 = 0.8 * eh;
+
+let path = new_path();
+path.set_speed(params.speed / 2);
+for t in 0..total {
+    let tv = t / n.to_float();                            // tours écoulés
+    let z = tv * eh;
+    let zf = z - params.land;                             // hauteur dans la zone des plis
+    let env = clamp(min(zf, h_folds - zf) / (params.pitch / 2), 0, 1);
+    let phase = zf / params.pitch - params.starts * tv;
+    let f = phase - floor(phase);
+    let tri = 1 - abs(2 * f - 1);                         // 0 → 1 → 0 sur un pli
+    let r = params.radius + params.depth * tri * env;
+    let h = if tv < 1 { eh * (1 + 0.4 * tv) } else { eh };  // premier tour : combler l'écart au plateau
+    if t == n {
+        path.set_speed(params.speed);
+    }
+    path.print_polar(r, tv * TAU, z0 + z, ew, h);
+    if t == 0 {
+        path.note(#{ fr: "Départ", en: "Start" });
+    }
+}
+path.note(#{ fr: "TPU ou PETG pour un ressort qui revient", en: "TPU or PETG for a spring that springs back" });
+path

@@ -200,9 +200,18 @@ impl Engine {
     /// Parcours d'un modèle aux valeurs par défaut, pour sa vignette :
     /// `x, y, z, nature` à la suite (4 nombres par point), au plus `max_points`
     /// points (sous-échantillonné). Vide si le modèle ne se calcule pas.
-    pub fn thumbnail(&mut self, model: &str, printer: &str, filament: &str, max_points: u32) -> Vec<f32> {
+    pub fn thumbnail(
+        &mut self,
+        model: &str,
+        printer: &str,
+        filament: &str,
+        max_points: u32,
+    ) -> Vec<f32> {
         let w = self.thumbs.get_or_insert_with(Workbench::default);
-        if w.set_printer(printer).is_err() || w.set_filament(filament).is_err() || w.load_model(model).is_err() {
+        if w.set_printer(printer).is_err()
+            || w.set_filament(filament).is_err()
+            || w.load_model(model).is_err()
+        {
             return Vec::new();
         }
         let ev = w.evaluate(&Map::new());

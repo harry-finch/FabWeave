@@ -1,0 +1,240 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Abat-jour", en = "Lampshade" }
+category = { fr = "Vases et luminaires", en = "Vases & lamps" }
+description = { fr = "Grand abat-jour d'une seule paroi fine : étoile à branches, renflement principal et deux renflements secondaires, lignes de flux qui s'incurvent, zigzag serré autour du tour et fines ondes en hauteur. Une armature intérieure à rayons ondulés le tient sur la douille. Impression longue : environ 750 couches.", en = "Large single thin-wall lampshade: star tips, a main bulge and two secondary bulges, swerving streamlines, a tight zigzag around each layer and fine ripples up the height. An inner frame with wavy spokes holds it on the lamp fitting. Long print: about 750 layers." }
+author = "Andrew Gleadall (FullControl) ; port FabWeave"
+tags = ["abat-jour", "lampe", "texture", "paroi fine", "fullcontrol"]
+source = "https://gist.github.com/fullcontrol-xyz/589c78de0093698a07ec724af6428f09"
+license = "GPL-3.0"
+recommended_nozzle = [0.4]
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+default = 150
+min = 20
+max = 200
+step = 5
+
+[params.radius]
+type = "float"
+label = { fr = "Rayon", en = "Radius" }
+unit = "mm"
+help = { fr = "Rayon de départ de la paroi, avant branches et renflements.", en = "Starting radius of the wall, before tips and bulges." }
+default = 34
+min = 15
+max = 50
+step = 1
+
+[params.tip_length]
+type = "float"
+label = { fr = "Branches", en = "Tip length" }
+unit = "mm"
+help = { fr = "Saillie des branches de l'étoile.", en = "How far the star tips stick out." }
+default = 20
+min = 0
+max = 30
+step = 1
+
+[params.star_tips]
+type = "int"
+label = { fr = "Nb branches", en = "Star tips" }
+default = 6
+min = 2
+max = 8
+
+[params.main_bulge]
+type = "float"
+label = { fr = "Renflement", en = "Main bulge" }
+unit = "mm"
+help = { fr = "Le rayon grandit de cette valeur à mi-hauteur.", en = "The radius grows by this much half way up." }
+default = 22.5
+min = 0
+max = 25
+step = 0.5
+
+[params.secondary_bulges]
+type = "float"
+label = { fr = "Renfl. second.", en = "Second. bulges" }
+unit = "mm"
+help = { fr = "Deux renflements vers le tiers et les deux tiers de la hauteur.", en = "Two bulges about one third and two thirds of the way up." }
+default = 15
+min = 0
+max = 20
+step = 0.5
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+help = { fr = "Vitesse de la paroi ; elle monte depuis le tiers de cette valeur sur les cinq premières couches. L'armature va plus lentement, à débit égal.", en = "Wall speed; it ramps up from a third of this value over the first five layers. The frame goes slower, at the same flow." }
+default = 40
+min = 5
+max = 120
+step = 1
+
+[params.frame_hole]
+type = "float"
+label = { fr = "Trou armature", en = "Frame hole" }
+unit = "mm"
+help = { fr = "Diamètre de l'anneau intérieur de l'armature (douille).", en = "Diameter of the frame's inner ring (lamp fitting)." }
+default = 30
+min = 10
+max = 45
+step = 0.5
+
+[params.frame_height]
+type = "float"
+label = { fr = "Haut. armature", en = "Frame height" }
+unit = "mm"
+help = { fr = "Hauteur de l'armature intérieure (0 : sans armature).", en = "Height of the inner frame (0: no frame)." }
+default = 3
+min = 0
+max = 10
+step = 0.5
+
+[params.frame_wave]
+type = "float"
+label = { fr = "Onde armature", en = "Frame wave" }
+unit = "mm"
+help = { fr = "Amplitude de l'ondulation des rayons de l'armature ; à ajuster pour que les rayons voisins se touchent.", en = "Amplitude of the frame spokes' waves; adjust so neighbouring spokes touch." }
+advanced = true
+default = 17.5
+min = 0
+max = 30
+step = 0.5
+
+[params.zag_min]
+type = "float"
+label = { fr = "Zigzag creux", en = "Zigzag min" }
+unit = "mm"
+help = { fr = "Profondeur du zigzag entre les branches.", en = "Zigzag depth between the tips." }
+advanced = true
+default = 1
+min = 0
+max = 5
+step = 0.1
+
+[params.zag_max]
+type = "float"
+label = { fr = "Zigzag branche", en = "Zigzag max" }
+unit = "mm"
+help = { fr = "Profondeur ajoutée au zigzag sur les branches, où il faut plus de relief.", en = "Zigzag depth added at the tips, where more relief is needed." }
+advanced = true
+default = 5
+min = 0
+max = 10
+step = 0.1
+
+[params.ripple_depth]
+type = "float"
+label = { fr = "Ondes vert.", en = "Ripple depth" }
+unit = "mm"
+help = { fr = "Profondeur des fines ondes le long de la hauteur.", en = "Depth of the fine ripples up the height." }
+advanced = true
+default = 0.5
+min = 0
+max = 2
+step = 0.05
+
+[params.ripples]
+type = "int"
+label = { fr = "Nb ondes vert.", en = "Ripples" }
+advanced = true
+default = 30
+min = 0
+max = 100
+
+[params.swerve]
+type = "float"
+label = { fr = "Incurvation", en = "Swerve" }
+help = { fr = "Décalage d'angle qui incurve les lignes de flux vers les renflements (radians × 2π).", en = "Angular offset that swerves the streamlines towards the bulges (radians × 2π)." }
+advanced = true
+default = 0.02
+min = 0
+max = 0.06
+step = 0.005
+
+[params.segments]
+type = "int"
+label = { fr = "Points/couche", en = "Points/layer" }
+help = { fr = "Points sur le tour ; arrondi à un multiple de 2 × branches.", en = "Points around each layer; rounded to a multiple of 2 × tips." }
+advanced = true
+default = 300
+min = 60
+max = 600
+---
+// Port de « lampshade » de FullControl (A. Gleadall, GPL-3.0).
+// La cellule entre deux branches est symétrique : l'original en calcule la
+// moitié puis la reflète ; ici la formule est évaluée sur toute la cellule
+// (même résultat), puis copiée en rotation par une fonction native.
+
+let eh = printer.nozzle_diameter * 0.5;
+let ew = printer.nozzle_diameter * 1.25;
+let n = params.star_tips;
+let per_cell = 2 * max(1, (params.segments / (2 * n)));     // pair : zigzag symétrique
+let segs = per_cell * n;
+let layers = floor(params.height / eh).to_int();
+let start = 0.75 * TAU;                                      // départ vers −Y
+let z0 = 0.7 * eh;
+let x1 = 6.0;                                                // entrée et sortie des incurvations
+let x2 = 30.0;
+
+// Armature : rayons ondulés de la paroi vers l'anneau de la douille.
+let frame_layers = floor(params.frame_height / eh).to_int();
+let fri = params.frame_hole / 2 + ew / 2;
+let frm = params.radius + params.tip_length + 2.5;           // pénètre de 2,5 mm dans la paroi
+let fw = ew * 2.5;
+let spoke_dx = 0.2 * fw;                                     // deux rayons voisins côte à côte
+
+let path = new_path();
+for layer in 0..layers {
+    let speed = if layer <= 5 { params.speed * (1 + 2 * layer / 5.0) / 3 } else { params.speed };
+    let z = z0 + layer * eh;
+    let zf = z / params.height;
+    let sig = (1 / (1 + exp(x1 - zf * x2))) * (1 / (1 + exp(x1 - (1 - zf) * x2))) - 0.5 * pow(sin(zf * 0.5 * TAU), 20);
+    let r_layer = params.radius
+        + params.main_bulge * sin(zf * 0.5 * TAU)
+        + params.secondary_bulges * pow(0.5 + 0.5 * cos((zf + 0.15) * 2.3 * TAU), 1.5)
+        + params.ripple_depth * pow(sin(zf * params.ripples * TAU), 2);
+    let cell = points();
+    for i in 0..per_cell {
+        let t = i / segs.to_float();
+        let tip = 0.5 + 0.5 * cos(t * n * TAU);
+        let sw = -params.swerve * TAU * sin(t * n * TAU + PI) * sig;
+        let zig = (0.5 - 0.5 * cos(t * segs * PI)) * (params.zag_min + params.zag_max * tip * tip);
+        let r = r_layer + params.tip_length * pow(tip, 2.5) + zig;
+        cell.push(r * cos(start + t * TAU + sw), r * sin(start + t * TAU + sw), z);
+    }
+    let shell = cell.polar_copies(n, 0, 0);
+    let first = shell.point(0);
+    shell.push(first[0], first[1], z);                       // la couche se referme au départ
+    path.set_speed(speed);
+    path.print_points(shell, ew, eh);
+
+    // Armature : une couche sur deux, double hauteur et 2,5 × la largeur.
+    if layer % 2 == 1 && layer < frame_layers {
+        let spoke = points();
+        for i in 0..=64 {
+            let t = i / 64.0;
+            spoke.push(spoke_dx + params.frame_wave * t * (0.5 - 0.5 * cos(pow(t, 0.66) * 3 * TAU)),
+                       -fri - (frm - fri) * (1 - t), z);
+        }
+        let ring = arc(0, 0, z, fri, start, PI / n, max(2, 64 / n));
+        let half = spoke + ring.slice(1, ring.len());        // sans le point confondu avec le bout du rayon
+        let phi = start + PI / n;
+        let mirrored = half.rotate(-phi, 0, 0).mirror_y(0).rotate(phi, 0, 0).reverse();
+        let unit = half + mirrored.slice(1, mirrored.len());
+        path.set_speed(speed / 5);
+        path.print_points(unit.polar_copies(n, 0, 0), fw, eh * 2);
+        if layer == 1 {
+            path.note(#{ fr: "Armature intérieure (douille)", en: "Inner frame (lamp fitting)" });
+        }
+    }
+}
+path.note(#{ fr: "Porte-à-faux déjà au maximum", en: "Overhangs already at their limit" });
+path

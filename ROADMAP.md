@@ -57,7 +57,7 @@ Critères d'acceptation :
    ⏸ Validation de l'API et de la spécification (avant d'écrire le catalogue et le prompt pour IA).
 2. **Pour l'IA** : `fabweave-cli check | export | stats`, `docs/PROMPT_MODELE_IA.md`, essai de génération de trois modèles à partir du seul prompt. *Fait le 24/10/2026 : trois modèles sur trois valides au premier essai.*
 3. **Interface du catalogue** : catégories, recherche, vignettes, fiche du modèle, annotations dans la vue 3D, ouverture et glisser-déposer de `.weave`, « Mes modèles ». *Fait le 27/10/2026.*
-4. **Catalogue de départ** d'environ dix modèles.
+4. **Catalogue de départ** d'environ dix modèles. *Fait le 27/10/2026 : onze modèles (CAT-01 à CAT-11, fond des vases CAT-23) ; l'impression par gouttes (CAT-12) passe en v0.3, faute d'extrusion à l'arrêt dans l'API (API-15).*
 5. ⏸ Validation de jalon : trois modèles imprimés.
 
 - **Catalogue** : arbre par catégories, recherche, étiquettes, vignettes rendues par l'application, fiche du modèle (description, auteur, source et licence, buse recommandée, temps et matière estimés avec les profils courants).
@@ -65,7 +65,7 @@ Critères d'acceptation :
 - **API haut niveau en Rust natif** (rapide, et moins d'erreurs pour une IA) : segments, arcs, cercles, polygones, spirales et hélices, ondes polaires, zigzags, copies (translation, rotation, miroir, répétition en Z), modulation en Z d'un tracé plat, subdivision, `bridge_to`, essuyage.
 - **Modèles de l'utilisateur** : ouvrir ou glisser-déposer un `.weave`, « Mes modèles » mémorisés localement, erreurs du script montrées avec la ligne ; rechargement à chaud du dossier `models/` en développement.
 - **Pour l'IA** : `docs/WEAVE_FORMAT.md` (spécification), `docs/PROMPT_MODELE_IA.md` (prompt système prêt à copier, avec deux exemples complets) et `fabweave-cli check | export | stats` pour qu'un agent vérifie son fichier sans ouvrir l'application.
-- **Fond des vases** : option « Fond » (aucun, 1 ou 2 couches) sur les vases du catalogue, à commencer par le vase à ondulations : couches pleines qui épousent le contour de la base (branches, ondulations comprises), puis la spirale démarre au-dessus sans couture. Repose sur une primitive native de **remplissage d'un contour fermé** (lignes en zigzag croisées d'une couche à l'autre, ou anneaux concentriques), réutilisable par les autres modèles.
+- **Fond des vases** : option « Fond » (aucun, 1 ou 2 couches) sur les vases du catalogue, à commencer par le vase à ondulations : couches pleines qui épousent le contour de la base (branches, ondulations comprises), puis la spirale démarre au-dessus sans couture. Repose sur une primitive native de **remplissage d'un contour fermé** (lignes en zigzag croisées d'une couche à l'autre, faites ; anneaux concentriques en v0.3), réutilisable par les autres modèles.
 - **Catalogue de départ** d'environ dix modèles (liste `CAT` de [FEATURES.md](docs/FEATURES.md)), dont le tamis à ponts tendus, l'entretoise et le ressort non planaires ; ports de FullControl cités avec leur source.
 
 Critères d'acceptation :
@@ -87,6 +87,7 @@ Critères d'acceptation :
   - **Imprimantes** : importer un profil d'imprimante (plateau, buse, vitesses, gabarits de démarrage et de fin), le vérifier et le corriger avant usage.
   - **Import depuis les trancheurs** : profils filament et imprimante de PrusaSlicer (`.ini`), OrcaSlicer et Bambu Studio (`.json`) convertis en TOML FabWeave ; les valeurs reprises, ignorées ou manquantes sont listées, et les gabarits de G-code sont signalés « à relire » (leurs variables diffèrent des nôtres).
   - Valeurs vérifiées à l'import comme à l'édition : hors domaine → erreur ou avertissement à code stable, jamais corrigées en silence.
+- **API** : remplissage en anneaux concentriques (API-14), extrusion à l'arrêt (API-15) et le modèle d'impression par gouttes (CAT-12).
 - **Placement** : position et rotation sur le plateau, copies multiples en grille, plateau dessiné à sa forme réelle, dépassement surligné et bloquant.
 - **Changer de buse en un clic** : sélecteur du diamètre de buse à côté de l'imprimante (0,25 · 0,4 · 0,5 · 0,6 · 0,8 mm, ou valeur libre), sans dupliquer le profil ; option buse haut débit (HF) et buse abrasive quand l'imprimante les propose. Le parcours se recalcule aussitôt (les largeurs et hauteurs des modèles sont en multiples de `printer.nozzle_diameter`) ; le diamètre est transmis aux gabarits (contrôle `M862.1` des Prusa) ; le profil peut ajuster par buse la hauteur de première couche, et le filament le débit volumétrique max (buse HF). Choix mémorisé par imprimante.
 - Diamètre de buse : avertissement si le modèle recommande une autre buse.

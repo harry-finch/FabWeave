@@ -1,0 +1,132 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Porte-savon serpentin", en = "Snake soap dish" }
+category = { fr = "Maison", en = "Home" }
+description = { fr = "Porte-savon ovale fait d'un seul trait en serpentin, empilé couche sur couche en changeant de sens : aucun déplacement de la première à la dernière couche. Les couches s'épaississent vers le bord, si bien que le dessus se creuse en cuvette. Chaque canal entre deux côtes est ouvert à un bout : l'eau s'écoule.", en = "Oval soap dish made of a single serpentine line, stacked layer on layer with the direction reversed: no travel move from the first layer to the last. Layers thicken towards the edge, so the top dips into a bowl. Each channel between two ribs is open at one end: water drains away." }
+author = "FabWeave, d'après FullControl (A. Gleadall)"
+tags = ["porte-savon", "serpentin", "non planaire", "salle de bain", "fullcontrol"]
+source = "https://fullcontrol.xyz"
+recommended_nozzle = [0.4, 0.6]
+
+[params.length]
+type = "float"
+label = { fr = "Longueur", en = "Length" }
+unit = "mm"
+default = 110
+min = 40
+max = 200
+step = 1
+
+[params.width]
+type = "float"
+label = { fr = "Largeur", en = "Width" }
+unit = "mm"
+default = 75
+min = 30
+max = 150
+step = 1
+
+[params.gap]
+type = "float"
+label = { fr = "Canaux", en = "Channel gap" }
+unit = "mm"
+help = { fr = "Vide entre deux côtes : c'est par là que l'eau s'écoule.", en = "Gap between two ribs: that is where the water drains." }
+default = 3
+min = 1
+max = 10
+step = 0.1
+
+[params.centre_height]
+type = "float"
+label = { fr = "Haut. centre", en = "Centre height" }
+unit = "mm"
+default = 6
+min = 2
+max = 30
+step = 0.5
+
+[params.edge_height]
+type = "float"
+label = { fr = "Haut. bord", en = "Edge height" }
+unit = "mm"
+help = { fr = "Hauteur au bord ; plus haute qu'au centre, le dessus forme une cuvette.", en = "Height at the edge; taller than the centre, the top forms a bowl." }
+default = 10
+min = 2
+max = 40
+step = 0.5
+
+[params.rib_factor]
+type = "float"
+label = { fr = "Largeur côte", en = "Rib width" }
+unit = "×"
+help = { fr = "Largeur d'une côte en multiple du diamètre de buse.", en = "Rib width as a multiple of the nozzle diameter." }
+advanced = true
+default = 2
+min = 1.2
+max = 3
+step = 0.1
+---
+// Serpentin : lignes parallèles à la longueur, coupées par l'ellipse et
+// reliées le long du bord (`fill_lines`). Couche k : Z = première couche +
+// k × épaisseur(ρ), ρ = 0 au centre, 1 au bord ; une couche sur deux est
+// parcourue à l'envers, si bien que chaque couche repart du bout de la précédente.
+
+let nozzle = printer.nozzle_diameter;
+let w = nozzle * params.rib_factor;
+let fh = printer.first_layer_height;
+let h = printer.layer_height;
+let a = params.length / 2;
+let b = params.width / 2;
+let hc = params.centre_height;
+let he = max(params.edge_height, hc);
+if params.edge_height < hc {
+    warn(#{ fr: "Bord plus bas que le centre : dessus plat, à la hauteur du centre.", en: "Edge lower than the centre: flat top, at the centre height." });
+}
+let layers = max(2, round(((hc + he) / 2 - fh) / h).to_int() + 1);   // épaisseur moyenne ≈ hauteur de couche du profil
+let dz_edge = (he - fh) / (layers - 1);
+if dz_edge > 0.8 * nozzle {
+    warn(#{ fr: `Couches de ${round(dz_edge * 100) / 100} mm au bord : plus de 0,8 × la buse. Rapprocher les hauteurs du bord et du centre.`,
+            en: `Layers of ${round(dz_edge * 100) / 100} mm at the edge: more than 0.8 × the nozzle. Bring the edge and centre heights closer.` });
+}
+
+let outline = points();
+for i in 0..=144 {
+    let t = TAU * i / 144.0;
+    outline.push(a * cos(t), b * sin(t), 0);
+}
+// Points tous les 2 mm pour que Z suive la cuvette le long des côtes.
+let chains = [];
+for c in outline.fill_lines(params.gap + w, 0, w / 2) {
+    chains.push(c.subdivide(2));
+}
+
+let path = new_path();
+let here = [];
+for k in 0..layers {
+    let ordered = chains;
+    if k % 2 == 1 {
+        ordered.reverse();
+    }
+    for c in ordered {
+        let pts = if k % 2 == 1 { c.reverse() } else { c };
+        for i in 0..pts.len() {
+            let p = pts.point(i);
+            let rho2 = min(1.0, (p[0] / a) * (p[0] / a) + (p[1] / b) * (p[1] / b));
+            let dz = (hc - fh + (he - hc) * rho2) / (layers - 1);
+            let z = fh + k * dz;
+            let hh = if k == 0 { fh } else { dz };
+            if i == 0 && (here.len() == 0 || here[0] != p[0] || here[1] != p[1]) {
+                path.travel_to(p[0], p[1], z);
+            } else {
+                path.print_to(p[0], p[1], z, w, hh);
+            }
+            here = [p[0], p[1]];
+        }
+    }
+    if k == 0 {
+        path.note(#{ fr: "Un seul trait, couche après couche", en: "One single line, layer after layer" });
+    }
+}
+path

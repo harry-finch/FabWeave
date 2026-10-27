@@ -1,6 +1,6 @@
 # Format `.weave` et profils — spécification
 
-> **v0.2 (24/10/2026)** : premier jet validé à la v0.1 ; ajouts de la v0.2 (paramètres `choice`, messages du modèle, annotations, ponts, listes de points natives) à valider. Format `fabweave.model`, version 1 (les ajouts sont compatibles). Décisions : [ADR-0002](adr/0002-format-weave-toml-et-rhai.md) (format), [ADR-0004](adr/0004-gabarits-g-code-en-expressions-rhai.md) (gabarits des profils).
+> **v0.2 (27/10/2026)** : premier jet validé à la v0.1 ; ajouts de la v0.2 (paramètres `choice`, messages du modèle, annotations, ponts, listes de points natives) validés le 24/10 ; ajoutés à l'étape 4 : remplissage d'un contour (`fill_lines`), `slice`, arrondis acceptant un entier. Format `fabweave.model`, version 1 (les ajouts sont compatibles). Décisions : [ADR-0002](adr/0002-format-weave-toml-et-rhai.md) (format), [ADR-0004](adr/0004-gabarits-g-code-en-expressions-rhai.md) (gabarits des profils).
 
 Un modèle FabWeave est un fichier texte `.weave` qui décrit **où passe la buse** et **quelle section de matière elle dépose**. Il ne parle jamais de G-code, de valeur `E`, de températures, de rétraction ni de coordonnées du plateau : tout cela vient des profils imprimante et filament choisis dans l'application. Le même modèle s'imprime donc sur une Prusa MK4S en PLA comme sur une CORE One en PETG, sans retouche.
 
@@ -186,7 +186,24 @@ Les fonctions ci-dessous calculent leurs points **en Rust** : ≈ 70 fois plus v
 | `pts.subdivide(max_length)` | Points ajoutés pour qu'aucun segment ne dépasse `max_length`. |
 | `pts.modulate_z(\|t, x, y, z\| dz)` | Z += la fonction (t de 0 à 1 le long de la liste). Appelle le script à chaque point : vitesse d'une boucle de script. |
 | `pts.modulate_r(cx, cy, \|t, angle, z\| dr)` | Rayon autour de (cx, cy) += la fonction. Même coût. |
+| `pts.slice(from, to)` | Points d'indice `from` ≤ i < `to` ; indice négatif compté depuis la fin. `b.slice(1, b.len())` retire le premier point, confondu avec le dernier de `a`, avant `a + b`. |
 | `pts.len()`, `pts.point(i)` | Nombre de points ; point `i` en tableau `[x, y, z]` (`-1` : le dernier). |
+
+**Remplissage d'un contour** : `contour.fill_lines(spacing, angle)` ou `contour.fill_lines(spacing, angle, inset)` renvoie un **tableau de listes de points** (des chaînes) qui remplissent le contour fermé `contour` (polygone XY quelconque, même non convexe, ondulé ou en étoile ; le dernier point se relie au premier) de lignes parallèles à la direction `angle` (radians), espacées de `spacing`, à la hauteur du premier point du contour. Les lignes s'arrêtent à `inset` mm du bord (distance perpendiculaire au bord rencontré) et sont reliées en zigzag tant que le lien reste dans la pièce et court (3 × `spacing` au plus) ; sinon une nouvelle chaîne commence. Chaque chaîne s'imprime d'un trait ; exemple, un disque plein de 40 mm entouré d'un contour :
+
+```rhai
+let path = new_path();
+let disc = circle(0, 0, 0.2, 20, 0, 120);
+path.travel_to(disc);
+path.print_points(disc, 0.8, 0.2);
+for c in disc.fill_lines(0.45, PI / 4, 0.6) {
+    path.travel_to(c);
+    path.print_points(c, 0.45, 0.2);
+}
+path
+```
+
+Fond plein : contour = ligne médiane de la paroi, `spacing` = largeur des lignes, `inset` ≈ demi-largeur de la paroi + 35 % de la largeur des lignes (elles mordent sur la paroi) ; angle tourné de 90° d'une couche à l'autre. Grille de fils : `spacing` = pore + largeur, chaque ligne imprimée en pont (voir le tamis du catalogue).
 
 Exemple : un tamis carré de 12 couches, fils tendus d'un bord à l'autre du cadre, croisés à 90° d'une couche à l'autre.
 
@@ -216,7 +233,7 @@ Ces fonctions donnent le même résultat en natif et dans le navigateur (`libm`)
 
 1. **La division de deux entiers est entière** : `i / n` vaut 0 si `i < n`. Écrire `i / n.to_float()` ou `i * 1.0 / n`. Le moteur signale un parcours dont beaucoup de points sont confondus (`path.duplicates_skipped`), voire vide (`path.empty`).
 2. Une boucle `for i in 0..n` demande un **entier** `n` : `floor(x).to_int()`.
-3. `floor`, `round`, `ceiling` renvoient un **flottant** ; `.to_int()` pour un entier.
+3. `floor`, `round`, `ceiling` renvoient un **flottant** ; `.to_int()` pour un entier. Ils acceptent aussi un entier : `floor(200 / n)` fait la division entière, puis renvoie un flottant.
 4. Une variable doit être déclarée avec `let` avant usage ; une variable inconnue est une erreur dès la lecture du script (`script.unknown_variable`).
 5. Une propriété inconnue (`params.radius` au lieu de `params.inner_radius`) est une erreur (`script.unknown_property`).
 6. Les blocs `if` peuvent servir d'expression : `let h = if t < 1.0 { 0.3 } else { 0.24 };`.
@@ -263,7 +280,7 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `path.invalid_position`, `path.invalid_width`, `path.invalid_height`, `path.invalid_speed`, `path.invalid_fan`, `path.invalid_flow`, `path.too_many_points`, `path.too_many_notes` | erreur | Appel de l'API invalide. |
 | `points.invalid_count`, `points.invalid_value`, `points.index_out_of_range`, `points.empty` | erreur | Argument invalide d'une fonction de points (nombre de segments, rayon…). |
 | `model.warning` | avertissement | `warn()` du modèle (son texte, sa ligne). |
-| `model.failure` | erreur | `fail()` du modèle. |
+| `model.failure` | erreur | `fail()` du modèle. Aux bornes d'un paramètre, `fabweave check` tolère ce refus (combinaison impossible avec les autres valeurs par défaut, par exemple un trou plus grand que la pièce) ; aux valeurs par défaut, jamais. |
 | `param.invalid_options`, `param.duplicate_option`, `param.unknown_option` | erreur | Paramètre `choice` mal défini, ou valeur hors liste. |
 | `path.empty` | erreur | Aucun mouvement ne dépose de matière. |
 | `path.out_of_bed`, `path.below_bed`, `path.too_high` | erreur | La pièce ne tient pas dans le volume d'impression. |
@@ -307,4 +324,6 @@ Variables : `printer_model`, `printer_name`, `filament_type`, `filament_name`, `
 
 ## 7. Modèle de référence
 
-[models/vases/ripple_vase.weave](../models/vases/ripple_vase.weave) : port du « Ripple Texture Demo » de FullControl, commenté ; il montre un en-tête complet (textes par langue, infobulles, paramètres avancés) et un script typique (spirale continue, première couche renforcée, vitesse réduite au premier tour).
+[models/vases/ripple_vase.weave](../models/vases/ripple_vase.weave) : port du « Ripple Texture Demo » de FullControl, commenté ; il montre un en-tête complet (textes par langue, infobulles, paramètres avancés, `choice`) et un script typique (spirale continue, première couche renforcée, vitesse réduite au premier tour, fond plein par `fill_lines` raccordé à la spirale sans couture).
+
+Autres exemples du catalogue : listes natives et copies tournées ([hex_adapter](../models/mecanique/hex_adapter.weave)), non planaire ([nonplanar_spacer](../models/mecanique/nonplanar_spacer.weave), [snake_soap_dish](../models/maison/snake_soap_dish.weave)), ponts ([mesh_sieve](../models/grilles/mesh_sieve.weave), [pin_support_challenge](../models/defis/pin_support_challenge.weave)), cellule calculée puis copiée en natif sur un grand parcours ([lampshade](../models/vases/lampshade.weave), 232 000 points).

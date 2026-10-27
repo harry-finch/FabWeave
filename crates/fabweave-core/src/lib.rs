@@ -8,6 +8,7 @@
 // un `Result` n'a pas d'effet mesurable.
 #![allow(clippy::result_large_err)]
 
+pub mod fill;
 pub mod format;
 pub mod gcode;
 pub mod issue;

@@ -1,0 +1,150 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Tamis micro-maillage", en = "Micro-mesh sieve" }
+category = { fr = "Grilles et treillis", en = "Grids & lattices" }
+description = { fr = "Tamis rond : un anneau, puis des fils tendus en pont d'un bord à l'autre, croisés d'une couche à l'autre, verrouillés par un tour d'anneau. La taille des pores se règle au centième, sans les pâtés de rétraction d'un trancheur. Pour filtres de labo, passoires, grilles d'aération.", en = "Round sieve: a ring, then threads bridged from edge to edge, crossed from one layer to the next and locked by a lap of the ring. Pore size adjusts to a hundredth of a millimetre, without a slicer's retraction blobs. For lab filters, strainers, vent grilles." }
+author = "FabWeave"
+tags = ["tamis", "filtre", "ponts", "grille"]
+recommended_nozzle = [0.4]
+
+[params.diameter]
+type = "float"
+label = { fr = "Diamètre", en = "Diameter" }
+unit = "mm"
+help = { fr = "Diamètre extérieur de l'anneau.", en = "Outer diameter of the ring." }
+default = 30
+min = 10
+max = 80
+step = 0.5
+
+[params.pore]
+type = "float"
+label = { fr = "Pores", en = "Pore size" }
+unit = "mm"
+help = { fr = "Vide entre deux fils voisins.", en = "Gap between two neighbouring threads." }
+default = 0.6
+min = 0.2
+max = 5
+step = 0.05
+
+[params.mesh_layers]
+type = "int"
+label = { fr = "Couches fils", en = "Mesh layers" }
+help = { fr = "Couches de fils ; chacune tourne de l'angle de croisement par rapport à la précédente.", en = "Thread layers; each turns by the crossing angle from the previous one." }
+default = 2
+min = 1
+max = 8
+
+[params.cross_angle]
+type = "float"
+label = { fr = "Croisement", en = "Crossing" }
+unit = "°"
+help = { fr = "Rotation des fils d'une couche à l'autre : 90° = pores carrés ; 60° = pores triangulaires (trois couches).", en = "Thread rotation from one layer to the next: 90° = square pores; 60° = triangular pores (three layers)." }
+default = 90
+min = 15
+max = 90
+step = 15
+
+[params.rim_width]
+type = "float"
+label = { fr = "Largeur anneau", en = "Ring width" }
+unit = "mm"
+default = 3
+min = 1.5
+max = 10
+step = 0.1
+
+[params.rim_height]
+type = "float"
+label = { fr = "Hauteur anneau", en = "Ring height" }
+unit = "mm"
+help = { fr = "Hauteur de l'anneau sous les fils : les fils sont tendus au-dessus du vide, pas posés sur le plateau.", en = "Height of the ring under the threads: threads are stretched over empty space, not laid on the bed." }
+default = 2
+min = 0.4
+max = 20
+step = 0.2
+
+[params.bridge_flow]
+type = "float"
+label = { fr = "Débit ponts", en = "Bridge flow" }
+unit = "×"
+help = { fr = "Débit des fils tendus : sous 1, le fil s'étire et reste droit.", en = "Flow of the stretched threads: below 1 the thread stretches and stays straight." }
+advanced = true
+default = 0.85
+min = 0.5
+max = 1.2
+step = 0.05
+
+[params.thread_factor]
+type = "float"
+label = { fr = "Largeur fil", en = "Thread width" }
+unit = "×"
+help = { fr = "Largeur d'un fil en multiple du diamètre de buse.", en = "Thread width as a multiple of the nozzle diameter." }
+advanced = true
+default = 1
+min = 0.8
+max = 1.5
+step = 0.05
+---
+// Tamis : anneau plein (tours concentriques), puis pour chaque couche de
+// fils : fils tendus d'un bord à l'autre (ponts), reliés sur l'anneau, et un
+// tour d'anneau par-dessus qui verrouille leurs extrémités.
+
+let nozzle = printer.nozzle_diameter;
+let w = nozzle * params.thread_factor;
+let h = printer.layer_height;
+let fh = printer.first_layer_height;
+let r_out = params.diameter / 2;
+let r_in = r_out - params.rim_width;
+if r_in < 2 {
+    fail(#{ fr: "Anneau plus large que le rayon : réduire la largeur de l'anneau.", en: "Ring wider than the radius: reduce the ring width." });
+}
+let laps = max(1, round(params.rim_width / nozzle).to_int());
+let lap_w = params.rim_width / laps;
+let pitch = params.pore + w;
+
+let path = new_path();
+
+// Un étage d'anneau à la hauteur z : tours de l'extérieur vers l'intérieur.
+let ring = |z, hh| {
+    for p in 0..laps {
+        let r = r_out - lap_w * (p + 0.5);
+        let c = circle(0, 0, z, r, 0, 120);
+        path.travel_to(c);
+        path.print_points(c, lap_w * 1.05, hh);
+    }
+};
+
+let rim_layers = max(1, round((params.rim_height - fh) / h).to_int() + 1);
+for k in 0..rim_layers {
+    let z = fh + k * h;
+    ring.call(z, if k == 0 { fh } else { h });
+}
+let z_top = fh + (rim_layers - 1) * h;
+path.note(#{ fr: "Anneau, puis fils tendus", en: "Ring, then stretched threads" });
+
+// Fils : bout à mi-largeur de l'anneau ; fil = pont, lien sur l'anneau = impression.
+let r_anchor = (r_in + r_out) / 2;
+for m in 0..params.mesh_layers {
+    let z = z_top + (m + 1) * h;
+    let anchor = circle(0, 0, z, r_anchor, 0, 240);
+    let chains = anchor.fill_lines(pitch, rad(params.cross_angle) * m);
+    for c in chains {
+        path.travel_to(c);
+        for i in 1..c.len() {
+            let p = c.point(i);
+            if i % 2 == 1 {
+                path.bridge_to(p[0], p[1], p[2], w, h, params.bridge_flow);
+            } else {
+                path.print_to(p[0], p[1], p[2], w, h);
+            }
+        }
+    }
+    ring.call(z, h);
+}
+if pitch < 1.5 * w {
+    warn(#{ fr: "Pores plus petits que la moitié d'un fil : ils risquent de se boucher.", en: "Pores smaller than half a thread: they may clog." });
+}
+path

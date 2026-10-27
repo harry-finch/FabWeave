@@ -18,7 +18,7 @@ fn fabweave(args: &[&str]) -> (i32, String) {
 fn check_accepts_the_catalogue_and_rejects_errors() {
     let (code, out) = fabweave(&["check", "models/vases/ripple_vase.weave"]);
     assert_eq!(code, 0, "{out}");
-    assert!(out.contains("OK : 29 calculs"), "{out}");
+    assert!(out.contains("OK : 32 calculs"), "{out}");
 
     let dir = std::env::temp_dir().join(format!("fabweave-cli-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();

@@ -274,6 +274,12 @@ fn register_math(engine: &mut Engine) {
             engine.register_fn(name, move |a: INT, b: INT| f(a as f64, b as f64));
         }
     }
+    // `floor(200 / n)` : Rhai n'arrondit que les flottants, et la division de
+    // deux entiers donne un entier ; accepté (résultat flottant, comme pour
+    // un flottant, donc `.to_int()` reste valable).
+    for name in ["floor", "ceiling", "round"] {
+        engine.register_fn(name, |x: INT| x as FLOAT);
+    }
     engine.register_fn("lerp", |a: Dynamic, b: Dynamic, t: Dynamic| -> R<f64> {
         let (a, b, t) = (num(&a, "a")?, num(&b, "b")?, num(&t, "t")?);
         Ok(a + (b - a) * t)

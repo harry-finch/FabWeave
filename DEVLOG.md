@@ -97,3 +97,28 @@ v0.0 validée par l'utilisateur.
 **Défauts trouvés et corrigés.** Vignettes jamais calculées avant la première ouverture du catalogue (l'effet partait avant le chargement du profil imprimante) ; annotations restées en français après le passage en anglais (rendu seulement au calcul suivant) ; modèle dont le script échoue affiché avec une vignette vide sans marque.
 
 **Non fait.** Fiche avec temps et matière estimés pour chaque modèle du catalogue (le temps et la matière du modèle affiché sont dans « Mesures ») ; vérifié avec un seul modèle livré : catégories multiples à revoir à l'étape 4.
+
+## 2026-10-27 — v0.2, étape 4 : catalogue de départ
+
+Étape 3 validée par l'utilisateur.
+
+**Entrées.** Notebooks de FullControl (dépôt `FullControlXYZ/fullcontrol`, dossier `models/`) : entretoise non planaire, adaptateur hexagonal, treillis en polygones étoilés, moteur de motifs polaires, impression par gouttes ; abat-jour (gist de FullControl). Le défi porte-à-faux, le défi des picots et le porte-savon en serpentin ne sont publiés que dans l'application web de FullControl : seul le principe du porte-à-faux (arcs concentriques qui s'accrochent les uns aux autres, repris par ArcOverhangs) est documenté ; ces trois modèles sont écrits pour FabWeave « d'après » FullControl, sans prétendre au port.
+
+**Choix.**
+- API-13 `contour.fill_lines(spacing, angle[, inset])` (module `fill.rs`) : lignes de balayage dans le repère tourné, intervalles par règle pair-impair (contour quelconque), retrait mesuré perpendiculairement au bord rencontré (plafonné pour un bord presque parallèle), chaînage en zigzag tant que le lien est court (3 × écart) et ne coupe aucun bord ; résultat en tableau de chaînes, que le script rejoint par des déplacements. Anneaux concentriques reportés (API-14, v0.3) : un décalage de polygone non convexe sûr demande une bibliothèque ou un travail à part.
+- `pts.slice(from, to)` : sans elle, `a + b` répétait un point (« points confondus ignorés » dans les messages). `floor`, `round`, `ceiling` acceptent un entier : l'écriture `floor(200 / n)` (division entière voulue) échouait ; piège rencontré deux fois en écrivant le catalogue.
+- Fond du vase à ondulations (CAT-23) : contour de la couche j = tour (j − nb) de la formule de la spirale, ce qui continue le tissage ; dernière couche : remplissage puis contour, qui s'achève au point de départ de la spirale (aucune couture, aucun déplacement) ; sur le fond, la hauteur du boudin du premier tour part de 0,1 × et grandit avec l'écart réel. Vitesse nominale du filament pour le fond (à la vitesse du vase, 4 mm/s, une couche prenait 9 min). Défaut : « Aucun », comme l'original imprimé et validé.
+- `fabweave check` et le test du catalogue tolèrent un `fail` du modèle **aux bornes** (combinaison impossible avec les autres valeurs par défaut : trou de 40 mm dans un hexagone de 16) ; jamais aux valeurs par défaut. `--set` garde en texte la valeur d'un `choice`.
+- Ressort (CAT-04) : la proposition de la recherche (hélice de 4,5 mm de pas, en l'air) n'est pas imprimable ; remplacée par un ressort-soufflet en spirale continue, plis en dents de scie (pente constante, avertissement au-delà de 50°), en anneaux ou en hélice.
+- Abat-jour : la cellule entre deux branches est symétrique ; elle est évaluée directement (même résultat que la réflexion de l'original) puis copiée en rotation en natif : 50 évaluations de script par couche au lieu de 300, 232 000 points en 80 ms en natif, 170 ms dans le navigateur.
+- Motifs polaires : les listes d'angles et de rayons de l'original deviennent branches, rayon intérieur (négatif : double étoile) et saut (polygones étoilés) ; treillis : sous-famille M1 seulement.
+- Picots verticaux extrudés par tronçons de 1 mm, tous les picots à chaque passage, pour que le bloc de chauffe ne redescende jamais près d'un picot déjà haut (pas encore de garde-buse, v0.5).
+- Porte-savon : serpentin = `fill_lines` sur une ellipse ; une couche sur deux à l'envers, donc aucun déplacement sur toute la pièce ; épaisseur de couche variable (non planaire) pour creuser le dessus.
+- Rubriques : Défis d'impression, Grilles et treillis, Maison, Mécanique, Motifs, Vases et luminaires.
+- Développement : Vite ne surveillait que `ui/` ; un `.weave` ajouté dans un nouveau dossier de `models/` n'apparaissait qu'au redémarrage. `models/` et `profiles/` ajoutés à la surveillance.
+
+**Vérification.** 51 tests (dont 5 sur le remplissage et un sur l'API au niveau du script ; tous les blocs `rhai` de la spécification sont désormais exécutés) ; chaque modèle passe `fabweave check` et le test du catalogue (MK4S et CORE One, PLA et PETG, bornes). Navigateur : les onze modèles et leurs vignettes, fond du vase vu de dessous.
+
+**Défauts trouvés et corrigés.** Point du fond confondu avec le premier de la spirale ; déplacement inutile au premier picot de chaque passage ; avertissement du porte-savon déclenché aux valeurs par défaut (nombre de couches désormais calculé sur la hauteur moyenne) ; annotations trop longues pour la vue.
+
+**Non fait.** Impression par gouttes (CAT-12, extrusion à l'arrêt : API-15, v0.3) ; anneaux concentriques (API-14) ; sous-familles M2 à M4 du treillis ; impressions de validation.

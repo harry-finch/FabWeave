@@ -169,10 +169,24 @@ fn native_shapes_respect_the_point_limit() {
 #[test]
 fn specification_example_runs() {
     let spec = include_str!("../../../docs/WEAVE_FORMAT.md");
-    let start = spec.find("```rhai\n").expect("exemple rhai") + 8;
-    let end = start + spec[start..].find("```").unwrap();
-    let ev = eval(&spec[start..end]);
-    assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
+    // Chaque bloc `rhai` complet de la spécification se calcule sans erreur.
+    let blocks: Vec<&str> = spec
+        .split("```rhai\n")
+        .skip(1)
+        .map(|b| &b[..b.find("```").unwrap()])
+        .collect();
+    assert!(blocks.len() >= 2);
+    for b in &blocks {
+        let ev = eval(b);
+        assert!(
+            ev.issues.iter().all(|i| !i.is_error()),
+            "{b}\n{:?}",
+            ev.issues
+        );
+    }
+    // Le tamis carré : 12 couches de 66 points en pont.
+    let sieve = blocks.iter().find(|b| b.contains("bridge_points")).unwrap();
+    let ev = eval(sieve);
     let path = ev.path.unwrap();
     assert_eq!(
         path.points
@@ -225,6 +239,52 @@ fn ai_trial_models_still_run() {
         assert!(
             ev.issues.iter().all(|i| !i.is_error()),
             "{name}: {:?}",
+            ev.issues
+        );
+    }
+}
+
+#[test]
+fn fill_lines_slice_and_integer_rounding() {
+    let ev = eval(
+        "let p = new_path();
+let sq = rectangle(-10, -10, 0.2, 20, 20);
+let chains = sq.fill_lines(0.5, 0, 0.25);
+let a = sq.fill_lines(0.5, PI / 2);
+let c = chains[0];
+let s = c.slice(1, c.len());
+let t = c.slice(-2, -1);
+print(`${chains.len()} ${c.len()} ${a[0].len()} ${s.len()} ${t.len()} ${floor(200 / 3)} ${round(7).to_int()}`);
+p.travel_to(c);
+p.print_points(c, 0.5, 0.2);
+p",
+    );
+    assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
+    // Carré de 20 mm : 40 lignes d'un seul tenant, à 0,25 mm des bords.
+    assert_eq!(ev.log[0], "1 80 80 79 1 66.0 7");
+    let pts = &ev.path.unwrap().points;
+    assert!(pts
+        .iter()
+        .all(|q| q.x.abs() <= 9.75 + 1e-9 && q.y.abs() <= 9.75 + 1e-9));
+
+    for (body, code) in [
+        (
+            "rectangle(0, 0, 0, 5, 5).fill_lines(0, 0)",
+            "points.invalid_value",
+        ),
+        (
+            "rectangle(0, 0, 0, 5, 5).fill_lines(0.5, 0, -1)",
+            "points.invalid_value",
+        ),
+        (
+            "rectangle(0, 0, 0, 5, 5).slice(2, 9)",
+            "points.index_out_of_range",
+        ),
+    ] {
+        let ev = eval(&format!("let x = {body};\nnew_path()"));
+        assert!(
+            ev.issues.iter().any(|i| i.code == code),
+            "{body}: {:?}",
             ev.issues
         );
     }

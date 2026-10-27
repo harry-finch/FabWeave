@@ -332,6 +332,20 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
         a.0.extend(b.0);
         Ok(())
     });
+    // slice(from, to) : points d'indice from ≤ i < to ; un indice négatif
+    // compte depuis la fin (`slice(1, len)` retire le premier point).
+    engine.register_fn("slice", |p: &mut Points, from: INT, to: INT| -> R<Points> {
+        let n = p.0.len() as INT;
+        let at = |i: INT| if i < 0 { n + i } else { i };
+        let (a, b) = (at(from), at(to));
+        if a < 0 || b > n || a > b {
+            return Err(fault(
+                "points.index_out_of_range",
+                format!("{from}..{to} (len {n})"),
+            ));
+        }
+        Ok(Points(p.0[a as usize..b as usize].to_vec()))
+    });
     engine.register_fn("reverse", |p: &mut Points| {
         let mut v = p.0.clone();
         v.reverse();
@@ -495,6 +509,28 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
             Ok(Points(v))
         },
     );
+
+    // fill_lines(spacing, angle[, inset]) : lignes de remplissage du contour,
+    // en chaînes à imprimer d'un trait (tableau de listes de points).
+    let fill = move |p: &mut Points, spacing: D, angle: D, inset: D| -> R<rhai::Array> {
+        let spacing = positive(&spacing, "spacing")?;
+        let (angle, inset) = (num(&angle, "angle")?, num(&inset, "inset")?);
+        if inset < 0.0 {
+            return Err(fault("points.invalid_value", format!("inset : {inset}")));
+        }
+        let chains = crate::fill::fill_lines(&p.0, spacing, angle, inset);
+        if chains.iter().map(Vec::len).sum::<usize>() > limit {
+            return Err(fault("path.too_many_points", limit.to_string()));
+        }
+        Ok(chains
+            .into_iter()
+            .map(|c| Dynamic::from(Points(c)))
+            .collect())
+    };
+    engine.register_fn("fill_lines", fill);
+    engine.register_fn("fill_lines", move |p: &mut Points, spacing: D, angle: D| {
+        fill(p, spacing, angle, Dynamic::from_float(0.0))
+    });
 
     // --- Vers le parcours -------------------------------------------------------------
     engine.register_fn(

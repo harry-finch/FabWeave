@@ -1,0 +1,170 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Défi support par picots", en = "Pin-support challenge" }
+category = { fr = "Défis d'impression", en = "Print challenges" }
+description = { fr = "Une plaque posée sur une forêt de picots imprimés à la verticale : la buse monte en extrudant, sans couche. Les picots grandissent tous ensemble par tronçons, pour que la buse ne redescende jamais à côté d'un picot déjà haut. Puis des fils tendus de picot en picot, croisés, portent les couches pleines de la plaque. Défi de FullControl ; modèle écrit pour FabWeave.", en = "A plate standing on a forest of pins printed vertically: the nozzle rises while extruding, with no layers. The pins all grow together in short sections, so the nozzle never comes down beside a pin that is already tall. Then threads stretched from pin to pin, crossed, carry the plate's solid layers. FullControl challenge; model written for FabWeave." }
+author = "FabWeave, d'après FullControl (A. Gleadall)"
+tags = ["picots", "ponts", "vertical", "défi", "fullcontrol"]
+source = "https://fullcontrol.xyz"
+recommended_nozzle = [0.4]
+
+[params.pins_x]
+type = "int"
+label = { fr = "Picots en X", en = "Pins along X" }
+default = 4
+min = 2
+max = 10
+
+[params.pins_y]
+type = "int"
+label = { fr = "Picots en Y", en = "Pins along Y" }
+default = 4
+min = 2
+max = 10
+
+[params.pitch]
+type = "float"
+label = { fr = "Entraxe", en = "Pin pitch" }
+unit = "mm"
+help = { fr = "Distance entre deux picots voisins : c'est la portée des fils tendus.", en = "Distance between two neighbouring pins: it is the span of the stretched threads." }
+default = 8
+min = 4
+max = 25
+step = 0.5
+
+[params.pin_height]
+type = "float"
+label = { fr = "Haut. picots", en = "Pin height" }
+unit = "mm"
+default = 10
+min = 2
+max = 40
+step = 0.5
+
+[params.section]
+type = "float"
+label = { fr = "Tronçon", en = "Section" }
+unit = "mm"
+help = { fr = "Hauteur gagnée par chaque picot à chaque passage. Au-delà de 1,5 mm, le bloc de chauffe peut toucher un picot voisin en redescendant.", en = "Height each pin gains on each pass. Above 1.5 mm the heater block may touch a neighbouring pin on the way down." }
+default = 1
+min = 0.4
+max = 3
+step = 0.1
+
+[params.pin_speed]
+type = "float"
+label = { fr = "Vitesse picots", en = "Pin speed" }
+unit = "mm/s"
+help = { fr = "Vitesse de montée en extrudant : lente, pour que le picot fige en montant.", en = "Rising speed while extruding: slow, so the pin sets as it grows." }
+default = 1.5
+min = 0.5
+max = 5
+step = 0.1
+
+[params.plate_layers]
+type = "int"
+label = { fr = "Couches plaque", en = "Plate layers" }
+help = { fr = "Couches pleines au-dessus des deux couches de fils.", en = "Solid layers above the two thread layers." }
+default = 4
+min = 1
+max = 20
+
+[params.bridge_flow]
+type = "float"
+label = { fr = "Débit ponts", en = "Bridge flow" }
+unit = "×"
+advanced = true
+default = 0.9
+min = 0.5
+max = 1.2
+step = 0.05
+---
+// 1. Picots : base posée au plateau, puis tronçons verticaux, picot après
+//    picot, en serpentin. 2. Fils tendus en X au-dessus des rangées, puis en
+//    Y. 3. Une couche dense en pont, puis les couches pleines de la plaque.
+
+let nozzle = printer.nozzle_diameter;
+let w = nozzle * 1.125;
+let h = printer.layer_height;
+let fh = printer.first_layer_height;
+let pin_w = nozzle * 1.5;                                 // section du picot ≈ 0,6 × 0,6 mm
+let nx = params.pins_x;
+let ny = params.pins_y;
+let s = params.pitch;
+let x0 = -s * (nx - 1) / 2.0;
+let y0 = -s * (ny - 1) / 2.0;
+if params.section > 1.5 {
+    warn(#{ fr: "Tronçons de plus de 1,5 mm : vérifier que le bloc de chauffe passe au-dessus des picots voisins.",
+            en: "Sections taller than 1.5 mm: check the heater block clears the neighbouring pins." });
+}
+
+// Ordre en serpentin : rangée par rangée, sens alterné.
+let order = [];
+for j in 0..ny {
+    for i in 0..nx {
+        let ii = if j % 2 == 0 { i } else { nx - 1 - i };
+        order.push([x0 + ii * s, y0 + j * s]);
+    }
+}
+
+let path = new_path();
+// Pied de chaque picot : un petit cercle au plateau pour l'accroche.
+path.set_speed_factor(0.5);
+for p in order {
+    let foot = circle(p[0], p[1], fh, pin_w, 0, 16);
+    path.travel_to(foot);
+    path.print_points(foot, w, fh);
+}
+path.note(#{ fr: "Pieds des picots", en: "Pin feet" });
+
+let back = order;
+back.reverse();                                           // un passage sur deux en sens inverse
+let passes = max(1, ceiling((params.pin_height - fh) / params.section).to_int());
+let dz = (params.pin_height - fh) / passes;
+path.set_fan(100);
+path.set_speed(params.pin_speed);
+for k in 0..passes {
+    let z_from = fh + k * dz;
+    let first = true;
+    for p in if k % 2 == 0 { order } else { back } {
+        // Le premier picot d'un passage est celui où le précédent s'est arrêté.
+        if k == 0 || !first {
+            path.travel_to(p[0], p[1], z_from);
+        }
+        first = false;
+        path.print_to(p[0], p[1], z_from + dz, pin_w, pin_w);
+    }
+}
+let z_top = params.pin_height;
+path.note(#{ fr: "Picots extrudés à la verticale", en: "Pins extruded vertically" });
+
+// Fils tendus : en X au-dessus de chaque rangée, puis en Y au-dessus de chaque colonne.
+let wx = s * (nx - 1);
+let wy = s * (ny - 1);
+let along_x = zigzag(x0, y0, z_top + h, wx, s, ny);
+path.travel_to(along_x);
+path.bridge_points(along_x, w, h, params.bridge_flow);
+let along_y = zigzag(y0, x0, z_top + 2 * h, wy, s, nx).rotate(PI / 2, 0, 0).mirror_x(0);
+path.travel_to(along_y);
+path.bridge_points(along_y, w, h, params.bridge_flow);
+
+// Plaque : une couche dense en pont sur les fils, puis les couches pleines.
+let plate = rectangle(x0, y0, 0, wx, wy);
+for k in 0..=params.plate_layers {
+    let z = z_top + (k + 3) * h;
+    for c in plate.translate(0, 0, z).fill_lines(w, if k % 2 == 0 { 0.0 } else { PI / 2 }, w / 2) {
+        path.travel_to(c);
+        if k == 0 {
+            path.bridge_points(c, w, h, params.bridge_flow);
+        } else {
+            path.print_points(c, w, h);
+        }
+    }
+    if k == 0 {
+        path.reset_fan();
+        path.set_speed_factor(1);
+    }
+}
+path

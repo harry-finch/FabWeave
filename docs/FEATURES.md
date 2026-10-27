@@ -37,7 +37,10 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-10 | `pts.modulate_z(f)`, `pts.modulate_r(cx, cy, f)` : déformation par une fonction du script | v0.2 | fait |
 | API-11 | Subdivision (`pts.subdivide`, faite en v0.2) ; discrétisation adaptative (tolérance de corde) | v0.2 / v0.5 | en cours |
 | API-12 | Essuyage (*wipe*), pause (insertion d'objet, ruban de renfort) | v0.3 | prévu |
-| API-13 | Remplissage natif d'un contour fermé (zigzag croisé d'une couche à l'autre, ou concentrique) : fonds pleins | v0.2 | prévu |
+| API-13 | Remplissage natif d'un contour fermé en lignes parallèles reliées en zigzag (`fill_lines`, contour quelconque, retrait au bord) : fonds pleins, grilles | v0.2 | fait |
+| API-14 | Remplissage en anneaux concentriques (décalage d'un contour vers l'intérieur) | v0.3 | prévu |
+| API-15 | Extrusion à l'arrêt (`path.blob(volume, durée)` : goutte sans mouvement), pour CAT-12 | v0.3 | prévu |
+| API-16 | `pts.slice(from, to)` ; `floor`, `round`, `ceiling` acceptent un entier | v0.2 | fait |
 
 ## Moteur : physique et G-code (ENG)
 
@@ -85,18 +88,18 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | Id | Modèle | Origine | Ce qu'il teste | Jalon | État |
 | --- | --- | --- | --- | --- | --- |
 | CAT-01 | Vase à ondulations (texture *ripple*) | FullControl « Ripple Texture Demo » | Spirale continue, largeur variable | v0.1 | fait |
-| CAT-23 | *Ajout* : option « Fond » des vases (aucun, 1 ou 2 couches pleines sous la spirale, API-13), d'abord sur CAT-01 | Fablab | Remplissage d'un contour, passage du fond à la spirale | v0.2 | prévu |
-| CAT-02 | Tamis micro-maillage (ponts tendus) | Recherche FabWeave | Déplacements, rétractions, ponts | v0.2 | prévu |
-| CAT-03 | Entretoise non planaire | FullControl « Nonplanar Spacer » | Z variable, plafond de vitesse Z | v0.2 | prévu |
-| CAT-04 | Ressort hélicoïdal non planaire | Recherche FabWeave | Z continu, oscillation radiale | v0.2 | prévu |
-| CAT-05 | Défi porte-à-faux | FullControl « Overhang Challenge » | Porte-à-faux extrêmes | v0.2 | prévu |
-| CAT-06 | Défi support par picots | FullControl « Pin-Support Challenge » | Picots verticaux, ponts | v0.2 | prévu |
-| CAT-07 | Abat-jour | FullControl « Lampshade » | Paroi fine texturée | v0.2 | prévu |
-| CAT-08 | Porte-savon en serpentin | FullControl « Snake-Mode Soapdish » | Tracé continu en serpentin | v0.2 | prévu |
-| CAT-09 | Treillis en polygones étoilés | FullControl « Star-Polygon Lattice » | Treillis, croisements | v0.2 | prévu |
-| CAT-10 | Adaptateur hexagonal | FullControl « Hex Adapter » | Polygones, transitions | v0.2 | prévu |
-| CAT-11 | Moteur de motifs polaires | FullControl « Fractional Design Engine (Polar) » | Motifs polaires paramétriques | v0.2 | prévu |
-| CAT-12 | Impression par gouttes | FullControl « Blob Printing » | Extrusion à l'arrêt, points isolés | v0.2 | prévu |
+| CAT-23 | *Ajout* : option « Fond » des vases (aucun, 1 ou 2 couches pleines sous la spirale, API-13), d'abord sur CAT-01 | Fablab | Remplissage d'un contour, passage du fond à la spirale | v0.2 | fait |
+| CAT-02 | Tamis micro-maillage (ponts tendus) | Recherche FabWeave | Déplacements, rétractions, ponts | v0.2 | fait |
+| CAT-03 | Entretoise non planaire | FullControl « Nonplanar Spacer » | Z variable, plafond de vitesse Z | v0.2 | fait |
+| CAT-04 | Ressort hélicoïdal non planaire : ressort-soufflet en spirale, plis en dents de scie, en anneaux ou en hélice | Recherche FabWeave | Z continu, oscillation radiale | v0.2 | fait |
+| CAT-05 | Défi porte-à-faux | *d'après* FullControl « Overhang Challenge » (principe des arcs ; source non publiée) | Porte-à-faux extrêmes | v0.2 | fait |
+| CAT-06 | Défi support par picots | *d'après* FullControl « Pin-Support Challenge » (source non publiée) | Picots verticaux, ponts | v0.2 | fait |
+| CAT-07 | Abat-jour | FullControl « Lampshade » | Paroi fine texturée | v0.2 | fait |
+| CAT-08 | Porte-savon en serpentin | *d'après* FullControl « Snake-Mode Soapdish » (source non publiée) | Tracé continu en serpentin | v0.2 | fait |
+| CAT-09 | Treillis en polygones étoilés (sous-famille M1 ; M2 à M4 plus tard) | FullControl « Star-Polygon Lattice » | Treillis, croisements | v0.2 | fait |
+| CAT-10 | Adaptateur hexagonal | FullControl « Hex Adapter » | Polygones, transitions | v0.2 | fait |
+| CAT-11 | Moteur de motifs polaires (listes de l'original remplacées par branches, saut, rayon intérieur) | FullControl « Fractional Design Engine (Polar) » | Motifs polaires paramétriques | v0.2 | fait |
+| CAT-12 | Impression par gouttes | FullControl « Blob Printing » | Extrusion à l'arrêt, points isolés | v0.3 | prévu (API-15) |
 | CAT-13 | Écrous et vis | FullControl « Nuts and Bolts » | Filetage | v0.3 | prévu |
 | CAT-14 | Support de téléphone à angle libre | FullControl « AnyAngle Phone Stand » | Objet utilitaire complet | v0.3 | prévu |
 | CAT-15 | Test des 2 000 rétractions | FullControl « 2000-Retractions Test » | Calibration de la rétraction | v0.3 | prévu |
@@ -153,8 +156,8 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
-| DESK-01 | `fabweave check | stats | export` (calcul aux valeurs par défaut et aux bornes, `--json`) | v0.2 | fait |
-| DESK-02 | Rechargement à chaud de `models/` en développement | v0.2 | fait |
+| DESK-01 | `fabweave check | stats | export` (calcul aux valeurs par défaut et aux bornes, `--json` ; aux bornes, pièce hors plateau et `fail` du modèle tolérés ; `--set` garde en texte la valeur d'un `choice`) | v0.2 | fait |
+| DESK-02 | Rechargement à chaud de `models/` et `profiles/` en développement (fichier modifié ou ajouté, même dans un nouveau dossier) | v0.2 | fait |
 | DESK-03 | Application Tauri, dossier de modèles surveillé | v0.6 | prévu |
 | DESK-04 | Projet `.fabweave.json`, projet embarqué dans le G-code | v0.6 | prévu |
 | DESK-05 | Envoi à l'imprimante (PrusaLink, OctoPrint, Moonraker) | v0.6 | prévu |
