@@ -1,6 +1,6 @@
 # État du projet
 
-**Jalon** : **v0.1 validée** le 24/10/2026 (vase imprimé sur la CORE One). **v0.2 en cours** (catalogue et format complet), étapes 1 (format et API, validée), 2 (CLI, prompt pour IA, essai de génération), 3 (interface du catalogue, validée) et 4 (catalogue de départ : onze modèles) faites. Prochaine : ⏸ validation du jalon, trois modèles imprimés. Voir [ROADMAP.md](ROADMAP.md).
+**Jalon** : **v0.1 validée** le 24/10/2026 (vase imprimé sur la CORE One). **v0.2 validée** le 27/10/2026 (trois modèles du catalogue imprimés). **v0.3 en cours** (imprimantes et filaments) : étude Bambu Lab X1E, impression par la carte SD. Voir [ROADMAP.md](ROADMAP.md).
 
 | Élément | État |
 | --- | --- |
@@ -14,16 +14,15 @@
 | Tests | `cargo test --workspace` : 51 verts (36 unitaires dont 5 de remplissage, 10 API dont tous les exemples de la spécification et du prompt et les modèles écrits par IA, 3 catalogue, 2 CLI) ; clippy : 0 avertissement ; `npm run check` : 0 erreur |
 | Mesures | Moteur ([ADR-0002](docs/adr/0002-format-weave-toml-et-rhai.md)) : vase 54 ms, 50 000 points 81 ms, 200 000 points 324 ms (WebAssembly). Vue 3D ([ADR-0003](docs/adr/0003-vue-3d-webgl-three-js.md)) : 200 195 segments rendus en 1,9 ms |
 | Vérifié dans le navigateur | Onze modèles affichés (27/10), abat-jour 232 000 points calculé en 170 ms ; fond du vase vu de dessous ; `.weave` ajouté dans un nouveau dossier de `models/` affiché sans redémarrage. Catalogue : vignettes au démarrage et au changement de thème, recherche à plusieurs mots, dépôt d'un modèle valide et d'un modèle en erreur (ligne du script, export bloqué, vignette marquée), retrait puis « Annuler », annotations en FR et EN. v0.1 : flèches fusionnées en une étape d'annulation, ↺, valeur hors bornes refusée (souligné, message, export désactivé), « Calcul au relâchement » pendant un défilement lent puis calcul au relâchement, un geste = une étape, mesures en pouces, libellés mesurés dans les deux langues |
-| Validé par l'utilisateur | G-code relu dans PrusaSlicer ; vase imprimé sur la CORE One (PLA) |
-| Non vérifié | Impression des modèles de la v0.2 (picots verticaux, porte-à-faux à 90°, fils tendus du tamis : à régler à l'atelier) ; impression sur la MK4S ; temps estimé comparé à PrusaSlicer (critère ± 15 %) ; défilement réel à la souris (testé par événements simulés) |
+| Validé par l'utilisateur | G-code relu dans PrusaSlicer ; vase imprimé sur la CORE One (PLA) ; v0.2 : trois modèles du catalogue imprimés |
+| Non vérifié | Impression des modèles de la v0.2 non retenus pour la validation ; impression sur la MK4S ; temps estimé comparé à PrusaSlicer (critère ± 15 %) ; défilement réel à la souris (testé par événements simulés) |
 
 ## Points ouverts
 
 - 50 000 points en pur script : 81 ms ; fonctions natives faites (abat-jour : 232 000 points en 170 ms, cellule en script puis copies natives).
-- Rendu des modèles nouveaux à confirmer à l'impression : hauteur des tronçons de picots (bloc de chauffe), vitesse dans le vide du porte-à-faux, débit des fils tendus.
 - Remplissage du fond : plusieurs chaînes (donc rétractions) dans les creux d'un contour en étoile ; anneaux concentriques en v0.3.
 - Taille du WebAssembly (2,8 Mo non compressé, 2,6 Mo à la v0.1).
 
 ## Prochaine action
 
-⏸ Validation du jalon v0.2 par l'utilisateur : trois modèles du catalogue imprimés (suggestion : vase à ondulations avec fond, entretoise non planaire, tamis micro-maillage). Ensuite v0.3 (imprimantes et filaments).
+v0.3, étape 1 : étude de l'impression sur la Bambu Lab X1E par la carte SD (G-code brut ou paquet `.gcode.3mf`), ADR, profil X1E.

@@ -122,3 +122,5 @@ v0.0 validée par l'utilisateur.
 **Défauts trouvés et corrigés.** Point du fond confondu avec le premier de la spirale ; déplacement inutile au premier picot de chaque passage ; avertissement du porte-savon déclenché aux valeurs par défaut (nombre de couches désormais calculé sur la hauteur moyenne) ; annotations trop longues pour la vue.
 
 **Non fait.** Impression par gouttes (CAT-12, extrusion à l'arrêt : API-15, v0.3) ; anneaux concentriques (API-14) ; sous-familles M2 à M4 du treillis ; impressions de validation.
+
+**Validation (27/10/2026).** Étape 4 et jalon v0.2 validés par l'utilisateur : trois modèles du catalogue imprimés, « bien passés ». Pour la v0.3, le fablab dispose d'une **Bambu Lab X1E**, alimentée par la carte SD.

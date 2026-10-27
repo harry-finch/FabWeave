@@ -47,7 +47,7 @@ Critères d'acceptation :
 - Un modèle de 50 000 points se recalcule pendant le déplacement d'un curseur sans saccade visible (ou passe en calcul au relâchement, signalé dans la barre d'état).
 - ⏸ **Validation de jalon** : le vase imprimé sur la MK4S ou la Core One du fablab.
 
-## v0.2 — Catalogue et format complet (jalon 2) · *en cours*
+## v0.2 — Catalogue et format complet (jalon 2) · *validée* (27/10/2026 ; trois modèles imprimés)
 
 **But** : le catalogue devient le cœur de l'application, et le format `.weave` est assez riche et assez documenté pour qu'une IA externe produise des modèles valides du premier coup.
 
@@ -58,7 +58,7 @@ Critères d'acceptation :
 2. **Pour l'IA** : `fabweave-cli check | export | stats`, `docs/PROMPT_MODELE_IA.md`, essai de génération de trois modèles à partir du seul prompt. *Fait le 24/10/2026 : trois modèles sur trois valides au premier essai.*
 3. **Interface du catalogue** : catégories, recherche, vignettes, fiche du modèle, annotations dans la vue 3D, ouverture et glisser-déposer de `.weave`, « Mes modèles ». *Fait le 27/10/2026.*
 4. **Catalogue de départ** d'environ dix modèles. *Fait le 27/10/2026 : onze modèles (CAT-01 à CAT-11, fond des vases CAT-23) ; l'impression par gouttes (CAT-12) passe en v0.3, faute d'extrusion à l'arrêt dans l'API (API-15).*
-5. ⏸ Validation de jalon : trois modèles imprimés.
+5. ⏸ Validation de jalon : trois modèles imprimés. *Validé le 27/10/2026.*
 
 - **Catalogue** : arbre par catégories, recherche, étiquettes, vignettes rendues par l'application, fiche du modèle (description, auteur, source et licence, buse recommandée, temps et matière estimés avec les profils courants).
 - **Format v1 complet** : paramètres `choice` (liste), unités, pas, groupes et `advanced = true` (« ▸ Avancé »), libellés et infobulles FR / EN, avertissements et erreurs émis par le script avec un code (`warn("model.thin_wall", …)`), annotations 3D (`note(x, y, z, "texte")`, comme les repères « Start », « End » de FullControl), points de départ et de fin.
@@ -74,7 +74,7 @@ Critères d'acceptation :
 - Trois modèles nouveaux générés par une IA à partir du seul prompt passent `fabweave-cli check` au premier ou au deuxième essai.
 - ⏸ Validation de jalon : trois modèles du catalogue imprimés.
 
-## v0.3 — Imprimantes et filaments (jalon 3)
+## v0.3 — Imprimantes et filaments (jalon 3) · *en cours*
 
 **But** : chaque machine du fablab a un profil fiable, et l'utilisateur peut créer le sien.
 
