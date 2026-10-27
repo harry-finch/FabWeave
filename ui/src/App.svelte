@@ -13,7 +13,7 @@
   import ParamsPanel from './components/ParamsPanel.svelte';
   import Viewport from './components/Viewport.svelte';
   import CatalogPicker from './components/CatalogPicker.svelte';
-  import { store } from './lib/store.svelte';
+  import { store, type ExportFormat } from './lib/store.svelte';
   import { ui } from './lib/ui.svelte';
   import { labelled, t } from './lib/i18n.svelte';
   import { text } from './lib/text';
@@ -55,15 +55,27 @@
     return [...(e.dataTransfer?.types ?? [])].includes('Files');
   }
 
-  async function exportGcode() {
-    const r = await store.gcode();
+  /** Formats proposés : le paquet `.gcode.3mf` en premier pour une Bambu Lab
+   * (lu par l'écran de l'imprimante), le G-code seul sinon. */
+  const formats = $derived<{ id: ExportFormat; name: string; desc: string }[]>(
+    store.printer?.printer.firmware === 'bambu'
+      ? [
+          { id: '3mf', name: t('export.bambu'), desc: t('export.bambuHint') },
+          { id: 'gcode', name: t('export.gcode'), desc: t('export.gcodeHint') },
+        ]
+      : [{ id: 'gcode', name: t('export.gcode'), desc: t('export.gcodeHint') }],
+  );
+
+  async function exportGcode(format: ExportFormat) {
+    const r = await store.exportFile(format);
     if (!r.ok) {
       ui.toast(t('export.blocked'));
       return;
     }
     const base = store.modelId.split('/').pop() ?? 'fabweave';
-    const name = `${base}_${store.printer?.printer.model ?? 'printer'}_${store.filament?.filament.type ?? 'filament'}.gcode`;
-    const url = URL.createObjectURL(new Blob([r.text], { type: 'text/plain' }));
+    const name = `${base}_${store.printer?.printer.id ?? 'printer'}_${store.filament?.filament.type ?? 'filament'}.${format === '3mf' ? 'gcode.3mf' : 'gcode'}`;
+    const blob = new Blob([r.data as BlobPart], { type: format === '3mf' ? 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml' : 'text/plain' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = name;
@@ -144,7 +156,7 @@
 {/if}
 
 <div class="app">
-  <AppBar onexport={exportGcode} {canExport} />
+  <AppBar onexport={exportGcode} {canExport} {formats} />
   <div class="main">
     <aside class="panel left">
       <Section id="model" title={t('model.section')} step={1}>

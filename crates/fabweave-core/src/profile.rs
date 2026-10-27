@@ -45,6 +45,10 @@ pub struct Bed {
     /// Hauteur d'impression maximale (mm).
     pub max_height: f64,
     pub origin: Origin,
+    /// Type de plaque (variable `bed_type` des gabarits ; Bambu Lab :
+    /// « Textured PEI Plate », « Cool Plate »…). Facultatif.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub plate: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

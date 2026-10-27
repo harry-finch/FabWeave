@@ -92,6 +92,11 @@ export class EngineClient {
     return this.#call<Float32Array>({ kind: 'thumbnail', model, printer, filament });
   }
 
+  /** Paquet `.gcode.3mf` (Bambu Lab) ; refus comme `gcode`. */
+  gcode3mf(values: string): Promise<Uint8Array> {
+    return this.#call<Uint8Array>({ kind: 'gcode-3mf', values });
+  }
+
   /** G-code ; en cas de refus, l'erreur porte le JSON des messages bloquants. */
   gcode(values: string): Promise<string> {
     return this.#call({ kind: 'gcode', values });

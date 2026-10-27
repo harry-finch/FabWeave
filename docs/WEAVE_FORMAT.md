@@ -290,12 +290,12 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 
 ## 6. Profils
 
-Deux fichiers TOML, lus strictement comme l'en-tête des modèles : `profiles/printers/*.toml` (`format = "fabweave.printer"`) et `profiles/filaments/*.toml` (`format = "fabweave.filament"`). Exemples commentés : [prusa_mk4s.toml](../profiles/printers/prusa_mk4s.toml), [generic_pla.toml](../profiles/filaments/generic_pla.toml).
+Deux fichiers TOML, lus strictement comme l'en-tête des modèles : `profiles/printers/*.toml` (`format = "fabweave.printer"`) et `profiles/filaments/*.toml` (`format = "fabweave.filament"`). Exemples commentés : [prusa_mk4s.toml](../profiles/printers/prusa_mk4s.toml), [bambu_x1e.toml](../profiles/printers/bambu_x1e.toml), [generic_pla.toml](../profiles/filaments/generic_pla.toml).
 
 | Imprimante | Contenu |
 | --- | --- |
-| `[printer]` | `id`, `name`, `model` (annoncé au firmware, `M862.3`), `firmware` (`prusa`, `marlin`, `klipper`, `bambu`), `source` |
-| `[bed]` | `size = [x, y]`, `max_height`, `origin = "corner"` ou `"center"` |
+| `[printer]` | `id`, `name`, `model` (annoncé au firmware : `M862.3` des Prusa, `printer_model_id` du paquet Bambu, `C13` pour la X1E), `firmware` (`prusa`, `marlin`, `klipper`, `bambu`), `source` |
+| `[bed]` | `size = [x, y]`, `max_height`, `origin = "corner"` ou `"center"`, `plate` (facultatif : type de plaque, variable `bed_type` ; Bambu Lab : `"Textured PEI Plate"`, `"Cool Plate"`, `"Engineering Plate"`, `"High Temp Plate"`) |
 | `[nozzle]` | `diameter`, `high_flow`, `abrasive` |
 | `[limits]` | `max_print_speed`, `travel_speed`, `max_z_speed` (mm/s) |
 | `[layers]` | `layer_height`, `first_layer_height` (transmis au script) |
@@ -320,7 +320,13 @@ G1 Z{min(max_z + 1, max_print_height)} F720
 {if first_layer_bed_temperature <= 60 { "M106 S100" }}
 ```
 
-Variables : `printer_model`, `printer_name`, `filament_type`, `filament_name`, `model_name` (textes) ; `nozzle_high_flow`, `nozzle_abrasive`, `filament_abrasive` (booléens) ; `nozzle_diameter`, `bed_size_x`, `bed_size_y`, `max_print_height`, `first_layer_temperature`, `temperature`, `first_layer_bed_temperature`, `bed_temperature`, `probe_temperature`, `idle_temperature`, `chamber_temperature`, `pressure_advance`, `retraction_length`, `retraction_speed`, `first_layer_min_x`, `first_layer_min_y`, `first_layer_max_x`, `first_layer_max_y`, `print_min_x`, `print_min_y`, `print_max_x`, `print_max_y`, `max_z` (nombres, repère de la machine). Une variable inconnue est une erreur dès la lecture du profil (`profile.template_error`).
+Variables : `printer_model`, `printer_name`, `filament_type`, `filament_name`, `model_name` (textes) ; `nozzle_high_flow`, `nozzle_abrasive`, `filament_abrasive` (booléens) ; `nozzle_diameter`, `bed_size_x`, `bed_size_y`, `max_print_height`, `first_layer_temperature`, `temperature`, `first_layer_bed_temperature`, `bed_temperature`, `probe_temperature`, `idle_temperature`, `chamber_temperature`, `pressure_advance`, `retraction_length`, `retraction_speed`, `first_layer_min_x`, `first_layer_min_y`, `first_layer_max_x`, `first_layer_max_y`, `print_min_x`, `print_min_y`, `print_max_x`, `print_max_y`, `max_z` (nombres, repère de la machine), `max_volumetric_speed` (débit volumétrique maximal du filament, mm³/s) ; `bed_type` (texte, plaque du profil). Fonction `num(x)` : nombre écrit comme une expression du gabarit (3 décimales au plus), à utiliser dans une chaîne interpolée. Un bloc de plusieurs lignes s'écrit en chaîne entre accents graves : ``{if chamber_temperature >= 40 { `M141 S${num(chamber_temperature)}` }}`` ; dans un profil, mettre alors le gabarit en chaîne TOML littérale `'''…'''` (sans échappements). Une variable inconnue est une erreur dès la lecture du profil (`profile.template_error`).
+
+### Dialecte Bambu Lab et paquet `.gcode.3mf`
+
+Pour un profil `firmware = "bambu"`, le G-code commence par l'en-tête que lit le firmware (`; HEADER_BLOCK_START` … `; HEADER_BLOCK_END` : durée, nombre de couches, filament, hauteur maximale) et porte à chaque couche `M73 L<n>` et `M991 S0 P<n−1>` (compteur de couches à l'écran) ainsi que `M73 P<%> R<minutes>` (progression). Un parcours FabWeave n'a pas toujours de couches : une couche commence quand l'impression dépasse d'une hauteur de couche du profil le début de la précédente (en spirale ou en non planaire, ce sont des paliers de hauteur atteinte).
+
+L'export propose alors aussi le **paquet `.gcode.3mf`** (CLI : sortie en `.gcode.3mf`) : archive ZIP qui contient `Metadata/plate_1.gcode`, sa somme MD5, `slice_info.config` (modèle d'imprimante `model`, buse, durée, poids, filament), `model_settings.config`, `plate_1.json` et des vignettes PNG du parcours (512 et 128 px). Choix et essai : [ADR-0005](adr/0005-bambu-lab-x1e-par-la-carte-sd.md).
 
 ## 7. Modèle de référence
 

@@ -53,6 +53,9 @@ pub struct Move {
     pub skipped: bool,
     /// Sur la première couche.
     pub first_layer: bool,
+    /// Durée estimée du mouvement (s), rétraction et saut compris
+    /// (progression affichée par l'imprimante).
+    pub time: f64,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
@@ -209,6 +212,7 @@ pub fn plan(
         retract: true,
         skipped: false,
         first_layer: pts[0].z < first_layer_top,
+        time: 0.0,
     });
 
     for i in 1..pts.len() {
@@ -227,6 +231,7 @@ pub fn plan(
             retract: false,
             skipped: false,
             first_layer,
+            time: 0.0,
         };
         if length < MIN_SEGMENT {
             m.skipped = true;
@@ -241,11 +246,12 @@ pub fn plan(
             m.requested = lim.travel_speed;
             travel_moves += 1;
             travel_length += length;
-            time += xy / lim.travel_speed + dz.abs() / lim.max_z_speed;
+            m.time = xy / lim.travel_speed + dz.abs() / lim.max_z_speed;
             if m.retract {
                 retractions += 1;
-                time += retract_time + hop_time;
+                m.time += retract_time + hop_time;
             }
+            time += m.time;
             moves.push(m);
             continue;
         }
@@ -304,7 +310,8 @@ pub fn plan(
         print_moves += 1;
         print_length += length;
         e_total += m.e;
-        time += length / v;
+        m.time = length / v;
+        time += m.time;
         max_flow = max_flow.max(m.flow);
         max_speed = max_speed.max(v);
         if first_layer {

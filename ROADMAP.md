@@ -78,6 +78,16 @@ Critères d'acceptation :
 
 **But** : chaque machine du fablab a un profil fiable, et l'utilisateur peut créer le sien.
 
+Étapes et points d'arrêt (machines du fablab : Prusa MK4S, Prusa CORE One, **Bambu Lab X1E** alimentée par la carte SD) :
+
+1. **Bambu Lab X1E** : profil (gabarits de Bambu Studio réécrits), dialecte Bambu (en-tête lu par le firmware, couches et progression à l'écran), paquet `.gcode.3mf` (G-code, somme MD5, métadonnées de plaque, vignettes), export au choix `.gcode` ou `.gcode.3mf`.
+   ⏸ Essai sur la X1E par la carte SD des deux formats ; choix consigné dans l'ADR-0005.
+2. **Profils complets et dialectes** : schéma de profil enrichi (zones exclues du plateau, accélérations, cône de la buse), migration et test de lecture de l'ancien format ; progression `M73` et vignette pour les Prusa ; Marlin générique, Klipper ; avance de pression ; ligne de purge hors pièce.
+3. **Buse, placement, adhésion** : changer de buse en un clic, position et rotation sur le plateau, copies, bordure et radeau.
+4. **Édition et import des profils** dans l'application ; import depuis PrusaSlicer, OrcaSlicer et Bambu Studio.
+5. **Reports de la v0.2** : remplissage en anneaux concentriques (API-14), extrusion à l'arrêt (API-15), impression par gouttes (CAT-12).
+6. ⏸ Validation de jalon : une impression validée par machine du fablab.
+
 - **Profils versionnés** (TOML) : plateau (taille, forme rectangulaire ou ronde, origine), buse, cinématique (vitesses max, vitesse Z max), cône de dégagement de la buse, dialecte du firmware, gabarits de démarrage et de fin ; filaments : températures (première couche, suivantes, plateau), refroidissement, rétraction, débit volumétrique max, vitesse nominale, facteur d'étirement des ponts.
 - **Bibliothèque** : Prusa MK4S et Core One (livrées en v0.1), **Bambu Lab A1, P1 et X1**, plus « Marlin générique ».
 - **Dialectes** : Prusa (Buddy), Bambu Lab, Marlin, Klipper ; avance de pression (`M572`, `M900`, `SET_PRESSURE_ADVANCE`), contrôles de modèle et de buse (`M862.x`), ligne de purge hors pièce, vignette intégrée au G-code (écran des Prusa).

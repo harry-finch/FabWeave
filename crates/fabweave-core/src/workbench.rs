@@ -184,4 +184,22 @@ impl Workbench {
             _ => Err(ev.issues.iter().filter(|i| i.is_error()).cloned().collect()),
         }
     }
+
+    /// Paquet `.gcode.3mf` (Bambu Lab) d'un calcul sans erreur bloquante :
+    /// le G-code de [`Workbench::gcode`], sa somme MD5, les métadonnées et
+    /// les vignettes de la plaque.
+    pub fn gcode_3mf(&self, ev: &Evaluation) -> Result<Vec<u8>, Vec<Issue>> {
+        let g = self.gcode(ev)?;
+        let (path, plan) = (
+            ev.path.as_ref().expect("parcours"),
+            ev.plan.as_ref().expect("plan"),
+        );
+        Ok(crate::package::bambu_3mf(
+            &g,
+            path,
+            plan,
+            self.printer.as_ref().expect("profil"),
+            self.filament.as_ref().expect("profil"),
+        ))
+    }
 }

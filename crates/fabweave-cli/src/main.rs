@@ -32,6 +32,7 @@ options :
   --printer <profil.toml>   profil imprimante (défaut : Prusa MK4S)
   --filament <profil.toml>  profil filament (défaut : PLA générique)
   --set <id>=<valeur>       valeur d'un paramètre (répétable)
+  -o <sortie>               export : .gcode, ou .gcode.3mf (paquet Bambu Lab)
   --json                    sortie JSON
 codes de sortie : 0 aucun message bloquant, 1 erreurs, 2 mauvaise utilisation";
 
@@ -224,9 +225,15 @@ fn run() -> Result<bool, String> {
     match a.command.as_str() {
         "export" => {
             let ev = w.evaluate(&a.values);
-            match w.gcode(&ev) {
+            let out = a.output.as_deref().unwrap_or_default();
+            // `.gcode.3mf` : paquet Bambu Lab ; sinon G-code seul.
+            let bytes = if out.to_lowercase().ends_with(".3mf") {
+                w.gcode_3mf(&ev)
+            } else {
+                w.gcode(&ev).map(String::into_bytes)
+            };
+            match bytes {
                 Ok(g) => {
-                    let out = a.output.as_deref().unwrap_or_default();
                     std::fs::write(out, g).map_err(|e| format!("{out} : {e}"))?;
                     if !a.json {
                         for i in &ev.issues {

@@ -32,6 +32,10 @@ const fr = {
     menu: 'Exporter',
     hint: 'G-code pour l’imprimante et le filament choisis, nommé d’après le modèle.',
     done: 'G-code exporté : {name}',
+    gcode: 'G-code (.gcode)',
+    gcodeHint: 'Le G-code seul, avec l’en-tête que lit l’imprimante.',
+    bambu: 'Paquet Bambu Lab (.gcode.3mf)',
+    bambuHint: 'G-code, somme de contrôle, vignette, durée et filament affichés par l’écran de l’imprimante.',
     blocked: 'Export impossible : corriger d’abord les messages en rouge.',
   },
   model: {

@@ -13,6 +13,7 @@ pub mod format;
 pub mod gcode;
 pub mod issue;
 pub mod model;
+pub mod package;
 pub mod params;
 pub mod path;
 pub mod plan;

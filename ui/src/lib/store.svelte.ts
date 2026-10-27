@@ -59,6 +59,9 @@ function readSaved(): Partial<Doc> {
   }
 }
 
+/** Formats d'export : G-code seul, ou paquet Bambu Lab. */
+export type ExportFormat = 'gcode' | '3mf';
+
 export interface CatalogEntry {
   id: string;
   /** Livré avec FabWeave, ou ouvert par l'utilisateur (« Mes modèles »). */
@@ -397,10 +400,12 @@ class Store {
     return removed && { file: removed.file, text: removed.text };
   }
 
-  /** G-code des valeurs courantes, ou les messages qui le bloquent. */
-  async gcode(): Promise<{ ok: true; text: string } | { ok: false; issues: Issue[] }> {
+  /** Fichier à exporter pour les valeurs courantes (G-code, ou paquet
+   * `.gcode.3mf` des Bambu Lab), ou les messages qui le bloquent. */
+  async exportFile(format: ExportFormat): Promise<{ ok: true; data: string | Uint8Array } | { ok: false; issues: Issue[] }> {
     try {
-      return { ok: true, text: await this.engine.gcode(JSON.stringify(this.current)) };
+      const values = JSON.stringify(this.current);
+      return { ok: true, data: format === '3mf' ? await this.engine.gcode3mf(values) : await this.engine.gcode(values) };
     } catch (e) {
       try {
         return { ok: false, issues: JSON.parse((e as Error).message) as Issue[] };

@@ -1,16 +1,23 @@
 <script lang="ts">
   // Barre d'application : identité (logo, nom, sous-titre), réglages
   // d'affichage (unités, langue, thème), aide, et l'unique action principale
-  // de l'application : Exporter le G-code. (Menu Fichier et encart du projet
-  // du kit : à la v0.6, avec les projets.)
-  import { CircleHelp, Download, Monitor, Moon, Sun } from '@lucide/svelte';
+  // de l'application : Exporter le G-code — un bouton, ou un menu d'une ligne
+  // par format quand l'imprimante en propose plusieurs (Bambu Lab). (Menu
+  // Fichier et encart du projet du kit : à la v0.6, avec les projets.)
+  import { ChevronDown, CircleHelp, Download, FileArchive, FileCode, Monitor, Moon, Sun } from '@lucide/svelte';
+  import Popover from './Popover.svelte';
   import { theme, THEMES } from '../lib/theme.svelte';
   import { ui } from '../lib/ui.svelte';
   import { tip } from '../lib/tip';
   import { i18n, LOCALES, t } from '../lib/i18n.svelte';
   import { APP_NAME } from '../lib/app';
 
-  let { onexport, canExport = true }: { onexport: () => void; canExport?: boolean } = $props();
+  type Format = { id: 'gcode' | '3mf'; name: string; desc: string };
+  let {
+    onexport,
+    canExport = true,
+    formats,
+  }: { onexport: (format: Format['id']) => void; canExport?: boolean; formats: Format[] } = $props();
 </script>
 
 <header class="bar">
@@ -41,10 +48,37 @@
       <CircleHelp size={16} />
     </button>
     <!-- Une seule action principale (bouton bleu) dans la barre. -->
-    <button class="btn primary" type="button" disabled={!canExport} use:tip={t('export.hint')} onclick={onexport}>
-      <Download size={14} />
-      {t('export.button')}
-    </button>
+    {#if formats.length > 1}
+      <Popover label={t('export.menu')} width={300}>
+        {#snippet trigger({ open, toggle })}
+          <button class="btn primary" class:open type="button" disabled={!canExport} onclick={toggle} aria-haspopup="menu" aria-expanded={open}>
+            <Download size={14} />
+            {t('export.button')}
+            <ChevronDown size={13} />
+          </button>
+        {/snippet}
+        {#snippet content({ close })}
+          {#each formats as f (f.id)}
+            <button
+              class="row"
+              type="button"
+              onclick={() => {
+                close();
+                onexport(f.id);
+              }}
+            >
+              {#if f.id === '3mf'}<FileArchive size={14} />{:else}<FileCode size={14} />{/if}
+              <span class="txt"><span class="rname">{f.name}</span><span class="desc">{f.desc}</span></span>
+            </button>
+          {/each}
+        {/snippet}
+      </Popover>
+    {:else}
+      <button class="btn primary" type="button" disabled={!canExport} use:tip={t('export.hint')} onclick={() => onexport(formats[0]?.id ?? 'gcode')}>
+        <Download size={14} />
+        {t('export.button')}
+      </button>
+    {/if}
   </div>
 </header>
 
@@ -137,5 +171,41 @@
     display: grid;
     place-items: center;
     padding: 0 6px;
+  }
+
+  /* Menu d'export : lignes riches (nom, description d'une ligne). */
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    width: 100%;
+    padding: 6px var(--s2);
+    background: none;
+    border: 0;
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    text-align: left;
+  }
+
+  .row:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .txt {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .rname {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .desc {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
   }
 </style>

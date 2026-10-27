@@ -32,6 +32,12 @@ cargo run --release -p fabweave-cli -- check models/vases/ripple_vase.weave
 cargo run --release -p fabweave-cli -- export models/vases/ripple_vase.weave -o vase.gcode --printer profiles/printers/prusa_core_one.toml --set star_tips=6
 ```
 
+Pour une Bambu Lab (carte SD), une sortie en `.gcode.3mf` donne le paquet que lit l'écran de l'imprimante :
+
+```bash
+cargo run --release -p fabweave-cli -- export models/vases/ripple_vase.weave -o vase.gcode.3mf --printer profiles/printers/bambu_x1e.toml
+```
+
 Faire écrire un modèle par une IA : donner [docs/PROMPT_MODELE_IA.md](docs/PROMPT_MODELE_IA.md) comme instructions, puis vérifier le fichier obtenu avec `fabweave check`.
 
 ## Développer

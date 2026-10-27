@@ -124,3 +124,20 @@ v0.0 validée par l'utilisateur.
 **Non fait.** Impression par gouttes (CAT-12, extrusion à l'arrêt : API-15, v0.3) ; anneaux concentriques (API-14) ; sous-familles M2 à M4 du treillis ; impressions de validation.
 
 **Validation (27/10/2026).** Étape 4 et jalon v0.2 validés par l'utilisateur : trois modèles du catalogue imprimés, « bien passés ». Pour la v0.3, le fablab dispose d'une **Bambu Lab X1E**, alimentée par la carte SD.
+
+## 2026-10-27 — v0.3, étape 1 : Bambu Lab X1E par la carte SD
+
+**Entrées.** Profils de Bambu Studio (`bambulab/BambuStudio`, `resources/profiles/BBL/machine` : « Bambu Lab X1E 0.4 nozzle », gabarits de démarrage du 31/10/2025, de fin du 02/04/2024, de changement de couche) ; outil `bambox` (estampo, MIT) pour la structure du paquet `.gcode.3mf` et les marqueurs que le firmware attend ; retours d'utilisateurs (export « fichier tranché de la plaque » lu depuis la carte SD).
+
+**Choix** (ADR-0005, proposée).
+- Dialecte Bambu : en-tête `HEADER_BLOCK` en tête de fichier, `M73 L` + `M991` à chaque couche, progression `M73 P R`. Une « couche » = palier de hauteur atteinte (dépassement d'une hauteur de couche du profil), seule définition qui tienne pour les spirales et le non planaire. Le plan garde désormais la durée de chaque mouvement.
+- Paquet `.gcode.3mf` écrit par le moteur (module `package.rs`) : ZIP déterministe (date fixe), CRC-32 et PNG écrits à la main, `md-5` et `miniz_oxide` en dépendances (Rust pur) ; vignettes 512 et 128 px du parcours, fond transparent. Sans `project_settings.config` (544 clés chez `bambox`) : l'essai dira s'il faut l'ajouter.
+- Identifiant de la X1E : `C13` (profil de Bambu Studio) et non `BL-P003` (table de `bambox`, non confirmée).
+- Profil X1E : 645 lignes de gabarit converties par script (variables) puis blocs `{if}…{endif}` réécrits à la main en expressions Rhai ; chaînes multi-lignes entre accents graves, profil en chaînes TOML littérales `'''`. Nouvelle fonction de gabarit `num()` et variables `bed_type`, `max_volumetric_speed`. Retirés : scan lidar de la première couche et détection d'impression dans le vide (fausses alertes sur un parcours non planaire). Conservés tels quels : purge à 290 °C, refroidissement de l'enceinte pour le PLA et le PETG, nivellement limité à la zone de la première couche, abaissement de 0,04 mm sur plaque texturée, calibrations conditionnées par le firmware (`M1002 judge_flag`).
+- Interface : l'export devient un menu d'une ligne par format (règle de la skill, repris de FabVents) quand l'imprimante en propose plusieurs ; sur les Prusa, le bouton reste simple.
+
+**Vérification.** 55 tests (paquet relu : CRC, MD5, métadonnées, vignette ; G-code de la X1E : en-tête, autant de `M73 L` que de couches annoncées, gabarits rendus sans macro restante) ; le catalogue entier passe sur la X1E. Paquet relu indépendamment par `zipfile` de Python (CRC et MD5 justes). Navigateur : menu d'export sur la X1E, les deux fichiers produits (téléchargements interceptés, rien d'écrit sur le poste), bouton simple sur la MK4S.
+
+**Défauts trouvés et corrigés.** Infobulle du bouton qui masquait le menu ; volume de filament de l'en-tête écrit en mm³ sous une étiquette en cm³ (d'après un souvenir non vérifié du format de Bambu Studio : corrigé en cm³). En nettoyant après les essais du catalogue, le fond du vase était resté sur « 2 couches » dans le navigateur de l'utilisateur : remis sur « Aucun ».
+
+**Non fait.** Essai sur la machine (⏸) ; zone de purge à l'avant du plateau non protégée par le moteur (Y < 15 mm, atteinte seulement par une pièce de plus de 226 mm de profondeur ; zones exclues à l'étape 2) ; profils A1, P1, X1.

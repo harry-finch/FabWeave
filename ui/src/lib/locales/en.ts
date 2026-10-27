@@ -34,6 +34,10 @@ const en: Shape<typeof fr> = {
     menu: 'Export',
     hint: 'G-code for the selected printer and filament, named after the model.',
     done: 'G-code exported: {name}',
+    gcode: 'G-code (.gcode)',
+    gcodeHint: 'The G-code alone, with the header the printer reads.',
+    bambu: 'Bambu Lab package (.gcode.3mf)',
+    bambuHint: 'G-code, checksum, thumbnail, time and filament shown on the printer screen.',
     blocked: 'Cannot export: fix the red messages first.',
   },
   model: {

@@ -103,6 +103,10 @@ impl TemplateEngine {
             engine.register_fn(name, move |a: i64, b: f64| f(a as f64, b));
             engine.register_fn(name, move |a: f64, b: i64| f(a, b as f64));
         }
+        // `num(x)` : nombre écrit comme une expression du gabarit (3 décimales
+        // au plus), pour l'interpoler dans une chaîne : `M141 S${num(t)}`.
+        engine.register_fn("num", |x: f64| num(x, 3));
+        engine.register_fn("num", |x: i64| x.to_string());
         Self { engine }
     }
 

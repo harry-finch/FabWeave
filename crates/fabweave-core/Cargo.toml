@@ -11,6 +11,10 @@ publish.workspace = true
 [dependencies]
 indexmap = { version = "2", features = ["serde"] }
 libm = "0.2"
+# Paquet `.gcode.3mf` des Bambu Lab : somme MD5 du G-code, compression
+# (ZIP et vignettes PNG). Rust pur, sans IO.
+md-5 = { version = "0.10", default-features = false }
+miniz_oxide = "0.8"
 # Bac à sable : pas de modules (aucun accès fichier), pas d'horloge (déterminisme).
 rhai = { version = "1", default-features = false, features = ["std", "no_module", "no_time", "no_custom_syntax"] }
 serde.workspace = true

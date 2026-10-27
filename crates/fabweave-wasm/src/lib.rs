@@ -197,6 +197,20 @@ impl Engine {
             .map_err(|e| JsError::new(&serde_json::to_string(&e).unwrap_or_default()))
     }
 
+    /// Paquet `.gcode.3mf` (Bambu Lab) des valeurs ; en cas de refus,
+    /// l'erreur porte le JSON des messages bloquants.
+    pub fn gcode_3mf(&mut self, values_json: &str) -> Result<Vec<u8>, JsError> {
+        let reuse = matches!(&self.last, Some((v, _)) if v == values_json);
+        if !reuse {
+            let ev = self.bench.evaluate(&values(values_json));
+            self.last = Some((values_json.to_string(), ev));
+        }
+        let (_, ev) = self.last.as_ref().expect("calcul présent");
+        self.bench
+            .gcode_3mf(ev)
+            .map_err(|e| JsError::new(&serde_json::to_string(&e).unwrap_or_default()))
+    }
+
     /// Parcours d'un modèle aux valeurs par défaut, pour sa vignette :
     /// `x, y, z, nature` à la suite (4 nombres par point), au plus `max_points`
     /// points (sous-échantillonné). Vide si le modèle ne se calcule pas.

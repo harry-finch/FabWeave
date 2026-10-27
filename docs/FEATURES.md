@@ -62,7 +62,8 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | ENG-14 | Vignette intégrée au G-code (PNG / QOI pour les écrans Prusa) | v0.3 | prévu |
 | ENG-15 | Estimation du temps avec accélérations | v0.4 | prévu |
 | ENG-16 | Mesures : nombre de points et de segments, longueur imprimée, déplacements, temps, filament, débit max, Z max, encombrement | v0.1 | fait |
-| ENG-17 | Bambu Lab : G-code brut pour la carte SD ou paquet `.gcode.3mf` (MD5, métadonnées de plaque) | v0.3 | à décider |
+| ENG-17 | Bambu Lab : paquet `.gcode.3mf` (G-code, MD5, `slice_info.config`, `model_settings.config`, `plate_1.json`, vignettes PNG) et G-code brut, tous deux pour la carte SD (ADR-0005, proposée) | v0.3 | fait, à valider sur la X1E |
+| ENG-19 | Dialecte Bambu : en-tête `HEADER_BLOCK`, `M73 L` + `M991` à chaque couche (paliers de hauteur pour les parcours continus), progression `M73 P R` | v0.3 | fait, à valider sur la X1E |
 | ENG-18 | Adhésion au plateau générée par le moteur : bordure (*brim*) autour de l'empreinte de la première couche, ou radeau (*raft*) sous la pièce ; emprise incluse dans le contrôle du volume | v0.3 | prévu |
 
 ## Profils imprimante et filament (PRF)
@@ -73,6 +74,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | PRF-02 | Profil filament TOML : diamètre, débit, températures, refroidissement, rétraction, débit volumétrique max, vitesse nominale | v0.1 | fait |
 | PRF-03 | Profils Prusa MK4S et Core One | v0.1 | fait |
 | PRF-09 | Profils Bambu Lab A1, P1, X1 et Marlin générique | v0.3 | prévu |
+| PRF-12 | Profil Bambu Lab X1E (gabarits de Bambu Studio 02.08 réécrits ; scan lidar retiré ; plaque `plate`) ; variables de gabarit `bed_type`, `max_volumetric_speed`, fonction `num()` | v0.3 | fait, à valider sur la X1E |
 | PRF-04 | Bibliothèque de filaments : PLA, PETG (faits en v0.1), TPU, ASA, PETG-CF | v0.3 | en cours |
 | PRF-05 | Cône de dégagement de la buse (angle, hauteur) | v0.3 | prévu |
 | PRF-06 | Facteur d'étirement des ponts par filament | v0.2 | prévu |
@@ -143,7 +145,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | --- | --- | --- | --- |
 | UI-01 | Curseurs générés depuis l'en-tête, calcul en direct (le dernier gagne) | v0.1 | fait |
 | UI-02 | Mesures et messages à droite, champ fautif souligné | v0.1 | fait |
-| UI-03 | Export G-code nommé d'après le modèle, l'imprimante et le filament | v0.1 | fait |
+| UI-03 | Export G-code nommé d'après le modèle, l'imprimante et le filament ; menu d'une ligne par format quand l'imprimante en a plusieurs (Bambu Lab : `.gcode.3mf` puis `.gcode`) | v0.1 / v0.3 | fait |
 | UI-04 | Reprise du dernier modèle et des valeurs, FR / EN, thèmes ; annuler / rétablir (même champ fusionné, geste = une étape) | v0.1 | fait |
 | UI-05 | Catalogue : catégories, recherche (nom, description, catégorie, étiquettes, sans accents), étiquettes, fiche du modèle (buses conseillées signalées si la buse diffère, auteur, source, licence) | v0.2 | fait |
 | UI-06 | Ouvrir (`⌘O`) / glisser-déposer un `.weave` ; « Mes modèles » mémorisés sur le poste, retirables (« Annuler » dans le message) ; erreurs du script avec leur ligne | v0.2 | fait |
