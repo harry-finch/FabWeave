@@ -5,7 +5,7 @@
 
 import type { FrameData } from './types';
 
-type Pending = { resolve: (v: string) => void; reject: (e: Error) => void };
+type Pending = { resolve: (v: any) => void; reject: (e: Error) => void };
 
 export class EngineClient {
   #worker: Worker;
@@ -64,7 +64,7 @@ export class EngineClient {
     this.#worker.postMessage({ kind: 'compute', id: ++this.#seq, values });
   }
 
-  #call(msg: Record<string, unknown>): Promise<string> {
+  #call<T = string>(msg: Record<string, unknown>): Promise<T> {
     const id = ++this.#seq;
     return new Promise((resolve, reject) => {
       this.#pending.set(id, { resolve, reject });
@@ -85,6 +85,11 @@ export class EngineClient {
   /** Profil sans le charger (listes des imprimantes et des filaments). */
   readProfile(kind: 'printer' | 'filament', text: string): Promise<string> {
     return this.#call({ kind: 'read-profile', profile: kind, text });
+  }
+
+  /** Parcours d'un modèle aux valeurs par défaut (`x, y, z, nature` par point), vide s'il échoue. */
+  thumbnail(model: string, printer: string, filament: string): Promise<Float32Array> {
+    return this.#call<Float32Array>({ kind: 'thumbnail', model, printer, filament });
   }
 
   /** G-code ; en cas de refus, l'erreur porte le JSON des messages bloquants. */

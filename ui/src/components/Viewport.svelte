@@ -6,13 +6,17 @@
   // calcul tant que l'utilisateur ne l'a pas bougée ; changer de modèle
   // (`fitKey`) rétablit le cadrage automatique. Rendu à la demande seulement.
   // Couleurs : jetons `--view-*` et `--path-*`, relus au changement de thème.
+  // Annotations du modèle (`path.note`) : pastilles d'étiquette (canevas.md),
+  // décalées en haut à droite de leur point, masquables, choix mémorisé.
   import { onMount } from 'svelte';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-  import { Focus } from '@lucide/svelte';
+  import { Focus, MessageSquareText } from '@lucide/svelte';
+  import { storageKey } from '../lib/app';
+  import { text } from '../lib/text';
   import { theme } from '../lib/theme.svelte';
   import { tip } from '../lib/tip';
-  import { t } from '../lib/i18n.svelte';
+  import { i18n, t } from '../lib/i18n.svelte';
   import type { FrameData, PrinterProfile } from '../lib/types';
 
   let {
@@ -28,6 +32,33 @@
   } = $props();
 
   let host: HTMLDivElement;
+  const NOTES_KEY = storageKey('view.notes.v1');
+  let showNotes = $state((() => {
+    try {
+      return localStorage.getItem(NOTES_KEY) !== '0';
+    } catch {
+      return true;
+    }
+  })());
+  let labels = $state<{ x: number; y: number; text: string }[]>([]);
+
+  /** Positions à l'écran des annotations (après chaque rendu). */
+  function placeLabels() {
+    const notes = frame?.report.notes ?? [];
+    if (!showNotes || !notes.length || !host) {
+      if (labels.length) labels = [];
+      return;
+    }
+    const w = host.clientWidth;
+    const h = host.clientHeight;
+    const out: { x: number; y: number; text: string }[] = [];
+    for (const n of notes) {
+      const v = new THREE.Vector3(n.x, n.y, n.z).project(camera);
+      if (v.z > 1 || v.z < -1) continue;
+      out.push({ x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h, text: text(n.text) });
+    }
+    labels = out;
+  }
   let renderer: THREE.WebGLRenderer | null = null;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.5, 10000);
@@ -65,6 +96,7 @@
     pending = requestAnimationFrame(() => {
       pending = 0;
       renderer?.render(scene, camera);
+      placeLabels();
     });
   }
 
@@ -196,6 +228,12 @@
     render();
   });
 
+  // Textes des annotations dans la langue de l'interface.
+  $effect(() => {
+    void i18n.locale;
+    render();
+  });
+
   $effect(() => {
     void frame;
     if (fitKey !== lastFitKey) {
@@ -215,7 +253,28 @@
   {#if frame && frame.report.points === 0}
     <p class="empty">{t('view.empty')}</p>
   {/if}
+  {#each labels as l, i (i)}
+    <span class="dot" style:left="{l.x}px" style:top="{l.y}px"></span>
+    <span class="label" style:left="{l.x + 10}px" style:top="{l.y - 28}px">{l.text}</span>
+  {/each}
   <div class="tools">
+    <button
+      class="btn quiet icon"
+      class:on={showNotes}
+      type="button"
+      aria-pressed={showNotes}
+      aria-label={t('view.notes')}
+      use:tip={t('view.notes')}
+      onclick={() => {
+        showNotes = !showNotes;
+        try {
+          localStorage.setItem(NOTES_KEY, showNotes ? '1' : '0');
+        } catch {
+          /* ignoré */
+        }
+        render();
+      }}><MessageSquareText size={15} /></button
+    >
     <button class="btn quiet icon" type="button" aria-label={t('view.fit')} use:tip={t('view.fit')} onclick={refit}><Focus size={15} /></button>
   </div>
 </div>
@@ -243,6 +302,35 @@
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+  }
+
+  .btn.on {
+    background: var(--bg-selected);
+    color: var(--accent-text);
+  }
+
+  /* Étiquettes d'annotation : pastille 18 px, 600 11 px, décalée de 10 px. */
+  .label {
+    position: absolute;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 3px;
+    background: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    font: 600 11px/18px var(--font);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .dot {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    border-radius: 50%;
+    background: var(--tooltip-bg);
+    box-shadow: 0 0 0 1.5px var(--tooltip-text);
+    pointer-events: none;
   }
 
   .empty {

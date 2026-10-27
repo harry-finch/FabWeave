@@ -31,7 +31,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-04 | Fonctions mathématiques identiques en natif et en WebAssembly (crate `libm`) | v0.1 | fait |
 | API-05 | `bridge_to(x, y, z, w, h, flux)` : pont tendu, ventilateur forcé, facteur d'étirement | v0.2 | fait |
 | API-06 | `warn(texte)` / `fail(texte)` : messages du modèle, texte par langue, ligne du script | v0.2 | fait |
-| API-07 | `path.note(texte)`, `path.note_at(x, y, z, texte)` : annotations (moteur fait ; affichage dans la vue 3D à l'étape 3) | v0.2 | en cours |
+| API-07 | `path.note(texte)`, `path.note_at(x, y, z, texte)` : annotations, affichées dans la vue 3D (VIEW-04) | v0.2 | fait |
 | API-08 | Listes de points natives : `line`, `arc`, `circle`, `polygon`, `rectangle`, `zigzag`, `sine`, `spiral`, `helix` | v0.2 | fait |
 | API-09 | Transformations natives : translation, rotation, miroir, répétition en Z, copie tournée, inversion de sens | v0.2 | fait |
 | API-10 | `pts.modulate_z(f)`, `pts.modulate_r(cx, cy, f)` : déformation par une fonction du script | v0.2 | fait |
@@ -115,8 +115,8 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | VIEW-01 | Vue 3D WebGL : orbite, déplacement, zoom centré sur le curseur, cadrer, vues standard | v0.1 | fait |
 | VIEW-02 | Plateau dessiné (taille, origine, grille) | v0.1 | fait |
 | VIEW-03 | Rendu en lignes, couleur par ordre d'impression ; déplacements affichables | v0.1 | fait |
-| VIEW-04 | Annotations 3D du modèle (API-07) | v0.2 | prévu |
-| VIEW-05 | Vignettes du catalogue rendues par l'application | v0.2 | prévu |
+| VIEW-04 | Annotations 3D du modèle (API-07), masquables (choix mémorisé), dans la langue de l'interface | v0.2 | fait |
+| VIEW-05 | Vignettes du catalogue rendues par l'application (parcours aux valeurs par défaut, vue oblique, couleurs du thème ; échec du script marqué) | v0.2 | fait |
 | VIEW-06 | Rendu volumétrique W × H | v0.4 | prévu |
 | VIEW-07 | Coloration : type, vitesse, débit, W, H, ventilateur, Z ; légende | v0.4 | prévu |
 | VIEW-08 | Curseur de progression, simulation de la buse, coupe en Z | v0.4 | prévu |
@@ -142,8 +142,8 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | UI-02 | Mesures et messages à droite, champ fautif souligné | v0.1 | fait |
 | UI-03 | Export G-code nommé d'après le modèle, l'imprimante et le filament | v0.1 | fait |
 | UI-04 | Reprise du dernier modèle et des valeurs, FR / EN, thèmes ; annuler / rétablir (même champ fusionné, geste = une étape) | v0.1 | fait |
-| UI-05 | Catalogue : catégories, recherche, étiquettes, fiche du modèle | v0.2 | prévu |
-| UI-06 | Ouvrir / glisser-déposer un `.weave` ; « Mes modèles » | v0.2 | prévu |
+| UI-05 | Catalogue : catégories, recherche (nom, description, catégorie, étiquettes, sans accents), étiquettes, fiche du modèle (buses conseillées signalées si la buse diffère, auteur, source, licence) | v0.2 | fait |
+| UI-06 | Ouvrir (`⌘O`) / glisser-déposer un `.weave` ; « Mes modèles » mémorisés sur le poste, retirables (« Annuler » dans le message) ; erreurs du script avec leur ligne | v0.2 | fait |
 | UI-07 | Revenir aux valeurs par défaut du modèle : toutes, ou une par son ↺ | v0.1 | fait |
 | UI-08 | Placement sur le plateau, copies multiples | v0.3 | prévu |
 | UI-09 | Calcul au relâchement quand le premier calcul d'un geste dépasse 60 ms (barre d'état orange) | v0.1 | fait |

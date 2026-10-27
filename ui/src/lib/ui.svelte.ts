@@ -17,6 +17,8 @@ function readUnits(): UnitSystem {
 export interface Toast {
   id: number;
   text: string;
+  /** Action proposée dans le message (« Annuler » après un retrait). */
+  action?: { label: string; run: () => void };
 }
 
 class Ui {
@@ -38,11 +40,14 @@ class Ui {
     }
   }
 
-  /** Message passager en bas de l'écran (confirmation d'une action). */
-  toast(text: string, ms = 2600) {
+  /** Message passager en bas de l'écran (confirmation d'une action) ;
+   * avec une action, il reste 6 s et disparaît dès qu'elle est choisie. */
+  toast(text: string, action?: Toast['action']) {
     const id = ++this.#next;
-    this.toasts = [...this.toasts, { id, text }];
-    setTimeout(() => (this.toasts = this.toasts.filter((x) => x.id !== id)), ms);
+    const close = () => (this.toasts = this.toasts.filter((x) => x.id !== id));
+    const wrapped = action && { label: action.label, run: () => (close(), action.run()) };
+    this.toasts = [...this.toasts, { id, text, action: wrapped }];
+    setTimeout(close, action ? 6000 : 2600);
   }
 }
 

@@ -12,9 +12,33 @@
 import { EngineClient } from './engine';
 import { FILAMENT_FILES, MODEL_FILES, PRINTER_FILES } from './catalog';
 import { storageKey } from './app';
+import { renderThumb } from './thumbs';
+import { theme } from './theme.svelte';
 import type { FilamentProfile, FrameData, Issue, LoadResult, ModelInfo, PrinterProfile, Values } from './types';
 
 const DOC_KEY = storageKey('document.v1');
+/** Modèles ouverts par l'utilisateur (texte complet), mémorisés sur le poste. */
+const USER_KEY = storageKey('user-models.v1');
+/** Taille des vignettes (px CSS). */
+const THUMB = 44;
+
+interface UserFile {
+  id: string;
+  file: string;
+  text: string;
+}
+
+function readUserFiles(): UserFile[] {
+  try {
+    return JSON.parse(localStorage.getItem(USER_KEY) ?? '[]') as UserFile[];
+  } catch {
+    return [];
+  }
+}
+
+/** Identifiant d'un modèle de l'utilisateur d'après son nom de fichier. */
+const userId = (file: string) =>
+  'user/' + file.replace(/\.weave$/i, '').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 /** Au-delà, un geste passe en calcul au relâchement (ms). */
 const SLOW_MS = 60;
 const MAX_HISTORY = 100;
@@ -37,6 +61,11 @@ function readSaved(): Partial<Doc> {
 
 export interface CatalogEntry {
   id: string;
+  /** Livré avec FabWeave, ou ouvert par l'utilisateur (« Mes modèles »). */
+  source: 'builtin' | 'user';
+  /** Nom du fichier d'origine (modèles de l'utilisateur). */
+  file?: string;
+  text: string;
   info?: ModelInfo;
   issues?: Issue[];
 }
@@ -63,6 +92,13 @@ class Store {
   filament = $state<FilamentProfile | null>(null);
   /** Messages de chargement (modèle ou profil illisible). */
   loadIssues = $state<Issue[]>([]);
+
+  /** Vignettes par identifiant de modèle (data URL ; vide : le modèle ne se calcule pas), pour le thème courant. */
+  thumbs = $state<Record<string, string>>({});
+  #thumbTheme = '';
+  #thumbRun: Promise<void> | null = null;
+  #thumbAgain = false;
+  #userFiles: UserFile[] = readUserFiles();
 
   frame = $state.raw<FrameData | null>(null);
   computing = $state(false);
@@ -124,7 +160,10 @@ class Store {
       return r.ok ? { id, info: r.model, profile: r.profile } : { id, issues: r.issues };
     };
     const [models, printers, filaments] = await Promise.all([
-      Promise.all(MODEL_FILES.map((f) => read<never>('model', f.id, f.text))),
+      Promise.all([
+        ...MODEL_FILES.map(async (f) => ({ ...(await read<never>('model', f.id, f.text)), source: 'builtin' as const, text: f.text })),
+        ...this.#userFiles.map(async (f) => ({ ...(await read<never>('model', f.id, f.text)), source: 'user' as const, file: f.file, text: f.text })),
+      ]),
       Promise.all(PRINTER_FILES.map((f) => read<PrinterProfile>('printer', f.id, f.text))),
       Promise.all(FILAMENT_FILES.map((f) => read<FilamentProfile>('filament', f.id, f.text))),
     ]);
@@ -132,7 +171,7 @@ class Store {
     this.printers = printers;
     this.filaments = filaments;
     const d = this.doc;
-    if (!MODEL_FILES.some((f) => f.id === d.model)) d.model = MODEL_FILES[0]?.id ?? '';
+    if (!this.catalog.some((f) => f.id === d.model)) d.model = MODEL_FILES[0]?.id ?? '';
     if (!PRINTER_FILES.some((f) => f.id === d.printer)) d.printer = PRINTER_FILES[0]?.id ?? '';
     if (!FILAMENT_FILES.some((f) => f.id === d.filament)) d.filament = FILAMENT_FILES[0]?.id ?? '';
     await this.#sync();
@@ -150,7 +189,7 @@ class Store {
     const todo: Promise<void>[] = [];
     if (d.model !== this.#loaded.model) {
       todo.push(
-        this.#load<never>('model', MODEL_FILES.find((x) => x.id === d.model)?.text).then((m) => {
+        this.#load<never>('model', this.catalog.find((x) => x.id === d.model)?.text).then((m) => {
           this.model = m?.ok ? (m.model ?? null) : null;
           if (m && !m.ok) issues.push(...m.issues);
           this.#loaded.model = d.model;
@@ -293,6 +332,69 @@ class Store {
     this.edit((d) => {
       d[kind] = id;
     });
+  }
+
+  /** Vignettes manquantes (ou de l'autre thème), calculées une à une ;
+   * un appel pendant le calcul relance un tour à la fin au lieu d'un second calcul. */
+  async loadThumbs() {
+    if (this.status !== 'ready' || !this.printer) return;
+    if (this.#thumbRun) {
+      this.#thumbAgain = true;
+      return this.#thumbRun;
+    }
+    this.#thumbRun = (async () => {
+      do {
+        this.#thumbAgain = false;
+        if (this.#thumbTheme !== theme.applied) {
+          this.thumbs = {};
+          this.#thumbTheme = theme.applied;
+        }
+        const printer = PRINTER_FILES.find((x) => x.id === this.doc.printer)?.text ?? '';
+        const filament = FILAMENT_FILES.find((x) => x.id === this.doc.filament)?.text ?? '';
+        for (const e of this.catalog) {
+          if (e.id in this.thumbs || !e.info) continue;
+          const pts = await this.engine.thumbnail(e.text, printer, filament);
+          if (this.#thumbTheme !== theme.applied) break;
+          this.thumbs = { ...this.thumbs, [e.id]: renderThumb(pts, THUMB) };
+        }
+      } while (this.#thumbAgain || this.#thumbTheme !== theme.applied);
+    })().finally(() => (this.#thumbRun = null));
+    return this.#thumbRun;
+  }
+
+  #saveUserFiles() {
+    try {
+      localStorage.setItem(USER_KEY, JSON.stringify(this.#userFiles));
+    } catch {
+      /* stockage indisponible ou plein : le modèle reste ouvert pour la session */
+    }
+  }
+
+  /** Ajoute (ou remplace, même nom de fichier) un modèle dans « Mes modèles » et l'affiche. */
+  async openFile(file: string, text: string) {
+    const id = userId(file);
+    const r = JSON.parse(await this.engine.read(text)) as LoadResult<never>;
+    const entry: CatalogEntry = r.ok ? { id, source: 'user', file, text, info: r.model } : { id, source: 'user', file, text, issues: r.issues };
+    this.#userFiles = [...this.#userFiles.filter((f) => f.id !== id), { id, file, text }];
+    this.#saveUserFiles();
+    this.catalog = [...this.catalog.filter((e) => e.id !== id), entry];
+    const { [id]: _, ...rest } = this.thumbs;
+    this.thumbs = rest;
+    // Forcer la relecture si c'est le modèle affiché (fichier modifié puis redéposé).
+    if (this.#loaded.model === id) this.#loaded.model = '';
+    this.select('model', id);
+    void this.loadThumbs();
+    return entry;
+  }
+
+  /** Retire un modèle de « Mes modèles » ; rend de quoi le remettre (`openFile`). */
+  removeFile(id: string): { file: string; text: string } | undefined {
+    const removed = this.#userFiles.find((f) => f.id === id);
+    this.#userFiles = this.#userFiles.filter((f) => f.id !== id);
+    this.#saveUserFiles();
+    this.catalog = this.catalog.filter((e) => e.id !== id);
+    if (this.doc.model === id) this.select('model', MODEL_FILES[0]?.id ?? '');
+    return removed && { file: removed.file, text: removed.text };
   }
 
   /** G-code des valeurs courantes, ou les messages qui le bloquent. */

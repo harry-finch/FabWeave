@@ -12,6 +12,7 @@
   import Alerts from './components/Alerts.svelte';
   import ParamsPanel from './components/ParamsPanel.svelte';
   import Viewport from './components/Viewport.svelte';
+  import CatalogPicker from './components/CatalogPicker.svelte';
   import { store } from './lib/store.svelte';
   import { ui } from './lib/ui.svelte';
   import { labelled, t } from './lib/i18n.svelte';
@@ -30,17 +31,29 @@
   const canExport = $derived(!!stats && !blocked && store.status === 'ready');
   const modified = $derived(Object.keys(store.current).length > 0);
 
-  /** Modèles du catalogue groupés par catégorie, dans l'ordre des fichiers. */
-  const groups = $derived.by(() => {
-    const out = new Map<string, { id: string; name: string }[]>();
-    for (const e of store.catalog) {
-      const cat = e.info ? text(e.info.meta.category) : t('model.unreadable');
-      const list = out.get(cat) ?? [];
-      list.push({ id: e.id, name: e.info ? text(e.info.meta.name) : e.id });
-      out.set(cat, list);
+  const currentEntry = $derived(store.catalog.find((e) => e.id === store.modelId));
+
+  // Ouverture d'un modèle : ⌘O, menu du catalogue, ou dépôt d'un fichier n'importe où.
+  let fileInput = $state<HTMLInputElement>();
+  let dragging = $state(false);
+  let dragDepth = 0;
+
+  async function openFiles(files: FileList | null | undefined) {
+    const list = [...(files ?? [])];
+    const weave = list.filter((f) => /\.weave$/i.test(f.name));
+    if (!weave.length) {
+      if (list.length) ui.toast(t('catalog.notWeave'));
+      return;
     }
-    return [...out.entries()];
-  });
+    for (const f of weave) {
+      const entry = await store.openFile(f.name, await f.text());
+      ui.toast(entry.info ? t('catalog.opened', { name: f.name }) : t('catalog.openFailed', { name: f.name }));
+    }
+  }
+
+  function hasFiles(e: DragEvent) {
+    return [...(e.dataTransfer?.types ?? [])].includes('Files');
+  }
 
   async function exportGcode() {
     const r = await store.gcode();
@@ -70,6 +83,11 @@
       else store.undo();
       return;
     }
+    if (mod && e.key.toLowerCase() === 'o') {
+      e.preventDefault();
+      fileInput?.click();
+      return;
+    }
     if (mod && e.key.toLowerCase() === 'y') {
       e.preventDefault();
       store.redo();
@@ -84,7 +102,46 @@
   const dims = (v: number[], mmDecimals: number) => `${v.map((x) => fmtLength(x, ui.units, mmDecimals)).join(' × ')} ${lengthUnit(ui.units)}`;
 </script>
 
-<svelte:window onkeydown={keydown} />
+<svelte:window
+  onkeydown={keydown}
+  ondragenter={(e) => {
+    if (!hasFiles(e)) return;
+    dragDepth++;
+    dragging = true;
+  }}
+  ondragleave={() => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) dragging = false;
+  }}
+  ondragover={(e) => {
+    if (hasFiles(e)) e.preventDefault();
+  }}
+  ondrop={(e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth = 0;
+    dragging = false;
+    void openFiles(e.dataTransfer?.files);
+  }}
+/>
+
+<input
+  bind:this={fileInput}
+  class="sr-only"
+  type="file"
+  accept=".weave"
+  multiple
+  tabindex="-1"
+  aria-hidden="true"
+  onchange={(e) => {
+    void openFiles((e.currentTarget as HTMLInputElement).files);
+    (e.currentTarget as HTMLInputElement).value = '';
+  }}
+/>
+
+{#if dragging}
+  <div class="drop" aria-live="polite"><p>{t('catalog.dropHere')}</p></div>
+{/if}
 
 <div class="app">
   <AppBar onexport={exportGcode} {canExport} />
@@ -94,23 +151,29 @@
         {#if store.catalog.length === 0 && store.status === 'ready'}
           <p class="note">{t('model.none')}</p>
         {:else}
-          <!-- Liste du catalogue : sous-libellé puis toute la largeur (noms longs). -->
-          <p class="sub">{t('model.catalog')}</p>
-          <select class="input select" aria-label={t('model.catalog')} value={store.modelId} onchange={(e) => store.select('model', (e.currentTarget as HTMLSelectElement).value)}>
-            {#each groups as [cat, list] (cat)}
-              <optgroup label={cat}>
-                {#each list as m (m.id)}
-                  <option value={m.id}>{m.name}</option>
-                {/each}
-              </optgroup>
-            {/each}
-          </select>
+          <CatalogPicker onopen={() => fileInput?.click()} />
         {/if}
         {#if store.model}
-          {#if store.model.meta.description}<p class="note">{text(store.model.meta.description)}</p>{/if}
-          {#if store.model.meta.author}<p class="credit">{labelled(t('model.author'), store.model.meta.author)}</p>{/if}
-          {#if store.model.meta.source}
-            <p class="credit"><a href={store.model.meta.source} target="_blank" rel="noreferrer">{t('model.source')}</a>{store.model.meta.license ? ` · ${store.model.meta.license}` : ''}</p>
+          {@const meta = store.model.meta}
+          {#if meta.description}<p class="note">{text(meta.description)}</p>{/if}
+          {#if meta.tags.length}
+            <div class="tags">{#each meta.tags as tag (tag)}<span class="chip">{tag}</span>{/each}</div>
+          {/if}
+          <dl class="metrics sheet">
+            {#if meta.recommended_nozzle.length}
+              <dt>{t('model.nozzles')}</dt>
+              <dd class="tabular" class:warn={store.printer && !meta.recommended_nozzle.some((d) => Math.abs(d - store.printer!.nozzle.diameter) < 1e-6)}>
+                {meta.recommended_nozzle.map((d) => numTrim(d, 2)).join(' · ')} mm
+              </dd>
+            {/if}
+            {#if currentEntry?.source === 'user'}
+              <dt>{t('model.file')}</dt>
+              <dd>{currentEntry.file}</dd>
+            {/if}
+          </dl>
+          {#if meta.author}<p class="credit">{labelled(t('model.author'), meta.author)}</p>{/if}
+          {#if meta.source}
+            <p class="credit"><a href={meta.source} target="_blank" rel="noreferrer">{t('model.source')}</a>{meta.license ? ` · ${meta.license}` : ''}</p>
           {/if}
         {/if}
       </Section>
@@ -217,6 +280,8 @@
       <dd>{t('help.keys.help')}</dd>
       <dt><kbd>F</kbd></dt>
       <dd>{t('help.keys.fit')}</dd>
+      <dt><kbd>⌘O</kbd></dt>
+      <dd>{t('help.keys.open')}</dd>
       <dt><kbd>⌘Z / ⇧⌘Z</kbd></dt>
       <dd>{t('help.keys.undo')}</dd>
       <dt><kbd>🖱</kbd></dt>
@@ -227,7 +292,10 @@
 
 <div class="toasts" aria-live="polite">
   {#each ui.toasts as toast (toast.id)}
-    <div class="toast">{toast.text}</div>
+    <div class="toast">
+      {toast.text}
+      {#if toast.action}<button class="toast-action" type="button" onclick={toast.action.run}>{toast.action.label}</button>{/if}
+    </div>
   {/each}
 </div>
 
@@ -279,10 +347,43 @@
     color: var(--warning);
   }
 
-  .sub {
-    margin: 0;
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .chip {
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--neutral-tint);
     color: var(--text-secondary);
-    font-size: var(--fs-sm);
+    font-size: var(--fs-xs);
+  }
+
+  .sheet dd.warn {
+    color: var(--warning);
+  }
+
+  /* Voile de dépôt : plein écran, bord pointillé bleu, une phrase. */
+  .drop {
+    position: fixed;
+    inset: 0;
+    z-index: 800;
+    display: grid;
+    place-items: center;
+    background: var(--backdrop);
+    border: 2px dashed var(--accent);
+    pointer-events: none;
+  }
+
+  .drop p {
+    margin: 0;
+    padding: 10px 16px;
+    border-radius: var(--radius-lg);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: var(--fs-lg);
   }
 
   .note {
@@ -366,6 +467,19 @@
     font-size: var(--fs-sm);
     box-shadow: var(--shadow-pop);
     animation: rise 160ms ease-out;
+  }
+
+  .toast-action {
+    margin-left: 10px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--tooltip-text);
+    font: 600 var(--fs-sm) var(--font);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    pointer-events: auto;
+    cursor: pointer;
   }
 
   @keyframes rise {

@@ -82,3 +82,18 @@ v0.0 validée par l'utilisateur.
 - `print_points` / `bridge_points` sautent un premier point confondu avec la position courante (`travel_to(pts)` puis `print_points(pts)` ne crée plus de point en double).
 
 **Essai.** Trois agents (Sonnet), avec le seul prompt, sans terminal : abat-jour à côtes torsadées, ressort non planaire, panier tressé avec fond au choix (`choice`). **Trois sur trois valides au premier essai** (`fabweave check`). Constats : l'abat-jour et le panier sont plausibles (warn de porte-à-faux, deux fonds) ; le ressort est valide mais n'est pas un ressort (montée de 0,3 mm par tour : 1,7 mm de haut) : `check` vérifie la cohérence, pas l'intention. Prompt complété d'après leurs questions et un essai dans le moteur : « chaque passage s'appuie sur le précédent ; une pièce haute = beaucoup de tours », `z` = dessus du boudin, `0..=n`, réaffectation, fermetures, et le piège des `fn` qui ne voient ni `params` ni `printer`. Les trois modèles sont gardés en fixtures de test.
+
+## 2026-10-27 — v0.2, étape 3 : interface du catalogue
+
+**Choix.**
+- Catalogue en sélecteur riche (`CatalogPicker`, `Popover` du kit) au lieu de la liste déroulante : vignette et nom du modèle affiché ; panneau avec recherche (tous les mots, sans accents, dans le nom, la description, la catégorie, les étiquettes et le nom de fichier), groupes par catégorie puis « Mes modèles ».
+- Vignettes rendues par l'application : `Engine.thumbnail` calcule le modèle aux valeurs par défaut sur un poste séparé (le modèle courant reste chargé) et rend au plus 6 000 points ; dessin Canvas 2D en vue oblique, dégradé `--path-low` → `--path-high` en huit tranches de Z. Traits fins et semi-transparents : à 44 px, des traits opaques saturaient la silhouette en blanc ; le recouvrement des tours donne maintenant le relief. Calcul une à une, sans doublon (un appel pendant le calcul relance un tour), recalculées au changement de thème.
+- Modèles de l'utilisateur : `⌘O`, menu du catalogue, ou dépôt n'importe où dans la fenêtre (voile pointillé) ; texte complet mémorisé sur le poste, identifiant tiré du nom de fichier (redéposer le même fichier le remplace et le relit). Retrait sans confirmation, avec « Annuler » dans le message (règle de la skill) ; les messages passagers acceptent désormais une action.
+- Fiche du modèle : étiquettes, buses conseillées (en orange si la buse de l'imprimante n'en fait pas partie), fichier d'origine pour « Mes modèles ».
+- Annotations (`path.note`) : pastille et point dans la vue 3D, bouton pour les masquer (mémorisé), texte dans la langue de l'interface. Vase à ondulations annoté (départ, fin de la spirale).
+
+**Vérification.** 45 tests, clippy et `npm run check` sans erreur. Navigateur : voir STATUS.
+
+**Défauts trouvés et corrigés.** Vignettes jamais calculées avant la première ouverture du catalogue (l'effet partait avant le chargement du profil imprimante) ; annotations restées en français après le passage en anglais (rendu seulement au calcul suivant) ; modèle dont le script échoue affiché avec une vignette vide sans marque.
+
+**Non fait.** Fiche avec temps et matière estimés pour chaque modèle du catalogue (le temps et la matière du modèle affiché sont dans « Mesures ») ; vérifié avec un seul modèle livré : catégories multiples à revoir à l'étape 4.

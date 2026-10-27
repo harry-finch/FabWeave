@@ -180,6 +180,10 @@ for t in 0..total {
         full_speed = true;
     }
     path.print_polar(r, a, z0 + z, ew, h);
+    if t == 0 {
+        path.note(#{ fr: "Départ, devant au milieu", en: "Start, front middle" });
+    }
 }
+path.note(#{ fr: "Fin de la spirale", en: "End of the spiral" });
 
 path

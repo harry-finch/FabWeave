@@ -8,7 +8,8 @@ type Request =
   | { kind: 'load'; id: number; target: 'model' | 'printer' | 'filament'; text: string }
   | { kind: 'read'; id: number; text: string }
   | { kind: 'read-profile'; id: number; profile: 'printer' | 'filament'; text: string }
-  | { kind: 'gcode'; id: number; values: string };
+  | { kind: 'gcode'; id: number; values: string }
+  | { kind: 'thumbnail'; id: number; model: string; printer: string; filament: string };
 
 let engine: Engine | null = null;
 
@@ -50,6 +51,9 @@ onmessage = async (ev: MessageEvent<Request>) => {
       post({ kind: 'result', id: req.id, ok: true, value: read_model(req.text) });
     } else if (req.kind === 'read-profile') {
       post({ kind: 'result', id: req.id, ok: true, value: read_profile(req.profile, req.text) });
+    } else if (req.kind === 'thumbnail') {
+      const pts = e.thumbnail(req.model, req.printer, req.filament, 6000);
+      post({ kind: 'result', id: req.id, ok: true, value: pts }, [pts.buffer as ArrayBuffer]);
     } else if (req.kind === 'gcode') {
       post({ kind: 'result', id: req.id, ok: true, value: e.gcode(req.values) });
     }

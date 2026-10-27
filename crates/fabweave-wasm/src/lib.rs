@@ -76,6 +76,8 @@ impl Frame {
 #[wasm_bindgen]
 pub struct Engine {
     bench: Workbench,
+    /// Poste séparé pour les vignettes du catalogue (le modèle courant reste chargé).
+    thumbs: Option<Workbench>,
     /// Dernier calcul et les valeurs qui l'ont produit (réutilisé à l'export).
     last: Option<(String, Evaluation)>,
 }
@@ -100,6 +102,7 @@ impl Engine {
     pub fn new() -> Engine {
         Engine {
             bench: Workbench::default(),
+            thumbs: None,
             last: None,
         }
     }
@@ -192,6 +195,29 @@ impl Engine {
         self.bench
             .gcode(ev)
             .map_err(|e| JsError::new(&serde_json::to_string(&e).unwrap_or_default()))
+    }
+
+    /// Parcours d'un modèle aux valeurs par défaut, pour sa vignette :
+    /// `x, y, z, nature` à la suite (4 nombres par point), au plus `max_points`
+    /// points (sous-échantillonné). Vide si le modèle ne se calcule pas.
+    pub fn thumbnail(&mut self, model: &str, printer: &str, filament: &str, max_points: u32) -> Vec<f32> {
+        let w = self.thumbs.get_or_insert_with(Workbench::default);
+        if w.set_printer(printer).is_err() || w.set_filament(filament).is_err() || w.load_model(model).is_err() {
+            return Vec::new();
+        }
+        let ev = w.evaluate(&Map::new());
+        let Some(path) = ev.path.filter(|_| !ev.issues.iter().any(Issue::is_error)) else {
+            return Vec::new();
+        };
+        let n = path.points.len();
+        let stride = n.div_ceil(max_points.max(2) as usize).max(1);
+        let mut out = Vec::with_capacity(n / stride * 4 + 4);
+        for (i, p) in path.points.iter().enumerate() {
+            if i % stride == 0 || i + 1 == n || p.kind == fabweave_core::MoveKind::Travel {
+                out.extend([p.x as f32, p.y as f32, p.z as f32, p.kind as u8 as f32]);
+            }
+        }
+        out
     }
 
     /// Exécute seulement le script (mesures de performance) : nombre de
