@@ -41,6 +41,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-14 | Remplissage en anneaux concentriques (`fill_rings`, décalage d'un contour vers l'intérieur, îlots, coutures alignées) | v0.3 | fait |
 | API-15 | Extrusion à l'arrêt (`path.blob(volume, durée)` : goutte sans mouvement, débit plafonné), pour CAT-12 | v0.3 | fait |
 | API-16 | `pts.slice(from, to)` ; `floor`, `round`, `ceiling` acceptent un entier | v0.2 | fait |
+| API-18 | Réglages d'essai des modèles d'étalonnage (`[meta] calibration = true`) : décalage de température ±30 °C, longueur et vitesse de rétraction, saut en Z, bornés, signalés (ADR-0007) | v0.3 | fait |
 | API-17 | Bruit de gradient 3D natif `noise(x, y, z)` (−1 à 1, motifs de taille ≈ 1, déterministe, sans couture sur un cylindre pris en 3D) : textures aléatoires continues | v0.3 | fait |
 
 ## Moteur : physique et G-code (ENG)
@@ -109,14 +110,14 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | CAT-12 | Impression par gouttes (tube de gouttes) | FullControl « Blob Printing » | Extrusion à l'arrêt, points isolés | v0.3 | fait |
 | CAT-13 | Écrous et vis (vis et écrou à ailettes, tube fileté, M6 à M12, parois multiples) | FullControl « Nuts and Bolts » | Filetage en spirale continue, ailettes de Bézier | v0.3 | fait |
 | CAT-14 | Support de téléphone multi-angle (mode fâché compris) | FullControl « AnyAngle Phone Stand » | Objet utilitaire complet | v0.3 | fait |
-| CAT-15 | Test des 2 000 rétractions | FullControl « 2000-Retractions Test » | Calibration de la rétraction (fait varier la rétraction : décision de l'utilisateur attendue) | v0.3 | prévu |
+| CAT-15 | Test des 2 000 rétractions (longueur, vitesse ou saut en Z, cinq colonnes) | *d'après* FullControl « 2000-Retractions Test » (source non publiée) | Calibration de la rétraction (réglages d'essai, API-18) | v0.3 | fait |
 | CAT-16 | Défi porte-à-faux plus (cercle, hexagone, carré, triangle ; 45 à 135° ; vers l'intérieur) | *d'après* FullControl « Overhang Challenge Plus » (source non publiée) | Porte-à-faux, variante | v0.3 | fait |
 | CAT-17 | Défi glaçage libre | FullControl « Freeform Frosting Challenge » | Dépôt libre en 3D | v0.4 | prévu |
 | CAT-18 | Renfort par ruban | FullControl « Tape-Reinforcement Research Demo » | Pause et insertion (API-12) | v0.4 | prévu |
 | CAT-19 | Panier tressé | Recherche FabWeave | Variations de vitesse et de débit, décalage d'un demi-pas | v0.3 | fait |
 | CAT-20 | Boîte à visser en mode vase (boîte et couvercle) | Recherche FabWeave | Extrusion large (W = 0,9 mm), filet sinusoïdal | v0.3 | fait |
 | CAT-21 | Charnière souple monolithique | Recherche FabWeave | Lames continues sans couture | v0.4 | prévu |
-| CAT-22 | *Ajout* : tour de température et test de débit | Fablab | Calibration d'un nouveau filament (fait varier la température : décision de l'utilisateur attendue) | v0.3 | prévu |
+| CAT-22 | *Ajout* : tour de température (réglages d'essai, API-18) et test de débit | Fablab | Calibration d'un nouveau filament | v0.3 | fait |
 | CAT-24 | *Ajout* : photophore vermiculé (relief en vermicelles tiré d'un bruit, fond en anneaux) | Photo de l'utilisateur (28/10/2026) | Bruit 3D (API-17), paroi en spirale | v0.3 | fait |
 | CAT-26 | *Ajout* : photophore à vermicelles (paroi fine en spirale d'où la buse sort au hasard en petites boucles, qui retombent dans le vide) | Photo de l'utilisateur (28/10/2026), seconde lecture | Excursions aléatoires reproductibles, affaissement voulu | v0.3 | fait |
 | CAT-25 | *Ajout* : vase à écailles (polygone aux faces creusées, taille resserrée, écailles en quinconce) | Photo de l'utilisateur (28/10/2026) ; texture de FullControl « ripple texture » | Points à pas égal le long du contour, sortie selon la normale | v0.3 | fait |

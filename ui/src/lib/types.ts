@@ -28,6 +28,8 @@ export interface ModelMeta {
   recommended_nozzle: number[];
   /** Adhésion conseillée par le modèle (l'utilisateur choisit). */
   recommended_adhesion?: 'none' | 'brim' | 'raft';
+  /** Modèle d'étalonnage (réglages d'essai, ADR-0007). */
+  calibration?: boolean;
 }
 
 export interface ModelInfo {

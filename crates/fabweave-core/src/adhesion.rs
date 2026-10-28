@@ -412,6 +412,8 @@ fn point(p: [f64; 2], z: f64, w: f64, h: f64, kind: MoveKind) -> WayPoint {
         flow: 1.0,
         volume: 0.0,
         duration: 0.0,
+        temp_offset: 0.0,
+        retraction: None,
     }
 }
 

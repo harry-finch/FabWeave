@@ -1,0 +1,116 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Tour de température", en = "Temperature tower" }
+category = { fr = "Étalonnage", en = "Calibration" }
+description = { fr = "Deux piliers reliés par un pont en haut de chaque étage ; la température de buse change d'un étage à l'autre, par rapport à celle du filament choisi. Comparer les ponts, les fils entre les piliers et l'aspect des parois pour choisir la température d'un nouveau filament. Modèle d'essai : il change la température du profil, dans ±30 °C.", en = "Two pillars joined by a bridge at the top of each storey; the nozzle temperature changes from one storey to the next, relative to the chosen filament. Compare the bridges, the strings between the pillars and the wall finish to choose the temperature of a new filament. Test model: it changes the profile temperature, within ±30 °C." }
+author = "FabWeave"
+tags = ["étalonnage", "température", "tour", "filament"]
+recommended_nozzle = [0.4, 0.5, 0.6]
+calibration = true
+
+[params.offset_start]
+type = "float"
+label = { fr = "Écart en bas", en = "Bottom offset" }
+unit = "°C"
+help = { fr = "Écart à la température du filament pour l'étage du bas.", en = "Offset from the filament temperature for the bottom storey." }
+default = 15
+min = -30
+max = 30
+step = 1
+
+[params.offset_end]
+type = "float"
+label = { fr = "Écart en haut", en = "Top offset" }
+unit = "°C"
+help = { fr = "Écart pour l'étage du haut ; les étages intermédiaires suivent le pas.", en = "Offset for the top storey; the storeys in between follow the step." }
+default = -15
+min = -30
+max = 30
+step = 1
+
+[params.offset_step]
+type = "float"
+label = { fr = "Pas", en = "Step" }
+unit = "°C"
+default = 5
+min = 1
+max = 20
+step = 1
+
+[params.storey]
+type = "float"
+label = { fr = "Hauteur d'étage", en = "Storey height" }
+unit = "mm"
+help = { fr = "Assez haut pour que la buse atteigne la nouvelle température avant le pont.", en = "Tall enough for the nozzle to reach the new temperature before the bridge." }
+default = 8
+min = 4
+max = 20
+step = 0.5
+
+[params.gap]
+type = "float"
+label = { fr = "Portée du pont", en = "Bridge span" }
+unit = "mm"
+default = 20
+min = 8
+max = 40
+step = 1
+---
+// Étages du bas vers le haut, écart de température fixé au début de chaque
+// étage (consigne écrite au premier point imprimé). Par couche : pilier
+// gauche (deux tours), déplacement, pilier droit ; dernière couche d'un
+// étage : en plus, pont de trois fils d'un pilier à l'autre, à la hauteur
+// du haut des piliers.
+
+let w = printer.nozzle_diameter * 1.125;
+let h = printer.layer_height;
+let fh = printer.first_layer_height;
+let side = 10.0;
+let span = params.gap;
+let a = params.offset_start;
+let b = params.offset_end;
+let step = if b < a { -params.offset_step } else { params.offset_step };
+let storeys = floor(abs(b - a) / params.offset_step).to_int() + 1;
+let per = max(2, round(params.storey / h).to_int());
+let x_left = -span / 2 - side;
+let x_right = span / 2;
+let y0 = -side / 2;
+
+// Pilier : deux tours carrés imbriqués, du dehors vers le dedans.
+let pillar = |x, z| {
+    let outer = rectangle(x + w / 2, y0 + w / 2, z, side - w, side - w);
+    let inner = rectangle(x + w * 1.5, y0 + w * 1.5, z, side - 3 * w, side - 3 * w);
+    outer + inner
+};
+
+let path = new_path();
+let layer = 0;
+for s in 0..storeys {
+    let offset = a + s * step;
+    path.set_temperature_offset(offset);
+    for k in 0..per {
+        let z = fh + layer * h;
+        let hh = if layer == 0 { fh } else { h };
+        for x in [x_left, x_right] {
+            let p = pillar.call(x, z);
+            path.travel_to(p);
+            path.print_points(p, w, hh);
+        }
+        if k == per - 1 {
+            // Pont : trois fils tendus du pilier gauche au pilier droit.
+            for j in 0..3 {
+                let y = y0 + side * (j + 1) / 4.0;
+                path.travel_to(x_left + side - w, y, z);
+                path.bridge_to(x_right + w, y, z, w, h, 0.9);
+            }
+        }
+        if k == 0 {
+            path.note_at(x_right + side + 2, 0, z, if offset > 0 { `+${offset.to_int()} °C` } else { `${offset.to_int()} °C` });
+        }
+        layer += 1;
+    }
+}
+
+path

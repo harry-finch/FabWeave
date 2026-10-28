@@ -13,7 +13,7 @@ FabWeave : générateur de **G-code direct** à partir de **modèles paramétriq
 ## Règles
 
 - `fabweave-core` reste pur : aucune IO, aucun réseau, aucune dépendance d'interface ; déterministe (même modèle, mêmes paramètres, mêmes profils → même G-code, octet pour octet).
-- Séparation stricte : un modèle `.weave` décrit **la géométrie et l'intention** (où passe la buse, quelle section de matière, quel facteur de vitesse) ; il ne parle jamais de `G0/G1`, de `E`, de températures, de rétraction ni de coordonnées du plateau. La physique et le dialecte viennent des profils imprimante et filament.
+- Séparation stricte : un modèle `.weave` décrit **la géométrie et l'intention** (où passe la buse, quelle section de matière, quel facteur de vitesse) ; il ne parle jamais de `G0/G1`, de `E`, de températures, de rétraction ni de coordonnées du plateau. La physique et le dialecte viennent des profils imprimante et filament. Seule exception : un modèle d'étalonnage (`[meta] calibration = true`) peut décaler la température et changer la rétraction, dans des bornes fixes et toujours signalé ([ADR-0007](docs/adr/0007-reglages-d-essai-des-modeles-d-etalonnage.md)).
 - Millimètres, degrés, secondes dans le moteur et dans les fichiers ; le repère du modèle est centré sur (0, 0), Z vers le haut ; le moteur place la pièce sur le plateau.
 - Extrusion **relative** (`M83`) dans tout G-code produit.
 - Les valeurs ne sont jamais corrigées en silence : une valeur hors domaine produit une erreur ou un avertissement à code stable (`param.out_of_range`, `flow.clamped`…). Une vitesse plafonnée (débit, axe Z), un segment fusionné, une collision sont **comptés et signalés**.

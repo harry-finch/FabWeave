@@ -57,6 +57,11 @@ pub struct Meta {
     /// Adhésion conseillée ; l'utilisateur choisit (le modèle ne l'impose pas).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub recommended_adhesion: Option<RecommendedAdhesion>,
+    /// Modèle d'essai (tour de température, test des rétractions) : seul à
+    /// pouvoir changer la température et la rétraction du profil, dans des
+    /// bornes fixes (ADR-0007).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub calibration: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -155,6 +160,8 @@ struct RawMeta {
     #[serde(default)]
     recommended_nozzle: Vec<f64>,
     recommended_adhesion: Option<RecommendedAdhesion>,
+    #[serde(default)]
+    calibration: bool,
 }
 
 #[derive(Deserialize)]
@@ -296,6 +303,7 @@ pub fn parse(source: &str) -> Result<Model, Vec<Issue>> {
             license: m.license,
             recommended_nozzle: m.recommended_nozzle,
             recommended_adhesion: m.recommended_adhesion,
+            calibration: m.calibration,
         },
         params,
         script: source[s_start..].to_string(),

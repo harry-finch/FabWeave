@@ -63,6 +63,31 @@ pub struct WayPoint {
     /// Goutte : volume déposé (mm³) et durée demandée (s) ; 0 sinon.
     pub volume: f64,
     pub duration: f64,
+    /// Réglages d'essai (modèle de calibration, ADR-0007) : décalage de la
+    /// température de buse (°C) et rétraction propre aux déplacements.
+    pub temp_offset: f64,
+    pub retraction: Option<Retraction>,
+}
+
+/// Rétraction d'essai : chaque valeur donnée remplace celle du filament.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Retraction {
+    /// Longueur (mm), vitesse (mm/s), saut en Z (mm).
+    pub length: Option<f64>,
+    pub speed: Option<f64>,
+    pub z_hop: Option<f64>,
+}
+
+impl Retraction {
+    /// Longueur, vitesse et saut en Z effectifs, ceux du filament à défaut.
+    pub fn resolve(r: Option<Retraction>, f: &crate::profile::Retraction) -> (f64, f64, f64) {
+        let r = r.unwrap_or_default();
+        (
+            r.length.unwrap_or(f.length),
+            r.speed.unwrap_or(f.speed),
+            r.z_hop.unwrap_or(f.z_hop),
+        )
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]

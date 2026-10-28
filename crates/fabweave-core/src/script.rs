@@ -28,7 +28,7 @@ use serde::Serialize;
 use crate::issue::Issue;
 use crate::model::{Model, Text};
 use crate::params::ParamValue;
-use crate::path::{MoveKind, Note, Speed, Toolpath, WayPoint};
+use crate::path::{MoveKind, Note, Retraction, Speed, Toolpath, WayPoint};
 
 /// Garde-fous de l'exécution d'un script.
 #[derive(Clone, Copy, Debug)]
@@ -120,8 +120,17 @@ pub struct ScriptPath {
     speed: Speed,
     fan: Option<u8>,
     limit: usize,
+    /// Réglages d'essai en cours (modèle de calibration).
+    temp_offset: f64,
+    retraction: Option<Retraction>,
 }
 
+/// Bornes des réglages d'essai (ADR-0007) : décalage de température (°C),
+/// rétraction (mm, mm/s), saut en Z (mm).
+const MAX_TEMP_OFFSET: f64 = 30.0;
+const MAX_RETRACTION: f64 = 8.0;
+const RETRACTION_SPEEDS: (f64, f64) = (5.0, 100.0);
+const MAX_Z_HOP: f64 = 2.0;
 /// Essuyage le plus long (mm) et pauses au plus par parcours.
 const MAX_WIPE: f64 = 50.0;
 const MAX_PAUSES: usize = 50;
@@ -140,6 +149,8 @@ impl ScriptPath {
             speed: Speed::Factor(1.0),
             fan: None,
             limit,
+            temp_offset: 0.0,
+            retraction: None,
         }
     }
 
@@ -176,6 +187,8 @@ impl ScriptPath {
             flow: 1.0,
             volume: 0.0,
             duration: 0.0,
+            temp_offset: self.temp_offset,
+            retraction: self.retraction,
         });
         Ok(())
     }
@@ -320,6 +333,8 @@ pub struct ScriptEngine {
 pub struct Compiled {
     ast: AST,
     script_line: usize,
+    /// Modèle d'essai : réglages d'essai permis.
+    calibration: bool,
 }
 
 /// Résultat d'une exécution.
@@ -463,6 +478,55 @@ fn register_path(engine: &mut Engine, max_points: usize) {
             p.push_bridge(xyz, num(&w, "w")?, num(&h, "h")?, num(&flow, "flow")?)
         },
     );
+    // Réglages d'essai (modèles `calibration = true` seulement, contrôlé
+    // après l'exécution) : décalage de température, rétraction.
+    engine.register_fn(
+        "set_temperature_offset",
+        |p: &mut ScriptPath, dt: Dynamic| -> R<()> {
+            let dt = num(&dt, "offset")?;
+            if !(-MAX_TEMP_OFFSET..=MAX_TEMP_OFFSET).contains(&dt) {
+                return Err(fault("path.invalid_temperature_offset", dt.to_string()));
+            }
+            p.temp_offset = dt;
+            Ok(())
+        },
+    );
+    engine.register_fn("reset_temperature", |p: &mut ScriptPath| {
+        p.temp_offset = 0.0
+    });
+    // Rétraction d'essai, valeur par valeur ; les autres restent celles du
+    // filament.
+    engine.register_fn(
+        "set_retraction_length",
+        |p: &mut ScriptPath, v: Dynamic| -> R<()> {
+            let v = num(&v, "length")?;
+            if !(0.0..=MAX_RETRACTION).contains(&v) {
+                return Err(fault("path.invalid_retraction", format!("length : {v}")));
+            }
+            p.retraction.get_or_insert_default().length = Some(v);
+            Ok(())
+        },
+    );
+    engine.register_fn(
+        "set_retraction_speed",
+        |p: &mut ScriptPath, v: Dynamic| -> R<()> {
+            let v = num(&v, "speed")?;
+            if !(RETRACTION_SPEEDS.0..=RETRACTION_SPEEDS.1).contains(&v) {
+                return Err(fault("path.invalid_retraction", format!("speed : {v}")));
+            }
+            p.retraction.get_or_insert_default().speed = Some(v);
+            Ok(())
+        },
+    );
+    engine.register_fn("set_z_hop", |p: &mut ScriptPath, v: Dynamic| -> R<()> {
+        let v = num(&v, "z_hop")?;
+        if !(0.0..=MAX_Z_HOP).contains(&v) {
+            return Err(fault("path.invalid_retraction", format!("z_hop : {v}")));
+        }
+        p.retraction.get_or_insert_default().z_hop = Some(v);
+        Ok(())
+    });
+    engine.register_fn("reset_retraction", |p: &mut ScriptPath| p.retraction = None);
     // wipe(longueur) : essuyage sur le dernier tracé (mm).
     engine.register_fn("wipe", |p: &mut ScriptPath, length: Dynamic| -> R<()> {
         p.push_wipe(num(&length, "length")?)
@@ -592,6 +656,7 @@ impl ScriptEngine {
             Ok(ast) => Ok(Compiled {
                 ast,
                 script_line: model.script_line,
+                calibration: model.meta.calibration,
             }),
             Err(e) => {
                 let code = match e.err_type() {
@@ -662,7 +727,23 @@ impl ScriptEngine {
         let mut issues = Vec::new();
         let path = match result {
             Ok(v) => match v.try_cast::<ScriptPath>() {
-                Some(sp) => Some(sp.path),
+                Some(sp) => {
+                    let essay = sp
+                        .path
+                        .points
+                        .iter()
+                        .any(|w| w.temp_offset != 0.0 || w.retraction.is_some());
+                    if essay && !compiled.calibration {
+                        // Réglages d'essai hors d'un modèle de calibration.
+                        issues.push(Issue::error("model.calibration_only"));
+                        None
+                    } else {
+                        if essay {
+                            issues.push(Issue::warning("model.calibration"));
+                        }
+                        Some(sp.path)
+                    }
+                }
                 None => {
                     issues.push(Issue::error("script.no_path"));
                     None

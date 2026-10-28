@@ -246,7 +246,8 @@ struct State {
     z: String,
     f: i64,
     fan: Option<u8>,
-    retracted: bool,
+    /// Filament retiré (mm), à remettre avant d'imprimer ; 0 : détendu.
+    retracted: f64,
 }
 
 impl State {
@@ -576,8 +577,11 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         z: String::new(),
         f: -1,
         fan: None,
-        retracted: false,
+        retracted: 0.0,
     };
+    // Rétraction d'un point : celle d'essai (modèle de calibration) ou celle
+    // du filament.
+    let rv = |w: &crate::path::WayPoint| crate::path::Retraction::resolve(w.retraction, r);
     let travel = lim.travel_speed;
     let z_speed = lim.max_z_speed;
 
@@ -585,7 +589,7 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
     let p0 = [pts[0].x + off[0], pts[0].y + off[1], pts[0].z + off[2]];
     if r.length > 0.0 {
         st.g1(&mut g, [None; 3], Some(-r.length), Some(r.speed));
-        st.retracted = true;
+        st.retracted = r.length;
     }
     st.g1(
         &mut g,
@@ -597,6 +601,10 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
     st.g1(&mut g, [None, None, Some(p0[2])], None, Some(z_speed));
     let mut cur = p0;
     let mut temps_switched = false;
+    // Consigne de buse écrite en dernier (le gabarit de démarrage chauffe à
+    // celle de la première couche).
+    let mut temp_now = f.temperature.first_layer;
+    let mut offset_now = 0.0;
 
     for (i, m) in plan.moves.iter().enumerate().skip(1) {
         if m.skipped {
@@ -636,9 +644,10 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         if w.kind == MoveKind::Pause {
             // Filament rétracté avant que l'imprimante ne s'arrête ; le
             // mouvement suivant le remet.
-            if !st.retracted && r.length > 0.0 {
-                st.g1(&mut g, [None; 3], Some(-r.length), Some(r.speed));
-                st.retracted = true;
+            let (len, speed, _) = rv(w);
+            if st.retracted == 0.0 && len > 0.0 {
+                st.g1(&mut g, [None; 3], Some(-len), Some(speed));
+                st.retracted = len;
             }
             if let Some(t) = next_pause.next() {
                 g.push_str(&t);
@@ -656,26 +665,27 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         if w.kind == MoveKind::Wipe {
             // Essuyage : rétraction répartie sur la suite d'essuyages ; le
             // filament est rétracté à la fin de la suite.
-            let e = (!st.retracted && m.e != 0.0).then_some(m.e);
+            let e = (st.retracted == 0.0 && m.e != 0.0).then_some(m.e);
             st.g1(
                 &mut g,
                 [Some(b[0]), Some(b[1]), Some(b[2])],
                 e,
                 Some(m.speed),
             );
-            if pts.get(i + 1).is_none_or(|n| n.kind != MoveKind::Wipe) && r.length > 0.0 {
-                st.retracted = true;
+            if pts.get(i + 1).is_none_or(|n| n.kind != MoveKind::Wipe) && st.retracted == 0.0 {
+                st.retracted = rv(w).0;
             }
             cur = b;
             continue;
         }
         if w.kind == MoveKind::Travel {
             if m.retract {
-                if !st.retracted && r.length > 0.0 {
-                    st.g1(&mut g, [None; 3], Some(-r.length), Some(r.speed));
-                    st.retracted = true;
+                let (len, speed, z_hop) = rv(w);
+                if st.retracted == 0.0 && len > 0.0 {
+                    st.g1(&mut g, [None; 3], Some(-len), Some(speed));
+                    st.retracted = len;
                 }
-                let hop = cur[2].max(b[2]) + r.z_hop;
+                let hop = cur[2].max(b[2]) + z_hop;
                 st.g1(&mut g, [None, None, Some(hop)], None, Some(z_speed));
                 st.g1(&mut g, [Some(b[0]), Some(b[1]), None], None, Some(travel));
                 st.g1(&mut g, [None, None, Some(b[2])], None, Some(z_speed));
@@ -688,18 +698,38 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
                 );
             }
         } else {
-            if st.retracted {
-                st.g1(&mut g, [None; 3], Some(r.length), Some(r.speed));
-                st.retracted = false;
+            if st.retracted > 0.0 {
+                st.g1(&mut g, [None; 3], Some(st.retracted), Some(rv(w).1));
+                st.retracted = 0.0;
             }
-            if !m.first_layer && !temps_switched {
-                if f.temperature.nozzle != f.temperature.first_layer {
+            // Consigne de buse : première couche ou suivantes, plus le
+            // décalage d'essai du point.
+            let base = if m.first_layer {
+                f.temperature.first_layer
+            } else {
+                f.temperature.nozzle
+            };
+            let wanted = base + w.temp_offset;
+            if wanted != temp_now {
+                if w.temp_offset != offset_now {
+                    line!(
+                        g,
+                        "M104 S{} ; essai : {}{} °C",
+                        num(wanted, 1),
+                        if w.temp_offset > 0.0 { "+" } else { "" },
+                        num(w.temp_offset, 1)
+                    );
+                } else {
                     line!(
                         g,
                         "M104 S{} ; température après la première couche",
-                        num(f.temperature.nozzle, 1)
+                        num(wanted, 1)
                     );
                 }
+                temp_now = wanted;
+                offset_now = w.temp_offset;
+            }
+            if !m.first_layer && !temps_switched {
                 if f.temperature.bed != f.temperature.bed_first_layer {
                     line!(g, "M140 S{}", num(f.temperature.bed, 1));
                 }
@@ -715,9 +745,9 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         }
         cur = b;
     }
-    if st.retracted && r.length > 0.0 {
+    if st.retracted > 0.0 {
         // Le gabarit de fin suppose un filament détendu.
-        st.g1(&mut g, [None; 3], Some(r.length), Some(r.speed));
+        st.g1(&mut g, [None; 3], Some(st.retracted), Some(r.speed));
     }
 
     progress.at(&mut g, s.time, false);

@@ -291,12 +291,14 @@ pub fn plan_at(
     let (mut print_length, mut travel_length, mut time, mut e_total) = (0.0, 0.0, 0.0, 0.0);
     let (mut max_flow, mut max_req_flow, mut max_speed) = (0.0_f64, 0.0_f64, 0.0_f64);
     let mut fl_bounds: Option<Bounds> = None;
-    let retract_time = if r.length > 0.0 {
-        2.0 * r.length / r.speed
-    } else {
-        0.0
+    // Rétraction d'un déplacement : celle d'essai du point (modèle de
+    // calibration) ou celle du filament ; durée de la rétraction et du saut.
+    let retraction_at = |i: usize| crate::path::Retraction::resolve(pts[i].retraction, r);
+    let stop_time = |i: usize| {
+        let (len, speed, hop) = retraction_at(i);
+        let retract = if len > 0.0 { 2.0 * len / speed } else { 0.0 };
+        retract + 2.0 * hop / lim.max_z_speed
     };
-    let hop_time = 2.0 * r.z_hop / lim.max_z_speed;
 
     // Déplacement initial vers le premier point (toujours avec rétraction).
     moves.push(Move {
@@ -347,9 +349,10 @@ pub fn plan_at(
             let xy = dx.hypot(dy);
             let run = wipe_run[i];
             let mut v = lim.travel_speed;
-            if r.length > 0.0 && run > 0.0 {
-                v = v.min(r.speed * run / r.length);
-                m.e = -r.length * xy / run;
+            let (len, speed, _) = retraction_at(i);
+            if len > 0.0 && run > 0.0 {
+                v = v.min(speed * run / len);
+                m.e = -len * xy / run;
             }
             m.speed = v;
             m.requested = v;
@@ -412,7 +415,8 @@ pub fn plan_at(
         }
         if b.kind == MoveKind::Travel {
             let xy = dx.hypot(dy);
-            m.retract = xy >= r.min_travel && (r.length > 0.0 || r.z_hop > 0.0);
+            let (len, _, hop) = retraction_at(i);
+            m.retract = xy >= r.min_travel && (len > 0.0 || hop > 0.0);
             m.speed = lim.travel_speed;
             m.requested = lim.travel_speed;
             travel_moves += 1;
@@ -420,7 +424,7 @@ pub fn plan_at(
             m.time = xy / lim.travel_speed + dz.abs() / lim.max_z_speed;
             if m.retract {
                 retractions += 1;
-                m.time += retract_time + hop_time;
+                m.time += stop_time(i);
             }
             time += m.time;
             moves.push(m);
@@ -499,13 +503,7 @@ pub fn plan_at(
     }
 
     if let Some(acc) = printer.limits.accelerations() {
-        time = accelerated_times(
-            pts,
-            &mut moves,
-            &acc,
-            retract_time + hop_time,
-            lim.max_z_speed,
-        );
+        time = accelerated_times(pts, &mut moves, &acc, &stop_time, lim.max_z_speed);
     }
 
     let bed = |v: [f64; 3]| [v[0] + offset[0], v[1] + offset[1], v[2] + offset[2]];
@@ -660,7 +658,7 @@ fn accelerated_times(
     pts: &[crate::path::WayPoint],
     moves: &mut [Move],
     acc: &Accelerations,
-    stop_time: f64,
+    stop_time: &dyn Fn(usize) -> f64,
     max_z_speed: f64,
 ) -> f64 {
     let n = moves.len();
@@ -763,7 +761,7 @@ fn accelerated_times(
             let xy = (b.x - a.x).hypot(b.y - a.y);
             trapezoid(xy, 0.0, 0.0, m.speed, acc.travel)
                 + (b.z - a.z).abs() / max_z_speed
-                + stop_time
+                + stop_time(i)
         } else {
             trapezoid(m.length, entry[i], exit[i], m.speed, accel(i))
         };
@@ -810,6 +808,8 @@ mod tests {
             flow: 1.0,
             volume: 0.0,
             duration: 0.0,
+            temp_offset: 0.0,
+            retraction: None,
         }
     }
 

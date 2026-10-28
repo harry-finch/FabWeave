@@ -534,3 +534,77 @@ p";
     let e = w3.gcode(&w3.evaluate(&Map::new())).unwrap_err();
     assert_eq!(e[0].code, "gcode.pause_missing");
 }
+
+/// Réglages d'essai (ADR-0007) : réservés aux modèles `calibration = true`,
+/// bornés, écrits dans le G-code ; le filament retiré est remis à l'identique
+/// même si la rétraction d'essai change entre-temps.
+#[test]
+fn calibration_settings_are_gated_bounded_and_written() {
+    let body = "let p = new_path();
+p.travel_to(0, 0, 0.2);
+p.set_temperature_offset(-10);
+p.set_retraction_length(2);
+p.print_to(10, 0, 0.2, 0.45, 0.2);
+p.travel_to(10, 10, 0.2);
+p.set_retraction_length(0.5);
+p.print_to(0, 10, 0.2, 0.45, 0.2);
+p";
+    // Modèle ordinaire : refusé.
+    let ev = eval(body);
+    assert!(
+        ev.issues.iter().any(|i| i.code == "model.calibration_only"),
+        "{:?}",
+        ev.issues
+    );
+    assert!(ev.path.is_none());
+
+    // Modèle d'essai : averti, écrit.
+    let w = bench("calibration = true", body);
+    let ev = w.evaluate(&Map::new());
+    assert!(
+        ev.issues.iter().any(|i| i.code == "model.calibration"),
+        "{:?}",
+        ev.issues
+    );
+    assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
+    let g = w.gcode(&ev).unwrap();
+    // PLA : première couche à 215 °C, moins 10.
+    assert!(g.contains("M104 S205 ; essai : -10 °C"), "consigne d'essai");
+    let body_g = &g[g.find("; --- FabWeave : parcours").unwrap()..];
+    let lines: Vec<&str> = body_g.lines().collect();
+    let r = lines
+        .iter()
+        .position(|l| *l == "G1 E-2 F2100")
+        .expect("rétraction de 2 mm");
+    let u = lines[r..]
+        .iter()
+        .position(|l| l.starts_with("G1 E2 "))
+        .expect("remise de 2 mm");
+    assert!(!lines[r..r + u].iter().any(|l| l.contains("E0.5")));
+
+    for (src, code) in [
+        (
+            "let p = new_path();\np.set_temperature_offset(40);\np",
+            "path.invalid_temperature_offset",
+        ),
+        (
+            "let p = new_path();\np.set_retraction_length(9);\np",
+            "path.invalid_retraction",
+        ),
+        (
+            "let p = new_path();\np.set_retraction_speed(2);\np",
+            "path.invalid_retraction",
+        ),
+        (
+            "let p = new_path();\np.set_z_hop(3);\np",
+            "path.invalid_retraction",
+        ),
+    ] {
+        let ev = bench("calibration = true", src).evaluate(&Map::new());
+        assert!(
+            ev.issues.iter().any(|i| i.code == code),
+            "{src}: {:?}",
+            ev.issues
+        );
+    }
+}

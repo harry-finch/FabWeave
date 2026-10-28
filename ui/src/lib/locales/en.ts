@@ -345,6 +345,8 @@ const en: Shape<typeof fr> = {
       not_loaded: 'No model loaded.',
       warning: 'Model warning.',
       failure: 'The model rejects these values.',
+      calibration: 'Calibration model: it changes the profile temperature or retraction (see its notes).',
+      calibration_only: 'Test settings (temperature, retraction) are reserved for calibration models: add calibration = true to [meta].',
       warnings_dropped: '{count} more model warnings not shown.',
     },
     param: {
@@ -398,6 +400,8 @@ const en: Shape<typeof fr> = {
       duplicates_skipped: '{count} points identical to the previous one, skipped.',
       invalid_flow: 'Invalid bridge flow: 0 to 2 (1 = nominal flow).',
       too_many_notes: 'Too many notes (at most {detail}).',
+      invalid_temperature_offset: 'Temperature offset outside −30 to +30 °C ({detail}).',
+      invalid_retraction: 'Test retraction out of bounds ({detail}): length 0 to 8 mm, speed 5 to 100 mm/s, Z hop 0 to 2 mm.',
       invalid_wipe: 'Invalid wipe: length from 0 to 50 mm.',
       wipe_without_print: 'Wipe without a printed line just before: nothing to wipe.',
       pause_without_position: 'Pause without a position: move the nozzle before pause().',

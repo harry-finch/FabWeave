@@ -343,6 +343,8 @@ const fr = {
       not_loaded: 'Aucun modèle chargé.',
       warning: 'Avertissement du modèle.',
       failure: 'Le modèle refuse ces valeurs.',
+      calibration: 'Modèle d’étalonnage : il change la température ou la rétraction du profil (voir ses annotations).',
+      calibration_only: 'Réglage d’essai (température, rétraction) réservé aux modèles d’étalonnage : ajouter calibration = true dans [meta].',
       warnings_dropped: '{count} autres avertissements du modèle non affichés.',
     },
     param: {
@@ -396,6 +398,8 @@ const fr = {
       duplicates_skipped: '{count} points confondus avec le précédent, ignorés.',
       invalid_flow: 'Débit de pont invalide : de 0 à 2 (1 = débit nominal).',
       too_many_notes: 'Trop d’annotations (au plus {detail}).',
+      invalid_temperature_offset: 'Décalage de température hors de −30 à +30 °C ({detail}).',
+      invalid_retraction: 'Rétraction d’essai hors bornes ({detail}) : longueur 0 à 8 mm, vitesse 5 à 100 mm/s, saut en Z 0 à 2 mm.',
       invalid_wipe: 'Essuyage invalide : longueur de 0 à 50 mm.',
       wipe_without_print: 'Essuyage sans tracé imprimé juste avant : rien à essuyer.',
       pause_without_position: 'Pause sans position : placer la buse avant pause().',

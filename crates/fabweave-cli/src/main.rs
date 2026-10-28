@@ -175,6 +175,8 @@ fn hint(code: &str) -> &'static str {
         "path.blob_without_position" => "blob() avant tout point : placer la buse d'abord",
         "path.invalid_blob" => "goutte : volume de 0 à 1000 mm³, durée de 0 à 60 s",
         "path.wipe_without_print" => "wipe() juste après un tracé imprimé seulement",
+        "model.calibration_only" => "réglage d'essai : ajouter calibration = true dans [meta]",
+        "model.calibration" => "modèle d'étalonnage : il change température ou rétraction",
         "gcode.pause_missing" => "le profil d'imprimante n'a pas de gabarit [gcode] pause",
         "copies.too_close" => "copies trop proches : la tête heurterait la copie déjà imprimée",
         "copies.too_tall" => "pièce trop haute pour être copiée pièce par pièce (portique)",

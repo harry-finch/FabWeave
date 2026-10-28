@@ -18,3 +18,12 @@ serde_json = { version = "1", features = ["preserve_order"] }
 lto = "thin"
 codegen-units = 1
 opt-level = 3
+
+# Tests en mode debug : dépendances optimisées (l'interpréteur Rhai surtout)
+# et moteur un peu optimisé ; sinon le catalogue sur sept imprimantes passe
+# de 47 s à près de 8 min.
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.dev.package.fabweave-core]
+opt-level = 1

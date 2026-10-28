@@ -1,0 +1,99 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Test des rétractions", en = "Retraction test" }
+category = { fr = "Étalonnage", en = "Calibration" }
+description = { fr = "Cinq colonnes de petits murets, chacune avec sa valeur du réglage testé (longueur ou vitesse de rétraction, saut en Z), de gauche à droite. Dans une colonne, la buse imprime un muret puis se déplace un peu plus loin, cinq fois, avec des déplacements de plus en plus longs : environ 2 000 rétractions en tout. Choisir la colonne la plus propre (sans fils ni grumeaux). Les autres réglages restent ceux du filament. Principe du « 2000-Retractions Test » de FullControl ; modèle écrit pour FabWeave. Modèle d'essai : il change la rétraction du profil, dans des bornes sûres.", en = "Five columns of small walls, each with its own value of the tested setting (retraction length or speed, Z hop), from left to right. In a column, the nozzle prints a wall then travels a little further, five times, with longer and longer travels: about 2,000 retractions in all. Pick the cleanest column (no strings or blobs). The other settings stay the filament's. Same principle as FullControl's \"2000-Retractions Test\"; model written for FabWeave. Test model: it changes the profile retraction, within safe bounds." }
+author = "FabWeave, d'après FullControl (A. Gleadall)"
+tags = ["étalonnage", "rétraction", "fils", "filament", "fullcontrol"]
+source = "https://fullcontrol.xyz/#/models/3bfcdb"
+recommended_nozzle = [0.4]
+calibration = true
+
+[params.setting]
+type = "choice"
+label = { fr = "Réglage testé", en = "Tested setting" }
+default = "length"
+options = [
+    { value = "length", label = { fr = "Longueur", en = "Length" } },
+    { value = "speed", label = { fr = "Vitesse", en = "Speed" } },
+    { value = "z_hop", label = { fr = "Saut en Z", en = "Z hop" } },
+]
+
+[params.from]
+type = "float"
+label = { fr = "Valeur à gauche", en = "Left value" }
+help = { fr = "Longueur (mm, 0 à 8), vitesse (mm/s, 5 à 100) ou saut en Z (mm, 0 à 2) de la première colonne.", en = "Length (mm, 0 to 8), speed (mm/s, 5 to 100) or Z hop (mm, 0 to 2) of the first column." }
+default = 0
+min = 0
+max = 100
+step = 0.1
+
+[params.to]
+type = "float"
+label = { fr = "Valeur à droite", en = "Right value" }
+help = { fr = "Valeur de la cinquième colonne ; les autres sont réparties entre les deux.", en = "Value of the fifth column; the others are spread in between." }
+default = 2
+min = 0
+max = 100
+step = 0.1
+
+[params.retractions]
+type = "int"
+label = { fr = "Rétractions", en = "Retractions" }
+help = { fr = "Nombre visé de rétractions : il fixe le nombre de couches (25 par couche).", en = "Target number of retractions: it sets the number of layers (25 per layer)." }
+default = 2000
+min = 300
+max = 4000
+step = 100
+---
+// Par couche, cinq colonnes de gauche à droite ; dans une colonne, cinq
+// murets de deux lignes (longueurs 1 à 5 mm) séparés par des déplacements de
+// 2 à 6 mm (au-delà du déplacement minimal du filament : chacun rétracte).
+// Rétraction d'essai fixée au début de chaque colonne, valeur par valeur.
+
+let w = printer.nozzle_diameter * 1.125;
+let h = printer.layer_height;
+let fh = printer.first_layer_height;
+let pieces = [1.0, 2.0, 3.0, 4.0, 5.0];
+let travels = [2.0, 3.0, 4.0, 5.0, 6.0];
+let column_gap = 10.0;
+let height_y = 15.0 + 20.0;                       // murets plus déplacements
+let layers = max(1, ceiling(params.retractions / 25.0)).to_int();   // 25 par couche
+let lo = params.from;
+let hi = params.to;
+let bounds = if params.setting == "length" { [0.0, 8.0] }
+    else if params.setting == "speed" { [5.0, 100.0] }
+    else { [0.0, 2.0] };
+if lo < bounds[0] || lo > bounds[1] || hi < bounds[0] || hi > bounds[1] {
+    fail(#{ fr: `Valeurs hors de ${bounds[0]} à ${bounds[1]} pour ce réglage.`, en: `Values outside ${bounds[0]} to ${bounds[1]} for this setting.` });
+}
+
+let path = new_path();
+for layer in 0..layers {
+    let z = fh + layer * h;
+    let hh = if layer == 0 { fh } else { h };
+    for c in 0..5 {
+        let v = lo + (hi - lo) * c / 4.0;
+        if params.setting == "length" { path.set_retraction_length(v); }
+        else if params.setting == "speed" { path.set_retraction_speed(v); }
+        else { path.set_z_hop(v); }
+        let x = (c - 2) * column_gap;
+        let y = -height_y / 2;
+        for k in 0..5 {
+            // Muret : aller en Y, une largeur à côté, retour.
+            path.travel_to(x, y, z);
+            path.print_to(x, y + pieces[k], z, w, hh);
+            path.print_to(x + w, y + pieces[k], z, w, hh);
+            path.print_to(x + w, y, z, w, hh);
+            y += pieces[k] + travels[k];
+        }
+        if layer == 0 {
+            let label = if params.setting == "speed" { `${v} mm/s` } else { `${v} mm` };
+            path.note_at(x, -height_y / 2 - 3, z, label);
+        }
+    }
+}
+
+path

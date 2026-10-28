@@ -1,0 +1,109 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Test de débit", en = "Flow test" }
+category = { fr = "Étalonnage", en = "Calibration" }
+description = { fr = "Un cylindre d'une seule paroi dont le débit demandé augmente d'un étage à l'autre (la buse accélère). Là où la paroi devient mate, rugueuse ou trouée, l'extrudeur ou la buse ne suivent plus : c'est le débit maximal du filament. Le moteur ne dépasse jamais le débit max du profil : pour tester au-delà, copier le filament et relever son débit max le temps de l'essai.", en = "A single-wall cylinder whose requested flow increases from one storey to the next (the nozzle speeds up). Where the wall turns matt, rough or gappy, the extruder or the nozzle can no longer keep up: that is the filament's maximum flow. The engine never exceeds the profile's max flow: to test beyond it, copy the filament and raise its max flow for the test." }
+author = "FabWeave"
+tags = ["étalonnage", "débit", "vitesse", "filament"]
+recommended_nozzle = [0.4, 0.5, 0.6, 0.8]
+
+[params.flow_start]
+type = "float"
+label = { fr = "Débit en bas", en = "Bottom flow" }
+unit = "mm³/s"
+default = 5
+min = 1
+max = 40
+step = 0.5
+
+[params.flow_end]
+type = "float"
+label = { fr = "Débit en haut", en = "Top flow" }
+unit = "mm³/s"
+default = 25
+min = 2
+max = 60
+step = 0.5
+
+[params.flow_step]
+type = "float"
+label = { fr = "Pas", en = "Step" }
+unit = "mm³/s"
+default = 2.5
+min = 0.5
+max = 10
+step = 0.5
+
+[params.storey]
+type = "float"
+label = { fr = "Hauteur d'étage", en = "Storey height" }
+unit = "mm"
+default = 5
+min = 2
+max = 15
+step = 0.5
+
+[params.radius]
+type = "float"
+label = { fr = "Rayon", en = "Radius" }
+unit = "mm"
+help = { fr = "Grand rayon : la buse a la place d'atteindre sa vitesse entre deux virages.", en = "Large radius: the nozzle has room to reach its speed between turns." }
+default = 25
+min = 10
+max = 50
+step = 1
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+advanced = true
+default = 1.125
+min = 1
+max = 2
+step = 0.025
+---
+// Spirale continue, deux tours lents posés sur le plateau, puis étages de
+// débit croissant : vitesse = débit / section du boudin (stade W × H, la
+// même formule que le moteur). Le moteur plafonne toujours au débit max du
+// profil et le signale.
+
+let w = printer.nozzle_diameter * params.width_factor;
+let h = printer.layer_height;
+let fh = printer.first_layer_height;
+let r = params.radius;
+if params.flow_end <= params.flow_start {
+    fail(#{ fr: "Le débit du haut doit dépasser celui du bas.", en: "The top flow must exceed the bottom flow." });
+}
+let storeys = floor((params.flow_end - params.flow_start) / params.flow_step).to_int() + 1;
+let per_storey = max(2, round(params.storey / h).to_int());
+let area = (w - h) * h + PI * h * h / 4;          // section d'un boudin en stade (w > h)
+let segs = max(90, ceiling(TAU * r / 1.5)).to_int();
+let note_every = max(1, ceiling(storeys / 40.0)).to_int();   // 50 annotations au plus
+
+let path = new_path();
+path.travel_to(r, 0, fh);
+path.set_speed_factor(1);
+// Deux tours d'assise, puis la spirale monte.
+let base = circle(0, 0, fh, r, 0, segs);
+path.print_points(base, w, fh);
+path.print_points(base.translate(0, 0, h), w, h);
+let z0 = fh + h;
+let turns = storeys * per_storey;
+for t in 0..turns {
+    let s = (t / per_storey).to_int();
+    let flow = params.flow_start + s * params.flow_step;
+    path.set_speed(flow / area);
+    if t % per_storey == 0 && s % note_every == 0 {
+        path.note_at(r + 3, 0, z0 + t * h, `${flow} mm³/s`);
+    }
+    for k in 1..=segs {
+        let tv = t + k / segs.to_float();
+        let a = k * TAU / segs;
+        path.print_to(r * cos(a), r * sin(a), z0 + tv * h, w, h);
+    }
+}
+
+path

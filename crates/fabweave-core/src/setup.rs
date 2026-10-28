@@ -440,6 +440,8 @@ mod tests {
             flow: 1.0,
             volume: 0.0,
             duration: 0.0,
+            temp_offset: 0.0,
+            retraction: None,
         }
     }
 

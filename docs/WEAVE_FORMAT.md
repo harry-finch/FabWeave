@@ -83,6 +83,7 @@ path
 | `license` | chaîne | non | Licence d'origine (`"GPL-3.0"` pour FullControl). |
 | `recommended_nozzle` | liste de nombres | non | Diamètres de buse conseillés (mm). Une autre buse produit l'avertissement `nozzle.not_recommended`. |
 | `recommended_adhesion` | `"none"`, `"brim"` ou `"raft"` | non | Adhésion conseillée, rappelée à l'utilisateur ; jamais appliquée d'office (le choix est le sien). |
+| `calibration` | booléen | non | Modèle d'étalonnage : seul autorisé à appeler les réglages d'essai (section 3, ADR-0007) ; toujours signalé (`model.calibration`). |
 
 « texte » = chaîne ou table par langue.
 
@@ -152,6 +153,15 @@ Le script est écrit en [Rhai](https://rhai.rs/book/) (syntaxe proche de Rust et
 | `path.travel_to(pts)` | Déplacement jusqu'au premier point de la liste. |
 | `path.note(texte)` | Annotation dans la vue 3D au dernier point (« Départ », « Pointe fine conseillée »). 50 au plus. |
 | `path.note_at(x, y, z, texte)` | Annotation à une position donnée. |
+
+### Réglages d'essai (modèles d'étalonnage seulement)
+
+Réservés aux modèles `[meta] calibration = true` (tour de température, test des rétractions) ; ailleurs, le calcul est refusé (`model.calibration_only`). Valables à partir du point suivant ; hors bornes : erreur, jamais de correction.
+
+| Fonction | Effet |
+| --- | --- |
+| `path.set_temperature_offset(°C)`, `path.reset_temperature()` | Décalage de la consigne de buse par rapport au filament (première couche ou suivantes), de −30 à +30 °C ; écrit `M104 S… ; essai : ±n °C`. |
+| `path.set_retraction_length(mm)`, `path.set_retraction_speed(mm/s)`, `path.set_z_hop(mm)`, `path.reset_retraction()` | Rétraction des déplacements suivants : longueur 0 à 8 mm, vitesse 5 à 100 mm/s, saut en Z 0 à 2 mm ; chaque valeur non donnée reste celle du filament. Le filament retiré est toujours remis à la même longueur. |
 
 ### Messages du modèle
 
@@ -288,6 +298,9 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `path.invalid_position`, `path.invalid_width`, `path.invalid_height`, `path.invalid_speed`, `path.invalid_fan`, `path.invalid_flow`, `path.invalid_blob`, `path.too_many_points`, `path.too_many_notes` | erreur | Appel de l'API invalide. |
 | `path.blob_without_position`, `path.pause_without_position` | erreur | `path.blob` ou `path.pause` avant tout point : pas de position. |
 | `path.invalid_wipe`, `path.wipe_without_print`, `path.too_many_pauses` | erreur | Essuyage hors de 0–50 mm ou sans tracé imprimé juste avant ; plus de 50 pauses. |
+| `model.calibration_only` | erreur | Réglage d'essai dans un modèle qui n'est pas d'étalonnage. |
+| `model.calibration` | avertissement | Modèle d'étalonnage : il change la température ou la rétraction du profil. |
+| `path.invalid_temperature_offset`, `path.invalid_retraction` | erreur | Réglage d'essai hors bornes (±30 °C ; rétraction 0–8 mm, 5–100 mm/s ; saut 0–2 mm). |
 | `gcode.pause_missing` | erreur | Le modèle fait des pauses mais le profil d'imprimante n'a pas de gabarit `pause` (export refusé). |
 | `points.invalid_count`, `points.invalid_value`, `points.index_out_of_range`, `points.empty` | erreur | Argument invalide d'une fonction de points (nombre de segments, rayon…). |
 | `model.warning` | avertissement | `warn()` du modèle (son texte, sa ligne). |

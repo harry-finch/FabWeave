@@ -345,3 +345,20 @@ L'utilisateur demande de terminer la v0.3 pendant ses impressions. Fonctions enc
 **Vérification.** `fabweave check` de chaque modèle aux bornes ; catalogue sur sept imprimantes ; formes vues dans l'application (arc ondulé du support et ses fentes, ailettes et filet de la vis, cône du porte-à-faux, damier du panier, filet en haut de la boîte).
 
 **Non fait.** Impression ; ajustement du jeu des filets sur pièce.
+
+## 2026-10-28 — v0.3, étape 10 (suite) : réglages d'essai et modèles d'étalonnage
+
+**Choix de l'utilisateur.** Parmi trois propositions (réglages d'essai dans les modèles, outil de calibration à part, report), les réglages d'essai : ADR-0007, règle d'AGENTS.md complétée.
+
+**Choix.**
+- `[meta] calibration = true` ; `path.set_temperature_offset` (±30 °C par rapport au filament), `set_retraction_length` (0–8 mm), `set_retraction_speed` (5–100 mm/s), `set_z_hop` (0–2 mm), `reset_temperature`, `reset_retraction`. D'abord une seule fonction `set_retraction(longueur, vitesse)` : un modèle ne connaît pas les valeurs du filament, donc chaque valeur se règle seule, les autres restant celles du filament (`Retraction::resolve`).
+- Valeurs par point (`WayPoint::temp_offset`, `retraction`), contrôlées après l'exécution : refus `model.calibration_only` hors d'un modèle d'étalonnage, avertissement `model.calibration` sinon.
+- Planificateur : décision de rétracter et durée avec la rétraction de chaque déplacement. G-code : longueur réellement retirée gardée (`State::retracted` en mm), remise à l'identique même si la rétraction d'essai change entre-temps ; consigne `M104` à chaque changement (première couche ou suivantes, plus le décalage), commentée « essai : ±n °C » (d'abord, le retour à 0 était commenté « après la première couche » : corrigé).
+- **Tour de température** : deux piliers à double paroi, pont de trois fils en haut de chaque étage (même couche que le haut des piliers ; une première version sautait une couche de piliers), étages annotés.
+- **Test de débit** (modèle ordinaire) : cylindre en spirale, vitesse = débit / section du boudin (formule du moteur) par étage, plafonné par le débit max du profil et signalé ; annotations limitées à 40.
+- **Test des rétractions** (d'après FullControl) : cinq colonnes de murets de deux lignes, déplacements croissants, réglage testé au choix ; 25 rétractions par couche (et non 30 : le premier essai en comptait 1 674 pour 2 000 visées).
+- Tests en mode debug : dépendances optimisées (Rhai surtout) et moteur à `opt-level = 1` ; catalogue de 463 s à 47 s.
+
+**Vérification.** Test : réglage refusé dans un modèle ordinaire ; dans un modèle d'essai, avertissement, `M104 S205 ; essai : -10 °C`, rétraction de 2 mm remise de 2 mm malgré une longueur d'essai changée à 0,5 mm, bornes. Tour : consignes 230 → 195 °C relues ; test des rétractions : 1 999 rétractions, chaque longueur remise ; `fabweave check` des trois modèles.
+
+**Non fait.** Impression des modèles d'étalonnage.
