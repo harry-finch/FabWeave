@@ -91,7 +91,7 @@ Critères d'acceptation :
 Étapes ajoutées le 28/10/2026 pour terminer la v0.3, menées pendant les impressions de l'étape 6 :
 
 7. **Filaments** : TPU, ASA, PETG-CF (PRF-04), préchauffe de l'enceinte de la CORE One, facteur des ponts par filament (PRF-06). *Fait le 28/10/2026.*
-8. **Bambu Lab A1 et P1S** (PRF-09) : profils et gabarits de Bambu Studio réécrits.
+8. **Bambu Lab A1 et P1S** (PRF-09) : profils et gabarits de Bambu Studio réécrits. *Fait le 28/10/2026 : gabarits traduits par l'import (nouvelles correspondances des variables de purge Bambu), non essayés sur machine.*
 9. **Essuyage et pause** (API-12).
 10. **Catalogue** : tour de température et test de débit (CAT-22), 2 000 rétractions (CAT-15), défi porte-à-faux plus (CAT-16), écrous et vis (CAT-13), support de téléphone (CAT-14), panier tressé (CAT-19), boîte à visser (CAT-20).
 

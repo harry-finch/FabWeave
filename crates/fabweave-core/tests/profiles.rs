@@ -9,10 +9,12 @@ fn read(rel: &str) -> String {
     std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(rel)).unwrap()
 }
 
-const SHIPPED: [&str; 5] = [
+const SHIPPED: [&str; 7] = [
     "prusa_mk4s",
     "prusa_core_one",
     "bambu_x1e",
+    "bambu_a1",
+    "bambu_p1s",
     "marlin_generic",
     "klipper_generic",
 ];
@@ -107,5 +109,43 @@ fn v2_values_are_checked() {
     assert_eq!(
         codes(&with(&x1e, "max = [18.0, 28.0]", "max = [18.0, -28.0]")),
         ["profile.invalid_zone"]
+    );
+}
+
+/// Bambu Lab A1 et P1S (v0.3, étape 8) : gabarits de Bambu Studio traduits
+/// par l'import, rendus sans reste ; identifiant de modèle du firmware ;
+/// lignes de calibration de l'A1 protégées.
+#[test]
+fn bambu_a1_and_p1s_render_their_templates() {
+    use fabweave_core::Workbench;
+    use serde_json::{json, Map};
+    let model = "[meta]\nname = \"t\"\ncategory = \"t\"\n---\nlet p = new_path();\np.travel_to(-10, -5, 0.2);\np.print_to(10, -5, 0.2, 0.45, 0.2);\np.print_to(10, 5, 0.2, 0.45, 0.2);\np";
+    for (id, code) in [("bambu_a1", "N2S"), ("bambu_p1s", "C12")] {
+        let mut w = Workbench::default();
+        w.set_printer(&read(&format!("../../profiles/printers/{id}.toml")))
+            .unwrap();
+        w.set_filament(&read("../../profiles/filaments/generic_pla.toml"))
+            .unwrap();
+        w.load_model(model).unwrap();
+        let g = w.gcode(&w.evaluate(&Map::new())).unwrap();
+        let start = &g[..g.find("; --- FabWeave : parcours").unwrap()];
+        assert!(!start.contains('{') && !start.contains('}'), "{id}");
+        assert!(g.contains(&format!("; printer_model = {code}\n")), "{id}");
+        // Débit de purge : débit max du filament (15 mm³/s) / 2,4053 × 60.
+        assert!(start.contains("M620.1 E F374.174"), "{id}");
+    }
+    let mut w = Workbench::default();
+    w.set_printer(&read("../../profiles/printers/bambu_a1.toml"))
+        .unwrap();
+    w.set_filament(&read("../../profiles/filaments/generic_pla.toml"))
+        .unwrap();
+    w.load_model(model).unwrap();
+    w.set_setup(serde_json::from_value(json!({ "placement": { "x": 128, "y": 8 } })).unwrap())
+        .unwrap();
+    let ev = w.evaluate(&Map::new());
+    assert!(
+        ev.issues.iter().any(|i| i.code == "path.excluded_zone"),
+        "{:?}",
+        ev.issues
     );
 }

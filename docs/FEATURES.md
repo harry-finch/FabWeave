@@ -76,7 +76,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | PRF-01 | Profil imprimante TOML : plateau, origine, buse, vitesses max, vitesse Z max, gabarits | v0.1 | fait |
 | PRF-02 | Profil filament TOML : diamètre, débit, températures, refroidissement, rétraction, débit volumétrique max, vitesse nominale | v0.1 | fait |
 | PRF-03 | Profils Prusa MK4S et Core One | v0.1 | fait |
-| PRF-09 | Profils Bambu Lab A1, P1, X1 (Marlin générique : PRF-14) | v0.3 | prévu |
+| PRF-09 | Profils Bambu Lab A1 et P1S (gabarits de Bambu Studio traduits par l'import, sans morceau laissé de côté ; identifiants N2S et C12 du paquet) ; X1E : PRF-12 ; P1P, X1 Carbon, A1 mini non livrés (importables) | v0.3 | fait, non essayé sur machine |
 | PRF-13 | Profil imprimante v2 : zones exclues, accélérations, cône, vignettes, nom par langue, dialecte contrôlé ; profil v1 lu sans changement (test sur le profil MK4S de la v0.2) | v0.3 | fait |
 | PRF-14 | Profils Marlin générique (220 × 220) et Klipper générique (235 × 235) : purge le long du bord gauche en zone exclue, avance de pression si le filament la donne | v0.3 | fait |
 | PRF-12 | Profil Bambu Lab X1E (gabarits de Bambu Studio 02.08 réécrits ; scan lidar retiré ; plaque `plate`) ; variables de gabarit `bed_type`, `max_volumetric_speed`, fonction `num()` | v0.3 | fait, à valider sur la X1E |

@@ -297,3 +297,18 @@ L'utilisateur demande de terminer la v0.3 pendant ses impressions. Fonctions enc
 **Vérification.** Tests : chaque filament livré se lit et survit à l'écriture TOML ; CORE One + ASA : `M140 S115`, `M191 S40`, `M141 S55`, puis `M140 S110` (séquence relue, conforme à PrusaSlicer) ; CORE One + PLA sans attente ; X1E + ASA : `M191 S55` ; MK4S + TPU : `G1 E-4`, `M109 T0 R210` ; PETG-CF dans une buse non trempée : `nozzle.not_abrasive` ; facteur des ponts appliqué aux seuls ponts, refusé hors de 0–2.
 
 **Non fait.** Aucun de ces filaments imprimé avec FabWeave.
+
+## 2026-10-28 — v0.3, étape 8 : Bambu Lab A1 et P1S
+
+Étape 7 validée par l'utilisateur.
+
+**Entrées.** Dépôt bambulab/BambuStudio (`resources/profiles/BBL`, branche principale du 28/10/2026) : `fdm_machine_common`, `fdm_bbl_3dp_001_common`, « Bambu Lab A1 0.4 nozzle », « Bambu Lab P1S 0.4 nozzle » et leurs gabarits désormais en fichiers séparés (`include` : « … template machine_start_gcode », démarrage de l'A1 daté du 13/05/2026, de la P1S du 31/10/2025) ; familles (`model_id` : N2S, C12) ; réglages d'impression « 0.20mm Standard @BBL A1 / X1C ».
+
+**Choix.**
+- Chaîne d'héritage fusionnée en un fichier par machine, passé à l'**import de FabWeave** (au lieu de la réécriture à la main faite pour la X1E à l'étape 1). Restaient non traduits : `outer_wall_volumetric_speed`, `flush_volumetric_speeds`, `flush_temperatures` (lignes de purge et de calibration), `first_layer_center_no_wipe_tower`, `spiral_mode`, `print_sequence` (fin de l'A1). Correspondances ajoutées au traducteur, comme les choix faits pour la X1E : débit maximal et température du filament, centre de la première couche, faux et « by layer ». Elles servent aussi aux imports de l'utilisateur. Plus rien de non traduit ni de constant.
+- Profils : en-tête rédigé (sources, dates, AGPL), identifiant de modèle du firmware pour le paquet `.gcode.3mf` (N2S, C12), buses 0,2 à 0,8, acier trempé en option, dégagement de la tête de Bambu Studio. **P1S** : même mécanique que la X1E, mêmes zones exclues et limites. **A1** : lignes de calibration à l'avant (X 108 à 158) protégées, accélérations de son réglage « Standard ».
+- Rendu relu : expressions toutes évaluées, débit de purge = débit max du filament / 2,4053 × 60, la branche PLA de l'A1 garde le `T220` écrit en dur par Bambu Studio.
+
+**Vérification.** Tests : A1 et P1S lus comme profils v2 avec accélérations, gabarits rendus sans accolade restante, `printer_model` N2S et C12, purge `M620.1 E F374.174` en PLA, pièce dans les lignes de calibration de l'A1 refusée ; traduction des variables de purge (test du traducteur) ; catalogue entier en PLA sur les deux machines.
+
+**Non fait.** Aucun essai sur machine (le fablab n'a qu'une X1E) ; P1P, X1 Carbon et A1 mini non livrés (importables).

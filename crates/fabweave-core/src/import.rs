@@ -1517,7 +1517,14 @@ fn known(name: &str) -> Option<(&'static str, Ty)> {
         "max_layer_z" => ("max_z", Ty::Num),
         "retract_length" | "retraction_length" => ("retraction_length", Ty::Num),
         "retract_speed" | "retraction_speed" => ("retraction_speed", Ty::Num),
-        "filament_max_volumetric_speed" => ("max_volumetric_speed", Ty::Num),
+        // Débits des lignes de purge et de calibration des Bambu Lab (réglages
+        // d'impression et de purge, absents d'un profil machine) : débit
+        // maximal du filament, comme dans le profil X1E livré.
+        "filament_max_volumetric_speed"
+        | "outer_wall_volumetric_speed"
+        | "flush_volumetric_speeds" => ("max_volumetric_speed", Ty::Num),
+        // Température de purge : celle du filament.
+        "flush_temperatures" => ("temperature", Ty::Num),
         "total_layer_count" => ("total_layer_count", Ty::Num),
         "pressure_advance" => ("pressure_advance", Ty::Num),
         "printer_model" => ("printer_model", Ty::Str),
@@ -1536,6 +1543,10 @@ fn known(name: &str) -> Option<(&'static str, Ty)> {
         | "initial_no_support_extruder" => ("0.0", Ty::Num),
         "is_extruder_used" => ("true", Ty::Bool),
         "has_wipe_tower" => ("false", Ty::Bool),
+        // FabWeave n'emploie pas le mode vase du trancheur (marqueurs de
+        // couche toujours écrits) ; couche après couche pour l'appareil photo.
+        "spiral_mode" => ("false", Ty::Bool),
+        "print_sequence" => ("\"by layer\"", Ty::Str),
         _ => return None,
     })
 }
@@ -1547,6 +1558,9 @@ fn axis(name: &str, i: usize) -> Option<String> {
         "first_layer_print_min" => format!("first_layer_min_{xy}"),
         "first_layer_print_max" => format!("first_layer_max_{xy}"),
         "first_layer_print_size" => format!("(first_layer_max_{xy} - first_layer_min_{xy})"),
+        "first_layer_center_no_wipe_tower" => {
+            format!("((first_layer_min_{xy} + first_layer_max_{xy}) / 2.0)")
+        }
         "print_bed_max" | "print_bed_size" => format!("bed_size_{xy}"),
         "print_bed_min" => "0.0".into(),
         _ => return None,
@@ -2212,6 +2226,30 @@ mod tests {
         let g = "{if printer_notes!~/.*(MK4IS).*/}\nM900 K{if nozzle_diameter[0]==0.4}0.05{endif}\n{else}\nM572 S{if nozzle_diameter[0]==0.4}0.036{elsif nozzle_diameter[0]==0.5}0.025{endif}\n{endif}";
         assert_eq!(gcode_pressure_advance(g), Some(("M572", 0.036)));
         assert_eq!(gcode_pressure_advance("M900 K0.05"), Some(("M900", 0.05)));
+    }
+
+    #[test]
+    fn bambu_process_variables_are_mapped() {
+        let t = translate(
+            "M620.1 E F{flush_volumetric_speeds[initial_no_support_extruder]/2.4053*60} T{flush_temperatures[initial_no_support_extruder]}\n\
+             G0 X240 F{outer_wall_volumetric_speed/(0.3*0.5) * 60}\n\
+             G1 Y{first_layer_center_no_wipe_tower[1]}\n\
+             {if !spiral_mode && print_sequence != \"by object\"}M971{endif}\n",
+            &Source::default(),
+            "gcode.end",
+        );
+        assert!(t.untranslated.is_empty(), "{:?}", t.untranslated);
+        let e = TemplateEngine::new();
+        let mut vars = sample_template_scope();
+        vars.set_or_push("max_volumetric_speed", 12.0_f64);
+        vars.set_or_push("temperature", 220.0_f64);
+        vars.set_or_push("first_layer_min_y", 100.0_f64);
+        vars.set_or_push("first_layer_max_y", 140.0_f64);
+        let out = e.render(&t.text, &vars).unwrap();
+        assert_eq!(
+            out,
+            "M620.1 E F299.339 T220\nG0 X240 F4800\nG1 Y120\nM971\n"
+        );
     }
 
     #[test]

@@ -47,11 +47,19 @@ fn every_model_prints_with_default_values() {
         "profiles/printers/bambu_x1e.toml",
         "profiles/printers/marlin_generic.toml",
         "profiles/printers/klipper_generic.toml",
+        "profiles/printers/bambu_a1.toml",
+        "profiles/printers/bambu_p1s.toml",
     ] {
+        // Bambu A1 et P1S : PLA seulement (mêmes dialecte et gabarits que la
+        // X1E, déjà essayée en PETG) ; le catalogue est long à calculer.
+        let petg = !printer.contains("bambu_a1") && !printer.contains("bambu_p1s");
         for filament in [
             "profiles/filaments/generic_pla.toml",
             "profiles/filaments/generic_petg.toml",
-        ] {
+        ]
+        .into_iter()
+        .filter(|f| petg || f.contains("pla"))
+        {
             let mut w = bench(printer, filament);
             for file in catalogue() {
                 let src = std::fs::read_to_string(&file).unwrap();
