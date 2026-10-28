@@ -17,8 +17,9 @@
 //!   première couche.
 //! - Radeau : contour à `margin` du bord, rempli en lignes (`fill_lines`) :
 //!   couche de base pleine, couches intermédiaires espacées, couche de
-//!   contact pleine ; la pièce est rehaussée de son épaisseur plus l'écart
-//!   de décollage.
+//!   contact pleine en lignes fines (largeur de la buse : surface lisse, qui
+//!   accroche moins la pièce) ; la pièce est rehaussée de son épaisseur plus
+//!   l'écart de décollage.
 //!
 //! Pur et déterministe.
 
@@ -450,8 +451,16 @@ pub fn brim(beads: &[Bead], width: f64, gap: f64, w: f64, z: f64) -> Option<Vec<
 }
 
 /// Couches du radeau et son épaisseur (dessus de la couche de contact).
-/// `heights` : hauteur de chaque couche, de la base au contact.
-pub fn raft(beads: &[Bead], margin: f64, w: f64, heights: &[f64]) -> Option<(Vec<WayPoint>, f64)> {
+/// `heights` : hauteur de chaque couche, de la base au contact ; `w` :
+/// largeur des lignes, `contact_w` celle de la couche de contact (s'il y a
+/// plus d'une couche).
+pub fn raft(
+    beads: &[Bead],
+    margin: f64,
+    w: f64,
+    contact_w: f64,
+    heights: &[f64],
+) -> Option<(Vec<WayPoint>, f64)> {
     let field = Field::new(beads, margin)?;
     let outlines = field.contours(margin);
     let mut out: Vec<WayPoint> = Vec::new();
@@ -460,7 +469,12 @@ pub fn raft(beads: &[Bead], margin: f64, w: f64, heights: &[f64]) -> Option<(Vec
     for (k, h) in heights.iter().enumerate() {
         z += h;
         // Base et contact pleins, intermédiaires espacés ; sens alterné.
-        let spacing = if k == 0 || k + 1 == n { w } else { RAFT_SPARSE };
+        let lw = if k + 1 == n && n > 1 { contact_w } else { w };
+        let spacing = if k == 0 || k + 1 == n {
+            lw
+        } else {
+            RAFT_SPARSE
+        };
         let angle = if k % 2 == 0 {
             0.0
         } else {
@@ -468,16 +482,16 @@ pub fn raft(beads: &[Bead], margin: f64, w: f64, heights: &[f64]) -> Option<(Vec
         };
         for lp in &outlines {
             let contour: Vec<[f64; 3]> = lp.iter().map(|p| [p[0], p[1], z]).collect();
-            for chain in fill_lines(&contour, spacing, angle, w / 2.0) {
+            for chain in fill_lines(&contour, spacing, angle, lw / 2.0) {
                 out.push(point(
                     [chain[0][0], chain[0][1]],
                     z,
-                    w,
+                    lw,
                     *h,
                     MoveKind::Travel,
                 ));
                 for p in chain.iter().skip(1) {
-                    out.push(point([p[0], p[1]], z, w, *h, MoveKind::Print));
+                    out.push(point([p[0], p[1]], z, lw, *h, MoveKind::Print));
                 }
             }
         }
@@ -584,7 +598,7 @@ mod tests {
     #[test]
     fn raft_covers_the_footprint_plus_its_margin() {
         let beads = ring(10.0, 120);
-        let (pts, top) = raft(&beads, 3.0, 0.5, &[0.3, 0.2, 0.2]).unwrap();
+        let (pts, top) = raft(&beads, 3.0, 0.5, 0.4, &[0.3, 0.2, 0.2]).unwrap();
         assert!((top - 0.7).abs() < 1e-12);
         let zs: Vec<f64> = pts.iter().map(|p| p.z).collect();
         assert!(zs.windows(2).all(|w| w[0] <= w[1]), "couche après couche");
@@ -607,6 +621,17 @@ mod tests {
             count(0.5),
             count(0.3)
         );
+        // Couche de contact (dessus, à 0,7 mm) : lignes fines de la largeur
+        // de la buse, plus serrées que la base.
+        let widths = |z: f64| {
+            pts.iter()
+                .filter(|p| p.kind == MoveKind::Print && (p.z - z).abs() < 1e-9)
+                .map(|p| p.w)
+                .collect::<Vec<_>>()
+        };
+        assert!(widths(0.7).iter().all(|&w| w == 0.4));
+        assert!(widths(0.3).iter().all(|&w| w == 0.5));
+        assert!(count(0.7) > count(0.3), "{} / {}", count(0.7), count(0.3));
     }
 
     #[test]

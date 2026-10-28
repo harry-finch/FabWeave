@@ -113,7 +113,8 @@ interface Doc {
 export const DEFAULT_PLACEMENT: Placement = { rotation: 0, copies: [1, 1] };
 /** Réglages proposés à la première activation (valeurs par défaut du moteur). */
 export const BRIM: Extract<Adhesion, { type: 'brim' }> = { type: 'brim', width: 5, gap: 0.1 };
-export const RAFT: Extract<Adhesion, { type: 'raft' }> = { type: 'raft', layers: 3, gap: 0.2, margin: 3 };
+// Valeurs par défaut du moteur (`setup.rs`, RAFT_GAP, RAFT_MARGIN).
+export const RAFT: Extract<Adhesion, { type: 'raft' }> = { type: 'raft', layers: 3, gap: 0.3, margin: 3 };
 
 function readSaved(): Partial<Doc> {
   try {

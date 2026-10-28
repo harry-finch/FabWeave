@@ -117,8 +117,8 @@ fn parse_args() -> Result<Args, String> {
                     .map_err(|_| format!("--raft {v} : nombre de couches attendu"))?;
                 a.setup.adhesion = fabweave_core::setup::Adhesion::Raft {
                     layers,
-                    gap: 0.2,
-                    margin: 3.0,
+                    gap: fabweave_core::setup::RAFT_GAP,
+                    margin: fabweave_core::setup::RAFT_MARGIN,
                 };
             }
             "--set" => {

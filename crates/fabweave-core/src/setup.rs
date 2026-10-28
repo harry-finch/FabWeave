@@ -100,11 +100,17 @@ fn brim_gap() -> f64 {
 fn raft_layers() -> u32 {
     3
 }
+/// Écart de décollage par défaut du radeau (mm) : à 0,2 mm, un radeau de PLA
+/// est resté soudé à la pièce (essai du 28/10/2026) ; 0,3 mm comme Cura.
+pub const RAFT_GAP: f64 = 0.3;
+/// Débord par défaut du radeau (mm).
+pub const RAFT_MARGIN: f64 = 3.0;
+
 fn raft_gap() -> f64 {
-    0.2
+    RAFT_GAP
 }
 fn raft_margin() -> f64 {
-    3.0
+    RAFT_MARGIN
 }
 
 /// Copies au plus (produit des deux nombres).
@@ -383,7 +389,8 @@ pub fn arrange(path: &Toolpath, setup: &Setup, printer: &PrinterProfile) -> (Too
                         printer.layers.layer_height,
                         layers as usize - 1,
                     ));
-                    adhesion::raft(&beads, margin, printer.nozzle.diameter * 1.25, &heights)
+                    let d = printer.nozzle.diameter;
+                    adhesion::raft(&beads, margin, d * 1.25, d, &heights)
                         .map(|(r, top)| (r, top + gap))
                 }
                 Adhesion::None => unreachable!(),
@@ -646,7 +653,7 @@ mod tests {
             s.adhesion,
             Adhesion::Raft {
                 layers: 3,
-                gap: 0.2,
+                gap: 0.3,
                 margin: 3.0
             }
         );

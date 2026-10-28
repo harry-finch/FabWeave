@@ -254,4 +254,17 @@ En attendant les impressions de l'étape 6, à la demande de l'utilisateur (phot
 
 **Vérification.** Test : spirale de 10 mm de rayon montant de 0,24 mm par tour, la boucle de bordure contre la pièce fait un tour complet autour du centre (elle n'en faisait aucun). Cas de l'utilisateur recalculé (vase à ondulations, rayon 10, 3 branches, torsion 20 %, bordure 5 mm).
 
-**Ouvert.** Radeau impossible à décoller sous le tube de gouttes (l'interface le retire bien : c'est la pièce imprimée) ; réglages du radeau à revoir avec l'utilisateur. Adhésion commune à tous les modèles et invisible quand la section Plateau est repliée.
+**Ouvert.** Adhésion commune à tous les modèles et invisible quand la section Plateau est repliée.
+
+## 2026-10-28 — Radeau plus facile à décoller
+
+**Retour de l'utilisateur.** Tube de gouttes imprimé sur un radeau : radeau soudé à la pièce, partout (l'interface le retire bien, c'est la pièce imprimée).
+
+**Choix** (retenus par l'utilisateur parmi quatre propositions).
+- Écart Z par défaut 0,2 → **0,3 mm** (valeur de Cura), modifiable de 0 à 1 mm comme avant ; constantes `RAFT_GAP` et `RAFT_MARGIN` partagées par le moteur, l'outil en ligne de commande et l'interface (qui marque ↺ un radeau mémorisé à 0,2 mm).
+- **Couche de contact en lignes fines**, de la largeur de la buse (1,25 × avant), serrées d'autant : surface plus lisse, qui accroche moins.
+- Non retenus : déconseiller le radeau dans la fiche du tube de gouttes, afficher l'adhésion dans l'en-tête replié de la section Plateau.
+
+**Analyse.** Le dessous d'une goutte n'est qu'à 0,16 mm du radeau (buse à 0,96 mm, goutte de 0,8 mm), et une goutte est une masse chaude poussée sans bouger : elle s'étale et se soude. L'écart plus grand aide, sans garantie pour ce modèle.
+
+**Vérification.** Test du radeau : couche de contact en lignes de 0,4 mm, plus nombreuses que celles de la base ; valeur par défaut lue à 0,3 mm. Non imprimé.
