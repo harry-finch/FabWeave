@@ -1,0 +1,52 @@
+# ASA générique, buse 0,4 mm, pour imprimante à enceinte fermée (CORE One,
+# X1E). Valeurs d'après « Prusament ASA @COREONE » et « @MK4S » de PrusaSlicer
+# (PrusaResearch 2.5.13), lues par l'import de FabWeave : enceinte à 55 °C,
+# attendue à 40 °C au moins avant d'imprimer (`*C1_CH_ASA*`). Rétraction
+# donnée par l'imprimante dans PrusaSlicer : celle des autres filaments.
+
+format = "fabweave.filament"
+version = 2
+
+[filament]
+id = "generic_asa"
+name = { fr = "ASA générique", en = "Generic ASA" }
+type = "ASA"
+diameter = 1.75
+density = 1.07
+flow_multiplier = 1.0
+pressure_advance = 0.02
+
+[temperature]
+first_layer = 260.0
+nozzle = 260.0
+bed_first_layer = 110.0
+bed = 110.0
+probe = 170.0
+idle = 100.0
+chamber = 55.0
+chamber_min = 40.0
+
+[speed]
+nominal = 40.0
+first_layer = 20.0
+max_volumetric = 15.0
+# Débit maximal par buse haut débit (PrusaSlicer : Prusament ASA @MK4S HF0.4
+# à HF0.8) ; 0,6 et 0,8 standard : 15 comme la 0,4.
+by_nozzle = [
+    { high_flow = true, max_volumetric = 26.0 },
+    { diameter = 0.5, high_flow = true, max_volumetric = 27.0 },
+    { diameter = 0.6, high_flow = true, max_volumetric = 34.0 },
+    { diameter = 0.8, high_flow = true, max_volumetric = 36.0 },
+]
+
+[cooling]
+# Peu de ventilation : l'ASA se rétracte et se décolle s'il refroidit vite.
+fan = 25.0
+first_layer_fan = 0.0
+bridge_fan = 25.0
+
+[retraction]
+length = 0.7
+speed = 35.0
+z_hop = 0.2
+min_travel = 1.5

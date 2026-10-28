@@ -80,9 +80,9 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | PRF-13 | Profil imprimante v2 : zones exclues, accélérations, cône, vignettes, nom par langue, dialecte contrôlé ; profil v1 lu sans changement (test sur le profil MK4S de la v0.2) | v0.3 | fait |
 | PRF-14 | Profils Marlin générique (220 × 220) et Klipper générique (235 × 235) : purge le long du bord gauche en zone exclue, avance de pression si le filament la donne | v0.3 | fait |
 | PRF-12 | Profil Bambu Lab X1E (gabarits de Bambu Studio 02.08 réécrits ; scan lidar retiré ; plaque `plate`) ; variables de gabarit `bed_type`, `max_volumetric_speed`, fonction `num()` | v0.3 | fait, à valider sur la X1E |
-| PRF-04 | Bibliothèque de filaments : PLA, PETG (faits en v0.1), TPU, ASA, PETG-CF | v0.3 | en cours |
+| PRF-04 | Bibliothèque de filaments : PLA, PETG (faits en v0.1), TPU, ASA, PETG-CF (abrasif) ; enceinte minimale attendue avant d'imprimer (`chamber_min`, préchauffe de la CORE One) | v0.3 | fait |
 | PRF-05 | Cône de dégagement de la buse (angle, hauteur) : champs du profil, transmis au script (`printer.nozzle_cone_angle`, `_height`) ; valeurs des machines du fablab à mesurer | v0.3 | en cours |
-| PRF-06 | Facteur d'étirement des ponts par filament | v0.2 | prévu |
+| PRF-06 | Facteur d'étirement des ponts par filament (`bridge_flow`, multiplie le débit des ponts du modèle) | v0.3 | fait |
 | PRF-07 | Édition, duplication, import / export des profils (filaments et imprimantes) dans l'application ; origine de chaque valeur ; profils livrés jamais écrasés | v0.3 | fait |
 | PRF-08 | Plateau rond (`shape = "circle"`, delta), origine au centre ; dépassement radial ; dessiné rond | v0.3 | fait |
 | PRF-10 | Import de profils filament et imprimante depuis PrusaSlicer (`.ini`), OrcaSlicer et Bambu Studio (`.json`) ; rapport des valeurs reprises, ignorées, manquantes ; gabarits traduits et « à relire » (export bloqué avant relecture) | v0.3 | fait, essayé sur des préréglages officiels reconstitués |

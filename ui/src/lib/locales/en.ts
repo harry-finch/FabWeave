@@ -232,6 +232,7 @@ const en: Shape<typeof fr> = {
       diameter: 'Diameter',
       density: 'Density',
       flow_multiplier: 'Flow factor',
+      bridge_flow: 'Bridge factor',
       pressure_advance: 'Advance (PA)',
       abrasive: 'Abrasive',
     },
@@ -243,6 +244,7 @@ const en: Shape<typeof fr> = {
       probe: 'Probing',
       idle: 'Standby',
       chamber: 'Chamber',
+      chamber_min: 'Chamber min',
     },
     speed: { nominal: 'Nominal', first_layer: '1st layer', max_volumetric: 'Max flow', by_nozzle: 'Max flow per nozzle' },
     cooling: { fan: 'Fan', first_layer_fan: '1st layer', bridge_fan: 'Bridges' },
@@ -270,6 +272,7 @@ const en: Shape<typeof fr> = {
     gcode: { thumbnails: '“WxH/PNG” or “WxH/QOI”, separated by commas.' },
     filament: {
       density: 'Density (g/cm³), for the filament mass.',
+      bridge_flow: 'Multiplies the bridge flow requested by the model: below 1 the strand is pulled tighter. From 0 to 2.',
       pressure_advance: 'M572 (Prusa), M900 (Marlin), SET_PRESSURE_ADVANCE (Klipper); 0 if unknown.',
       abrasive: 'Filled material (fibers): hardened nozzle required.',
     },
@@ -277,6 +280,7 @@ const en: Shape<typeof fr> = {
       probe: 'Nozzle while probing the bed, without oozing.',
       idle: 'Nozzle on standby while heating; empty: the probing one.',
       chamber: 'Enclosure target; 0: not regulated.',
+      chamber_min: 'The printer waits for the enclosure to reach this temperature before printing (ASA, ABS); 0: no wait.',
     },
     speed: {
       nominal: 'Print speed for a speed factor of 1 in the model.',

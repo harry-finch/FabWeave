@@ -381,7 +381,12 @@ pub fn plan_at(
         }
 
         let area = bead_area(b.w, b.h);
-        let mult = flow_mult * b.flow;
+        let bridge = if b.kind == MoveKind::Bridge {
+            filament.filament.bridge_flow
+        } else {
+            1.0
+        };
+        let mult = flow_mult * b.flow * bridge;
         let requested = match b.speed {
             Speed::Absolute(v) => v,
             Speed::Factor(f) => sp.nominal * f,

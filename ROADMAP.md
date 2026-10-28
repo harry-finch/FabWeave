@@ -88,6 +88,13 @@ Critères d'acceptation :
 5. **Reports de la v0.2** : remplissage en anneaux concentriques (API-14), extrusion à l'arrêt (API-15), impression par gouttes (CAT-12). *Fait le 28/10/2026 : `fill_rings` (décalages de `i_overlay`), option « Anneaux » du fond du vase à ondulations, `path.blob`, modèle « Tube de gouttes ».*
 6. ⏸ Validation de jalon : une impression validée par machine du fablab. *MK4S validée le 28/10/2026 (plusieurs modèles, vignette à l'écran) ; restent la CORE One et la X1E.*
 
+Étapes ajoutées le 28/10/2026 pour terminer la v0.3, menées pendant les impressions de l'étape 6 :
+
+7. **Filaments** : TPU, ASA, PETG-CF (PRF-04), préchauffe de l'enceinte de la CORE One, facteur des ponts par filament (PRF-06). *Fait le 28/10/2026.*
+8. **Bambu Lab A1 et P1S** (PRF-09) : profils et gabarits de Bambu Studio réécrits.
+9. **Essuyage et pause** (API-12).
+10. **Catalogue** : tour de température et test de débit (CAT-22), 2 000 rétractions (CAT-15), défi porte-à-faux plus (CAT-16), écrous et vis (CAT-13), support de téléphone (CAT-14), panier tressé (CAT-19), boîte à visser (CAT-20).
+
 - **Profils versionnés** (TOML) : plateau (taille, forme rectangulaire ou ronde, origine), buse, cinématique (vitesses max, vitesse Z max), cône de dégagement de la buse, dialecte du firmware, gabarits de démarrage et de fin ; filaments : températures (première couche, suivantes, plateau), refroidissement, rétraction, débit volumétrique max, vitesse nominale, facteur d'étirement des ponts.
 - **Bibliothèque** : Prusa MK4S et Core One (livrées en v0.1), **Bambu Lab A1, P1 et X1**, plus « Marlin générique ».
 - **Dialectes** : Prusa (Buddy), Bambu Lab, Marlin, Klipper ; avance de pression (`M572`, `M900`, `SET_PRESSURE_ADVANCE`), contrôles de modèle et de buse (`M862.x`), ligne de purge hors pièce, vignette intégrée au G-code (écran des Prusa).

@@ -280,3 +280,20 @@ En attendant les impressions de l'étape 6, à la demande de l'utilisateur (phot
 - Le dernier pas de paroi avant une boucle s'allonge jusqu'à elle (sinon, rarement, un segment de quelques microns) ; le départ de la spirale ne répète pas le dernier point du fond.
 
 **Vérification.** `fabweave check` aux bornes ; 121 000 points, 105 min, 12,1 g ; vu de dessus dans l'application, arcs qui se chevauchent d'un tour à l'autre. L'affaissement n'est pas simulé : le rendu réel se jugera à l'impression.
+
+## 2026-10-28 — v0.3, étape 7 : filaments TPU, ASA, PETG-CF
+
+L'utilisateur demande de terminer la v0.3 pendant ses impressions. Fonctions encore « prévu » en v0.3 rangées en quatre étapes (7 à 10, voir ROADMAP), menées avant la validation du jalon (étape 6).
+
+**Entrées.** `PrusaResearch.ini` (« Generic FLEX @MK4S / @COREONE / 0.6 / 0.8 », « Prusament ASA @MK4S / @COREONE / HF », préréglages abstraits `*C1_CH_ASA*`, `*C1_CH_FLEX*`, gabarit de démarrage de la CORE One avec préchauffe de l'enceinte) ; profils Bambu d'OrcaSlicer (`Generic PETG-CF @BBL X1C`, `Generic PETG-CF @base`, `fdm_filament_pet`).
+
+**Choix.**
+- Valeurs lues par l'import de FabWeave sur le paquet PrusaSlicer entier (7 155 filaments). Il nommait alors chaque filament « Filament importé » : le préréglage commun déclare `filament_settings_id = ""`, hérité par tous. Le nom de la section fait désormais foi (test).
+- **TPU** : type `FLEX` comme PrusaSlicer (les gabarits Prusa rétractent de 4 mm au démarrage et palpent à 210 °C ; le X1E reconnaît `FLEX`) ; débit le plus bas des deux machines (2,5 mm³/s) ; vitesse nominale 20 mm/s ; rétraction de PrusaSlicer (2,5 mm), signalée dans le fichier.
+- **ASA** : valeurs de la CORE One (plateau 110 °C, ventilateur 25 %) ; enceinte 55 °C, attendue à 40 °C. Nouveau champ facultatif `[temperature] chamber_min` et variable de gabarit `chamber_minimal_temperature` ; le gabarit de la CORE One reprend la préchauffe de PrusaSlicer (plateau à 115 °C, tête parquée, `M191`). Le X1E attend déjà son enceinte au-delà de 40 °C : avec l'ASA, il la chauffe à 55 °C.
+- **PETG-CF** : valeurs de Bambu Studio (aucun PETG-CF générique chez PrusaSlicer), `abrasive = true` ; palpage et enceinte des PETG de PrusaSlicer, avance de pression du PETG générique.
+- **Facteur des ponts** (PRF-06) : `[filament] bridge_flow`, de 0 à 2, multiplie le débit des ponts du modèle, 1 par défaut (toujours transmis à l'éditeur : omis à 1, le champ arrivait vide). Champs « Enceinte min » et « Ponts (coef.) » dans l'éditeur de profils.
+
+**Vérification.** Tests : chaque filament livré se lit et survit à l'écriture TOML ; CORE One + ASA : `M140 S115`, `M191 S40`, `M141 S55`, puis `M140 S110` (séquence relue, conforme à PrusaSlicer) ; CORE One + PLA sans attente ; X1E + ASA : `M191 S55` ; MK4S + TPU : `G1 E-4`, `M109 T0 R210` ; PETG-CF dans une buse non trempée : `nozzle.not_abrasive` ; facteur des ponts appliqué aux seuls ponts, refusé hors de 0–2.
+
+**Non fait.** Aucun de ces filaments imprimé avec FabWeave.

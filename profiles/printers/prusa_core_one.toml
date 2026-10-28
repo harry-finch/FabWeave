@@ -1,8 +1,8 @@
 # Prusa CORE One, buse 0,4 mm standard (firmware Buddy).
 # Gabarits adaptés du profil « Prusa CORE One 0.4 nozzle » de PrusaSlicer
-# (prusa3d/PrusaSlicer-settings-prusa-fff, PrusaResearch 2.5.13). Sans la
-# préchauffe de l'enceinte (filaments à `chamber_minimal_temperature` nulle :
-# PLA, PETG).
+# (prusa3d/PrusaSlicer-settings-prusa-fff, PrusaResearch 2.5.13), dont la
+# préchauffe de l'enceinte pour un filament à `chamber_min` non nulle (ASA :
+# plateau à 115 °C, attente de l'enceinte, `M191`).
 
 format = "fabweave.printer"
 version = 2
@@ -72,7 +72,7 @@ M555 X{min(bed_size_x, first_layer_min_x + 32) - 32} Y{max(0, first_layer_min_y)
 G90 ; use absolute coordinates
 M83 ; extruder relative mode
 
-M140 S{first_layer_bed_temperature} ; set bed temp
+{if chamber_minimal_temperature > 0 { "M140 S115 ; set bed temp for chamber heating" } else { `M140 S${num(first_layer_bed_temperature)} ; set bed temp` }}
 
 M109 R{probe_temperature} ; wait for temp
 
@@ -80,7 +80,14 @@ M84 E ; turn off E motor
 
 G28 ; home all without mesh bed level
 
-M141 S{chamber_temperature} ; set nominal chamber temp
+{if chamber_minimal_temperature > 0 { `; Min chamber temp section
+M104 S${num(idle_temperature)} ; set idle temp
+G1 Z10 F720 ; set bed position
+G1 X242 Y-9 F4800 ; set print head position
+M191 S${num(chamber_minimal_temperature)} ; wait for minimal chamber temp
+M141 S${num(chamber_temperature)} ; set nominal chamber temp
+M107
+M140 S${num(first_layer_bed_temperature)} ; set bed temp` } else { `M141 S${num(chamber_temperature)} ; set nominal chamber temp` }}
 
 {if first_layer_bed_temperature <= 60 { "M106 S70" }}
 G0 Z40 F10000

@@ -311,6 +311,10 @@ pub struct FilamentInfo {
     /// Matière abrasive (chargée de fibres) : buse dure exigée.
     #[serde(default)]
     pub abrasive: bool,
+    /// Facteur des ponts : multiplie le débit demandé par le modèle sur un
+    /// pont (`bridge_to`, `bridge_points`), 1 par défaut.
+    #[serde(default = "one")]
+    pub bridge_flow: f64,
 }
 
 fn one() -> f64 {
@@ -332,6 +336,9 @@ pub struct Temperatures {
     /// Consigne de l'enceinte fermée (Core One…), 0 : sans régulation.
     #[serde(default)]
     pub chamber: f64,
+    /// Enceinte minimale avant d'imprimer (ASA, ABS…), 0 : pas d'attente.
+    #[serde(default)]
+    pub chamber_min: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -651,6 +658,13 @@ pub fn check_filament(f: &FilamentProfile) -> Vec<Issue> {
         ],
         &mut out,
     );
+    if !(f.filament.bridge_flow > 0.0 && f.filament.bridge_flow <= 2.0) {
+        out.push(
+            Issue::error("profile.out_of_range")
+                .field("filament.bridge_flow")
+                .value(f.filament.bridge_flow),
+        );
+    }
     let flows: Vec<(&str, f64)> = f
         .speed
         .by_nozzle
@@ -670,6 +684,7 @@ pub fn check_filament(f: &FilamentProfile) -> Vec<Issue> {
             ("temperature.bed_first_layer", f.temperature.bed_first_layer),
             ("temperature.bed", f.temperature.bed),
             ("temperature.chamber", f.temperature.chamber),
+            ("temperature.chamber_min", f.temperature.chamber_min),
             ("retraction.length", f.retraction.length),
             ("retraction.z_hop", f.retraction.z_hop),
             ("retraction.min_travel", f.retraction.min_travel),

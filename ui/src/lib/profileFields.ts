@@ -128,6 +128,7 @@ export const FILAMENT_GROUPS: Group[] = [
       mm('filament.diameter', 'filament.diameter', 0.05, 2),
       { path: 'filament.density', key: 'filament.density', type: 'num', unit: 'g/cm³', step: 0.01, decimals: 2, min: 0 },
       { path: 'filament.flow_multiplier', key: 'filament.flow_multiplier', type: 'num', unit: '×', step: 0.01, decimals: 3, min: 0 },
+      { path: 'filament.bridge_flow', key: 'filament.bridge_flow', type: 'num', unit: '×', step: 0.05, decimals: 2, min: 0 },
       { path: 'filament.pressure_advance', key: 'filament.pressure_advance', type: 'num', unit: 's', step: 0.005, decimals: 3, min: 0 },
       { path: 'filament.abrasive', key: 'filament.abrasive', type: 'bool' },
     ],
@@ -142,6 +143,7 @@ export const FILAMENT_GROUPS: Group[] = [
       temp('temperature.probe', 'temperature.probe'),
       opt('temperature.idle', 'temperature.idle', '°C', 5, 0),
       temp('temperature.chamber', 'temperature.chamber'),
+      temp('temperature.chamber_min', 'temperature.chamber_min'),
     ],
   },
   {

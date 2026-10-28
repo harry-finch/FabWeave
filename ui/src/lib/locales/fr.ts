@@ -230,6 +230,7 @@ const fr = {
       diameter: 'Diamètre',
       density: 'Masse vol.',
       flow_multiplier: 'Débit (coef.)',
+      bridge_flow: 'Ponts (coef.)',
       pressure_advance: 'Avance (PA)',
       abrasive: 'Abrasif',
     },
@@ -241,6 +242,7 @@ const fr = {
       probe: 'Palpage',
       idle: 'Attente',
       chamber: 'Enceinte',
+      chamber_min: 'Enceinte min',
     },
     speed: { nominal: 'Nominale', first_layer: '1re couche', max_volumetric: 'Débit max', by_nozzle: 'Débit max par buse' },
     cooling: { fan: 'Ventilateur', first_layer_fan: '1re couche', bridge_fan: 'Ponts' },
@@ -268,6 +270,7 @@ const fr = {
     gcode: { thumbnails: '« LxH/PNG » ou « LxH/QOI », séparées par des virgules.' },
     filament: {
       density: 'Masse volumique (g/cm³), pour la masse de filament.',
+      bridge_flow: 'Multiplie le débit des ponts demandé par le modèle : au-dessous de 1, le fil se tend davantage. De 0 à 2.',
       pressure_advance: 'M572 (Prusa), M900 (Marlin), SET_PRESSURE_ADVANCE (Klipper) ; 0 si inconnue.',
       abrasive: 'Matière chargée (fibres) : buse dure exigée.',
     },
@@ -275,6 +278,7 @@ const fr = {
       probe: 'Buse pendant le palpage du plateau, sans suinter.',
       idle: 'Buse en attente pendant la chauffe ; vide : celle du palpage.',
       chamber: 'Consigne de l’enceinte fermée ; 0 : sans régulation.',
+      chamber_min: 'L’imprimante attend que l’enceinte atteigne cette température avant d’imprimer (ASA, ABS) ; 0 : pas d’attente.',
     },
     speed: {
       nominal: 'Vitesse d’impression pour un facteur de vitesse 1 dans le modèle.',

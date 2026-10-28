@@ -1,0 +1,49 @@
+# TPU (souple) générique, buse 0,4 mm. Valeurs d'après « Generic FLEX @MK4S »
+# et « @COREONE » de PrusaSlicer (PrusaResearch 2.5.13), lues par l'import de
+# FabWeave. Type « FLEX » comme PrusaSlicer : les gabarits des Prusa rétractent
+# alors de 4 mm au démarrage et palpent à 210 °C ; le X1E le reconnaît aussi.
+# Débit le plus bas des deux (2,5 mm³/s, CORE One). La rétraction (2,5 mm) est
+# celle de PrusaSlicer ; à réduire si le filament se tord dans l'extrudeur.
+
+format = "fabweave.filament"
+version = 2
+
+[filament]
+id = "generic_tpu"
+name = { fr = "TPU générique", en = "Generic TPU" }
+type = "FLEX"
+diameter = 1.75
+density = 1.22
+flow_multiplier = 1.08
+pressure_advance = 0.0
+
+[temperature]
+first_layer = 230.0
+nozzle = 230.0
+bed_first_layer = 50.0
+bed = 50.0
+probe = 210.0
+idle = 70.0
+chamber = 30.0
+
+[speed]
+# Lent : le TPU flambe dans l'extrudeur s'il est poussé vite.
+nominal = 20.0
+first_layer = 15.0
+max_volumetric = 2.5
+# Débit maximal par buse (PrusaSlicer : Generic FLEX @MK4S 0.6 et 0.8).
+by_nozzle = [
+    { diameter = 0.6, max_volumetric = 6.0 },
+    { diameter = 0.8, max_volumetric = 9.0 },
+]
+
+[cooling]
+fan = 50.0
+first_layer_fan = 0.0
+bridge_fan = 70.0
+
+[retraction]
+length = 2.5
+speed = 60.0
+z_hop = 0.0
+min_travel = 2.0

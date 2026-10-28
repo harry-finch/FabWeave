@@ -1,0 +1,44 @@
+# PETG chargé de fibres de carbone, buse 0,4 mm **trempée** (abrasif). Valeurs
+# d'après « Generic PETG-CF @BBL X1C » de Bambu Studio (via OrcaSlicer :
+# `Generic PETG-CF @base`, `fdm_filament_pet`) : buse 255 °C, plateau 70 °C,
+# débit 11,5 mm³/s, ventilateur 40 %. Palpage à 175 °C et enceinte à 35 °C
+# comme les PETG de PrusaSlicer ; avance de pression et rétraction du PETG
+# générique (aucun PETG-CF générique chez PrusaSlicer).
+
+format = "fabweave.filament"
+version = 2
+
+[filament]
+id = "generic_petg_cf"
+name = { fr = "PETG-CF générique", en = "Generic PETG-CF" }
+type = "PETG-CF"
+diameter = 1.75
+density = 1.25
+flow_multiplier = 0.95
+pressure_advance = 0.053
+abrasive = true
+
+[temperature]
+first_layer = 255.0
+nozzle = 255.0
+bed_first_layer = 70.0
+bed = 70.0
+probe = 175.0
+idle = 130.0
+chamber = 35.0
+
+[speed]
+nominal = 35.0
+first_layer = 20.0
+max_volumetric = 11.5
+
+[cooling]
+fan = 40.0
+first_layer_fan = 0.0
+bridge_fan = 90.0
+
+[retraction]
+length = 0.8
+speed = 35.0
+z_hop = 0.15
+min_travel = 1.5

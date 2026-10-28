@@ -379,9 +379,10 @@ fn ini_sets(source: &str) -> Vec<Set> {
         let mut missing = None;
         let mut src = resolve(&sections, prefix, preset, &mut missing, 0);
         src.map.shift_remove("inherits");
+        // Le nom de la section fait foi : un parent commun peut déclarer
+        // `filament_settings_id = ""` (PrusaResearch.ini), hérité par tous.
         src.map
-            .entry(format!("{prefix}_settings_id"))
-            .or_insert_with(|| vec![preset.to_string()]);
+            .insert(format!("{prefix}_settings_id"), vec![preset.to_string()]);
         out.push(Set {
             kind,
             src,
@@ -1149,13 +1150,15 @@ fn filament(set: &Set, base: &FilamentProfile) -> (Imported, Vec<String>) {
     );
     b.set(
         "temperature.chamber",
-        &[
-            "chamber_temperature",
-            "chamber_temperatures",
-            "chamber_minimal_temperature",
-        ],
+        &["chamber_temperature", "chamber_temperatures"],
         true,
         &mut t.chamber,
+    );
+    b.set(
+        "temperature.chamber_min",
+        &["chamber_minimal_temperature"],
+        true,
+        &mut t.chamber_min,
     );
 
     b.miss("speed.nominal", Fallback::Base);
@@ -1504,10 +1507,10 @@ fn known(name: &str) -> Option<(&'static str, Ty)> {
         | "bed_temperature_initial_layer_single"
         | "bed_temperature_initial_layer_vector" => ("first_layer_bed_temperature", Ty::Num),
         "bed_temperature" => ("bed_temperature", Ty::Num),
-        "chamber_temperature"
-        | "chamber_minimal_temperature"
-        | "overall_chamber_temperature"
-        | "chamber_temperatures" => ("chamber_temperature", Ty::Num),
+        "chamber_temperature" | "overall_chamber_temperature" | "chamber_temperatures" => {
+            ("chamber_temperature", Ty::Num)
+        }
+        "chamber_minimal_temperature" => ("chamber_minimal_temperature", Ty::Num),
         "idle_temperature" => ("idle_temperature", Ty::Num),
         "nozzle_diameter" => ("nozzle_diameter", Ty::Num),
         "max_print_height" | "printable_height" => ("max_print_height", Ty::Num),
@@ -2209,6 +2212,20 @@ mod tests {
         let g = "{if printer_notes!~/.*(MK4IS).*/}\nM900 K{if nozzle_diameter[0]==0.4}0.05{endif}\n{else}\nM572 S{if nozzle_diameter[0]==0.4}0.036{elsif nozzle_diameter[0]==0.5}0.025{endif}\n{endif}";
         assert_eq!(gcode_pressure_advance(g), Some(("M572", 0.036)));
         assert_eq!(gcode_pressure_advance("M900 K0.05"), Some(("M900", 0.05)));
+    }
+
+    #[test]
+    fn bundle_presets_are_named_after_their_section() {
+        // Un parent commun déclare un nom vide (comme PrusaResearch.ini).
+        let ini = "[filament:*common*]\nfilament_settings_id = \"\"\nfilament_type = PLA\n\n\
+                   [filament:Generic FLEX @MK4S]\ninherits = *common*\nfilament_type = FLEX\n";
+        let sets = ini_sets(ini);
+        assert_eq!(sets.len(), 1);
+        assert_eq!(
+            sets[0].src.text("filament_settings_id").as_deref(),
+            Some("Generic FLEX @MK4S")
+        );
+        assert_eq!(sets[0].src.text("filament_type").as_deref(), Some("FLEX"));
     }
 
     #[test]
