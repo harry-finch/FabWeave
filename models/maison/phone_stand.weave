@@ -1,0 +1,249 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Support de téléphone multi-angle", en = "AnyAngle phone stand" }
+category = { fr = "Maison", en = "Home" }
+description = { fr = "Un arc ondulé en double paroi qui tient le téléphone en paysage à de nombreux angles (entre deux ondulations) ou debout dans les fentes. Deux boucles imbriquées par couche, des ondulations de profils différents dehors, dedans et au milieu ; la paroi se resserre à mi-hauteur et l'arc est légèrement pincé pour serrer le téléphone. Mesurer le téléphone avec sa coque.", en = "A wavy double-wall arc that holds the phone in landscape at many angles (between two waves) or upright in the slots. Two nested loops per layer, waves of different shapes outside, inside and in the middle; the wall narrows half way up and the arc is slightly squeezed to grip the phone. Measure the phone with its case on." }
+author = "Andrew Gleadall (FullControl) ; port FabWeave"
+tags = ["téléphone", "support", "ondulations", "utilitaire", "fullcontrol"]
+source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/anyangle_phone_stand.ipynb"
+license = "GPL-3.0"
+recommended_nozzle = [0.4, 0.5, 0.6]
+
+[params.phone_width]
+type = "float"
+label = { fr = "Largeur téléphone", en = "Phone width" }
+unit = "mm"
+help = { fr = "Largeur du téléphone (petit côté), coque comprise.", en = "Phone width (short side), case included." }
+default = 75
+min = 10
+max = 200
+step = 0.5
+
+[params.phone_thickness]
+type = "float"
+label = { fr = "Épaisseur téléphone", en = "Phone thickness" }
+unit = "mm"
+help = { fr = "Épaisseur du téléphone, coque comprise (1 mm est retiré pour ses bords arrondis).", en = "Phone thickness, case included (1 mm is removed for its rounded edges)." }
+default = 9
+min = 4
+max = 20
+step = 0.5
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+default = 30
+min = 20
+max = 40
+step = 1
+
+[params.angles]
+type = "int"
+label = { fr = "Angles", en = "Angles" }
+help = { fr = "Nombre de positions du téléphone en paysage ; impair.", en = "Number of landscape phone positions; odd." }
+default = 13
+min = 9
+max = 19
+step = 2
+
+[params.clamping]
+type = "float"
+label = { fr = "Serrage", en = "Clamping" }
+unit = "%"
+help = { fr = "Plus haut, l'arc est plus pincé et serre davantage le téléphone.", en = "Higher squeezes the arc more and grips the phone harder." }
+default = 50
+min = 0
+max = 100
+step = 5
+
+[params.wave_size]
+type = "float"
+label = { fr = "Ondulations", en = "Wave size" }
+unit = "%"
+help = { fr = "Saillie des ondulations.", en = "How far the waves stick out." }
+default = 100
+min = 50
+max = 150
+step = 5
+
+[params.angry]
+type = "bool"
+label = { fr = "Mode fâché", en = "Angry mode" }
+help = { fr = "Ondulations en pointes et sans fentes. Avec 11 à 15 angles, le téléphone tient entre les deux dernières pointes.", en = "Spiky waves and no slots. With 11 to 15 angles, the phone fits snugly between the last two spikes." }
+default = false
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+advanced = true
+default = 2
+min = 1.25
+max = 2.5
+step = 0.05
+
+[params.height_factor]
+type = "float"
+label = { fr = "Hauteur couche", en = "Layer height" }
+unit = "×"
+help = { fr = "Hauteur de couche, en multiple du diamètre de buse (1 comme l'original, boudin de 0,8 × 0,4 mm).", en = "Layer height, as a multiple of the nozzle diameter (1 like the original, 0.8 × 0.4 mm bead)." }
+advanced = true
+default = 1
+min = 0.5
+max = 1
+step = 0.05
+---
+// Port de « AnyAngle Phone Stand » de FullControl (A. Gleadall, GPL-3.0).
+// Une couche : arc in2 vers le haut, demi-cercle, arc out2, demi-cercle,
+// arc in2 vers le milieu, puis la même boucle intérieure (in1, out1). Chaque
+// point est décalé selon le rayon par l'ondulation de sa ligne ; fentes du
+// téléphone ; dernière demi-ondulation qui monte vers la couche suivante
+// (mode vase) ; resserrement à mi-hauteur ; arc pincé ; rotation de -3/8 tour.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let height = params.height;
+let layers = floor(height / eh).to_int();
+let overlap = ew * 0.25;
+let gap = ew - overlap;
+let angles = params.angles;
+let amp_in_out = 3.25 * params.wave_size / 100;
+let amp_mid = 2.25;
+let freq = (angles - 1) * 2;
+let extra = TAU / ((angles - 1) * 2) * 0.5;
+let mid_contraction = 0.5;
+let all_contraction = 0.05 * params.clamping / 100;
+let segs = angles * 8;
+let half = (segs / 2).to_int();
+let shape_out = if params.angry { 8.0 } else { 2.0 };
+let shape_mid = if params.angry { 8.0 } else { 1.75 };
+let shape_in = if params.angry { 8.0 } else { 1.5 };
+let segs_semi = if params.angry { 2 } else { 16 };
+let thickness = (params.phone_thickness - 1) * (1 - all_contraction);
+
+let medial = params.phone_width / 2 + amp_mid + ew;
+let rad_in2 = medial - gap / 2 - amp_mid - gap;
+let rad_in1 = medial - gap / 2 - amp_mid;
+let rad_out1 = medial + gap / 2 + amp_mid;
+let rad_out2 = medial + gap / 2 + amp_mid + gap;
+let top_x = medial * cos(TAU / 4 - extra);
+let top_y = medial * sin(TAU / 4 - extra);
+let bot_x = medial * cos(3 * TAU / 4 + extra);
+let bot_y = medial * sin(3 * TAU / 4 + extra);
+
+// Lignes d'une couche : centre, rayon, départ, balayage, segments, ligne
+// (1 in2, 2 demi-cercle haut 2, 3 out2, 4 demi-cercle bas 2, 5 in1, 6 et 8
+// demi-cercles 1, 7 out1).
+let specs = [
+    [0.0, 0.0, rad_in2, TAU / 2, -(TAU / 4 + extra), half, 1],
+    [top_x, top_y, medial - rad_in2 + amp_in_out, 3 * TAU / 4 - extra, TAU / 2, segs_semi, 2],
+    [0.0, 0.0, rad_out2, TAU / 4 - extra, TAU / 2 + extra * 2, segs, 3],
+    [bot_x, bot_y, medial - rad_in2 + amp_in_out, 3 * TAU / 4 + extra, TAU / 2, segs_semi, 4],
+    [0.0, 0.0, rad_in2, 3 * TAU / 4 + extra, -(TAU / 4 + extra), half, 1],
+    [0.0, 0.0, rad_in1, TAU / 2, -(TAU / 4 + extra), half, 5],
+    [top_x, top_y, medial - rad_in1, 3 * TAU / 4 - extra, TAU / 2, segs_semi, 6],
+    [0.0, 0.0, rad_out1, TAU / 4 - extra, TAU / 2 + extra * 2, segs, 7],
+    [bot_x, bot_y, medial - rad_in1, 3 * TAU / 4 + extra, TAU / 2, segs_semi, 8],
+    [0.0, 0.0, rad_in1, 3 * TAU / 4 + extra, -(TAU / 4 + extra), half, 5],
+];
+let bx = [];
+let by = [];
+let ids = [];
+for sp in specs {
+    let a = arc(sp[0], sp[1], 0, sp[2], sp[3], sp[4], sp[5]);
+    for k in 0..a.len() {
+        let q = a.point(k);
+        bx.push(q[0]);
+        by.push(q[1]);
+        ids.push(sp[6]);
+    }
+}
+let n = bx.len();
+
+// Ondulations : décalage selon le rayon, d'après la ligne et l'angle.
+for k in 0..n {
+    let id = ids[k];
+    let r = hypot(bx[k], by[k]);
+    let a = atan2(by[k], bx[k]);
+    if a < -0.00001 { a += TAU; }
+    let wave = 0.5 + 0.5 * cos(a * freq - TAU / 2);
+    let wave2 = 0.5 + 0.5 * cos(2 * a * freq - TAU / 2);
+    let dr = if id == 3 { amp_in_out * pow(wave, shape_out) }
+        else if id == 1 { -amp_in_out * pow(wave, shape_in) }
+        else if id == 7 { -amp_mid * pow(if bx[k] < 0 { wave } else { wave2 }, shape_mid) }
+        else if id == 5 { amp_mid * pow(if bx[k] < 0 { wave } else { wave2 }, shape_mid) }
+        else { 0.0 };
+    if r > 0 {
+        bx[k] = bx[k] * (r + dr) / r;
+        by[k] = by[k] * (r + dr) / r;
+    }
+}
+
+// Fentes du téléphone (pas en mode fâché).
+if !params.angry {
+    let shw = thickness / 2;
+    let shh = params.phone_width / 2 + ew / 2;
+    for k in 0..n {
+        let id = ids[k];
+        if id != 1 && id != 2 && id != 4 { continue; }
+        let x = bx[k];
+        let y = by[k];
+        if abs(y) < 1e-9 { continue; }
+        let dir = if y > 0 { 1.0 } else { -1.0 };
+        if abs(x) <= shw && abs(y) <= shh {
+            by[k] = dir * (shh - gap) - dir * amp_in_out * pow(1 - cos(TAU / 4 * x / (shw + ew)), 5);
+        } else if abs(x) <= shw + ew && abs(y) <= shh {
+            by[k] = dir * (shh - gap - amp_in_out);
+        }
+    }
+}
+
+// Points confondus aux raccords des lignes (et des fentes) : retirés.
+let fx = [bx[0]];
+let fy = [by[0]];
+for k in 1..n {
+    if hypot(bx[k] - fx[-1], by[k] - fy[-1]) > 0.0001 {
+        fx.push(bx[k]);
+        fy.push(by[k]);
+    }
+}
+bx = fx;
+by = fy;
+n = bx.len();
+
+// Dernière demi-ondulation : monte d'une couche (mode vase).
+let ramp = (segs / (2 * (angles - 1))).to_int();
+let rise = [];
+for k in 0..n {
+    rise.push(if k >= n - ramp { eh * (k - (n - ramp)) / ramp.to_float() } else { 0.0 });
+}
+
+let path = new_path();
+let z0 = 0.8 * eh;
+let turn = -3 * TAU / 8;
+for i in 0..layers {
+    for k in 0..n {
+        let z = eh * i + rise[k];
+        let r = hypot(bx[k], by[k]);
+        let a = atan2(by[k], bx[k]);
+        // Resserrement vers le milieu de la hauteur, puis arc pincé.
+        r += mid_contraction * (medial - r) * pow(0.5 - 0.5 * cos(z / height * TAU), 0.5);
+        let ap = (a + TAU) % TAU;
+        let a2 = a + (ap - TAU / 2) * all_contraction + turn;
+        r -= r * all_contraction;
+        let x = r * cos(a2);
+        let y = r * sin(a2);
+        if i == 0 && k == 0 {
+            path.travel_to(x, y, z0 + z);
+            path.note(#{ fr: "Départ", en: "Start" });
+        } else {
+            path.print_to(x, y, z0 + z, ew, eh);
+        }
+    }
+}
+path.note(#{ fr: "Fin", en: "End" });
+
+path

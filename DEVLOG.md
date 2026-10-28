@@ -327,3 +327,21 @@ L'utilisateur demande de terminer la v0.3 pendant ses impressions. Fonctions enc
 **Vérification.** Tests : essuyage de 4 mm au bout d'une ligne (point à 6 mm, même hauteur, 0,7 mm rétractés à 200 mm/s plafonnés par les déplacements, pas de seconde rétraction, filament remis avant d'imprimer), erreurs ; pause avec texte accentué (`M117 Inserer l'ecrou`, `M601`, rétraction avant), une par copie, profil sans gabarit refusé. G-code relu sur MK4S et X1E (`M400 U1`).
 
 **Non fait.** Essai sur machine ; essuyage automatique à chaque rétraction (réglage des trancheurs) : seulement à la demande du modèle.
+
+## 2026-10-28 — v0.3, étape 10 : cinq modèles du catalogue
+
+Étape 9 validée par l'utilisateur.
+
+**Entrées.** Notebooks `nuts_and_bolts.ipynb` et `anyangle_phone_stand.ipynb` de FullControl ; fiches « Overhang Challenge Plus » et « 2000-Retractions Test » de fullcontrol.xyz (sans source publiée) ; notes de recherche du 23/10/2026 pour le panier tressé et la boîte à visser.
+
+**Choix.**
+- **Écrous et vis** (CAT-13, port) : filet en spirale continue au profil triangulaire, ailettes de Bézier de degré 4 calculées dans le script, M6 à M12 au pas ISO. Parois multiples (piste suggérée par l'original) : chaque paroi monte sur sa part de la couche, sinon la buse redescendrait contre la paroi voisine déjà imprimée ; l'angle du filet suit donc la hauteur réelle.
+- **Support de téléphone multi-angle** (CAT-14, port) : dix arcs et demi-cercles par couche (arcs natifs), ondulations de profils différents par ligne, fentes, demi-ondulation qui monte d'une couche, resserrement à mi-hauteur, arc pincé, rotation ; points confondus aux raccords retirés.
+- **Défi porte-à-faux plus** (CAT-16, d'après) : paroi verticale puis même spirale qui s'écarte de p·sin(angle) et monte de p·cos(angle) par tour (p = largeur × (1 − recouvrement)), 45 à 135°, quatre formes, vers l'intérieur ; refus expliqué si la descente au-delà de 90° atteindrait le plateau.
+- **Panier tressé** (CAT-19) : brins dehors / dedans, plus larges et plus lents dehors (même débit), décalés d'un demi-pas à chaque rang de quelques tours ; évasement ; fond au rayon sans relief.
+- **Boîte à visser** (CAT-20) : boîte et couvercle au choix, paroi en spirale de 2,25 × la buse, filet sinusoïdal à droite sur une hélice ; le couvercle, imprimé dessus en bas, suit le filet de la boîte décalé d'une largeur plus le jeu (un retournement est une rotation : même sens ; profil pair, jeu constant une fois aligné).
+- **Non faits, décision demandée** : le test des rétractions (CAT-15) fait varier longueur et vitesse de rétraction, saut en Z et vitesse de déplacement dans une même impression ; la tour de température (CAT-22) fait varier la température. Un modèle ne parle jamais de rétraction ni de température (règle du projet).
+
+**Vérification.** `fabweave check` de chaque modèle aux bornes ; catalogue sur sept imprimantes ; formes vues dans l'application (arc ondulé du support et ses fentes, ailettes et filet de la vis, cône du porte-à-faux, damier du panier, filet en haut de la boîte).
+
+**Non fait.** Impression ; ajustement du jeu des filets sur pièce.

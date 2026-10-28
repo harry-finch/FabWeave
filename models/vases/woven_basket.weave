@@ -1,0 +1,206 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Panier tressé", en = "Woven basket" }
+category = { fr = "Vases et luminaires", en = "Vases & lamps" }
+description = { fr = "Panier d'une seule paroi en spirale continue, qui imite la vannerie : chaque tour est fait de brins qui passent alternativement dehors et dedans. Dehors, le brin est plus large et la buse ralentit (plus de matière, même débit) ; dedans, il est fin. Tous les quelques tours, un nouveau rang décale les brins d'un demi-pas : dessus, dessous, comme un vrai tressage. Fond plein en anneaux.", en = "A single-wall basket printed as one continuous spiral, imitating basketry: each turn is made of strands passing alternately outside and inside. Outside, the strand is wider and the nozzle slows down (more material, same flow); inside, it is thin. Every few turns, a new row shifts the strands by half a step: over, under, like real weaving. Solid ring bottom." }
+author = "FabWeave"
+tags = ["panier", "vannerie", "tressage", "spirale", "texture"]
+recommended_nozzle = [0.4, 0.5, 0.6]
+
+[params.radius]
+type = "float"
+label = { fr = "Rayon", en = "Radius" }
+unit = "mm"
+help = { fr = "Rayon moyen de la paroi.", en = "Average radius of the wall." }
+default = 40
+min = 15
+max = 90
+step = 0.5
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+default = 50
+min = 10
+max = 150
+step = 1
+
+[params.flare]
+type = "float"
+label = { fr = "Évasement", en = "Flare" }
+unit = "mm"
+help = { fr = "Le rayon grandit de cette valeur du fond au bord (négatif : il se resserre).", en = "The radius grows by this amount from bottom to rim (negative: it narrows)." }
+default = 8
+min = -15
+max = 25
+step = 0.5
+
+[params.strands]
+type = "int"
+label = { fr = "Brins", en = "Strands" }
+help = { fr = "Nombre de brins par tour (pair).", en = "Number of strands per turn (even)." }
+default = 28
+min = 8
+max = 80
+step = 2
+
+[params.rows]
+type = "int"
+label = { fr = "Tours par rang", en = "Turns per row" }
+help = { fr = "Tours d'un même rang avant que les brins se décalent d'un demi-pas.", en = "Turns in one row before the strands shift by half a step." }
+default = 4
+min = 1
+max = 12
+
+[params.depth]
+type = "float"
+label = { fr = "Relief", en = "Relief" }
+unit = "mm"
+help = { fr = "Écart entre un brin dehors et un brin dedans.", en = "Distance between an outside strand and an inside strand." }
+default = 1.2
+min = 0.2
+max = 3
+step = 0.1
+
+[params.swell]
+type = "float"
+label = { fr = "Gonflement", en = "Swell" }
+unit = "%"
+help = { fr = "Brin dehors plus large de cette part (et buse ralentie d'autant : même débit).", en = "Outside strand wider by this share (and nozzle slowed by as much: same flow)." }
+default = 40
+min = 0
+max = 80
+step = 5
+
+[params.bottom]
+type = "choice"
+label = { fr = "Fond", en = "Bottom" }
+help = { fr = "Couches pleines en anneaux, au rayon de la paroi sans relief ; le tressage naît sur les premiers tours au-dessus.", en = "Solid ring layers at the wall radius without relief; the weave grows over the first turns above." }
+default = "2"
+options = [
+    { value = "none", label = { fr = "Aucun", en = "None" } },
+    { value = "1", label = { fr = "1 couche", en = "1 layer" } },
+    { value = "2", label = { fr = "2 couches", en = "2 layers" } },
+]
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+help = { fr = "Vitesse des brins fins ; les brins larges sont ralentis selon le gonflement. La moitié sur le premier tour.", en = "Speed of the thin strands; wide strands are slowed by the swell. Half on the first turn." }
+default = 20
+min = 3
+max = 60
+step = 0.5
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+help = { fr = "Largeur d'un brin fin, en multiple du diamètre de buse.", en = "Width of a thin strand, as a multiple of the nozzle diameter." }
+advanced = true
+default = 1.5
+min = 1
+max = 2.5
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+advanced = true
+default = 0.6
+min = 0.2
+max = 0.8
+step = 0.05
+---
+// Spirale continue. Le tour est partagé en `strands` brins de 8 points ;
+// la phase d'un brin (dehors / dedans) alterne d'un brin au suivant et
+// s'inverse à chaque rang. Profil d'un brin : plateau, transitions adoucies
+// sur un quart du brin de chaque côté.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let n_strands = params.strands;
+let per_strand = 8;
+let ppt = n_strands * per_strand;               // points par tour
+let depth = params.depth;
+let swell = params.swell / 100;
+let speed = params.speed;
+
+let nb = if params.bottom == "2" { 2 } else if params.bottom == "1" { 1 } else { 0 };
+let fh = printer.first_layer_height;
+let z_bottom = if nb == 0 { 0.0 } else { fh + (nb - 1) * eh };
+let turns = floor((params.height - z_bottom) / eh).to_int();
+let z0 = if nb == 0 { 0.8 * eh } else { z_bottom };
+let ramp = 6 * eh;
+let r_at = |z| params.radius + params.flare * z / params.height;
+
+let path = new_path();
+
+// Fond : anneaux au rayon de départ (sans relief), la dernière couche du
+// centre vers le bord pour que la spirale parte du contour.
+let fw = printer.nozzle_diameter * 1.125;
+path.set_speed_factor(1);
+for j in 0..nb {
+    let z = fh + j * eh;
+    let h = if j == 0 { fh } else { eh };
+    let r = r_at.call(0.0);
+    let contour = circle(0, 0, z, r, -TAU / 4, ppt);
+    let rings = contour.fill_rings(fw, ew / 2 + fw * 0.35);
+    let last = j == nb - 1;
+    if last {
+        rings.reverse();
+    } else {
+        path.travel_to(contour);
+        path.print_points(contour, ew, h);
+    }
+    for c in rings {
+        path.travel_to(c);
+        path.print_points(c, fw, h);
+    }
+    if last {
+        path.travel_to(contour);
+        path.print_points(contour, ew, h);
+    }
+}
+
+let start = if nb == 0 { 0 } else { 1 };
+let total = turns * ppt;
+let full = false;
+for t in start..=total {
+    let tv = t / ppt.to_float();
+    let z = tv * eh;
+    let turn = floor(tv).to_int();
+    let k = t % ppt;
+    let strand = (k / per_strand).to_int();
+    let u = (k % per_strand) / per_strand.to_float();      // position dans le brin
+    let row = (turn / params.rows).to_int();
+    let outside = (strand + row) % 2 == 0;
+    // Plateau au milieu du brin, transitions adoucies aux bouts.
+    let edge = min(u, 1 - u) / 0.25;
+    let g = clamp(edge, 0.0, 1.0);
+    let plateau = g * g * (3 - 2 * g);
+    let grow = if nb == 0 { 1.0 } else { clamp(z / ramp, 0.0, 1.0) };
+    let s = if outside { 1.0 } else { -1.0 };
+    let offset = s * depth / 2 * plateau * grow;
+    let wide = if outside { 1 + swell * plateau * grow } else { 1.0 };
+    let h = if tv >= 1.0 { eh } else if nb == 0 { eh * (1.0 + tv * 0.4) } else { eh * max(tv, 0.1) };
+    if tv >= 1.0 { full = true; }
+    let v = if full { speed } else { speed / 2 };
+    path.set_speed(v / wide);
+    let a = tv * TAU - TAU / 4;
+    let r = r_at.call(z) + offset;
+    // Sur le fond, le premier point clôt déjà le contour.
+    if !(t == start && nb > 0) {
+        path.print_to(r * cos(a), r * sin(a), z0 + z, ew * wide, h);
+    }
+    if t == start {
+        path.note(#{ fr: "Départ de la spirale", en: "Spiral start" });
+    }
+}
+
+path

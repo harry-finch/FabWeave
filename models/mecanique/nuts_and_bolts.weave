@@ -1,0 +1,170 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Écrous et vis", en = "Nuts and bolts" }
+category = { fr = "Mécanique", en = "Mechanical" }
+description = { fr = "Vis à ailettes, écrou à ailettes ou tube fileté, au pas métrique (M6 à M12). Le filet n'est pas tranché : la paroi est une seule spirale continue dont le rayon suit le profil triangulaire du filet, tour après tour. Les ailettes sont des courbes de Bézier tracées à chaque couche du bas.", en = "Wing bolt, wing nut or threaded tube, with a metric thread (M6 to M12). The thread is not sliced: the wall is one continuous spiral whose radius follows the triangular thread profile, turn after turn. The wings are Bézier curves drawn on each lower layer." }
+author = "Andrew Gleadall (FullControl) ; port FabWeave"
+tags = ["vis", "écrou", "filetage", "ailettes", "fullcontrol"]
+source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/nuts_and_bolts.ipynb"
+license = "GPL-3.0"
+recommended_nozzle = [0.4]
+
+[params.part]
+type = "choice"
+label = { fr = "Pièce", en = "Part" }
+default = "wing_bolt"
+options = [
+    { value = "wing_bolt", label = { fr = "Vis à ailettes", en = "Wing bolt" } },
+    { value = "wing_nut", label = { fr = "Écrou à ailettes", en = "Wing nut" } },
+    { value = "threaded_tube", label = { fr = "Tube fileté", en = "Threaded tube" } },
+]
+
+[params.size]
+type = "choice"
+label = { fr = "Filetage", en = "Thread" }
+help = { fr = "Diamètres nominal et intérieur et pas du filet métrique ISO.", en = "Major and minor diameters and pitch of the ISO metric thread." }
+default = "M8"
+options = [
+    { value = "M6", label = "M6 × 1" },
+    { value = "M8", label = "M8 × 1,25" },
+    { value = "M10", label = "M10 × 1,5" },
+    { value = "M12", label = "M12 × 1,75" },
+]
+
+[params.thread_length]
+type = "float"
+label = { fr = "Longueur filetée", en = "Thread length" }
+unit = "mm"
+help = { fr = "Longueur du filet de la vis ou du tube (sans effet sur l'écrou).", en = "Thread length of the bolt or tube (no effect on the nut)." }
+default = 20
+min = 3
+max = 80
+step = 1
+
+[params.wing_height]
+type = "float"
+label = { fr = "Hauteur ailettes", en = "Wing height" }
+unit = "×"
+help = { fr = "Hauteur des ailettes, en multiple du diamètre nominal (sans effet sur le tube).", en = "Wing height, as a multiple of the major diameter (no effect on the tube)." }
+default = 0.75
+min = 0.3
+max = 2
+step = 0.05
+
+[params.clearance]
+type = "float"
+label = { fr = "Jeu", en = "Clearance" }
+unit = "mm"
+help = { fr = "Filet mâle réduit et filet femelle agrandi de cette valeur ; vis et écrou imprimés tous deux : le jeu compte double.", en = "Male thread made smaller and female thread larger by this amount; if both bolt and nut are printed, the clearance counts twice." }
+default = 0.1
+min = 0
+max = 0.5
+step = 0.01
+
+[params.walls]
+type = "int"
+label = { fr = "Parois", en = "Walls" }
+help = { fr = "Parois du filet : 1 comme l'original ; davantage, chaque paroi en retrait de 80 % de largeur vers l'intérieur de la pièce (piste suggérée par FullControl).", en = "Thread walls: 1 like the original; more, each wall set back by 80% of a width into the part (an improvement suggested by FullControl)." }
+default = 1
+min = 1
+max = 4
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+advanced = true
+default = 1.5
+min = 1
+max = 2
+step = 0.05
+
+[params.height_factor]
+type = "float"
+label = { fr = "Hauteur couche", en = "Layer height" }
+unit = "×"
+help = { fr = "Montée par tour, en multiple du diamètre de buse (0,15 mm pour une buse de 0,4 dans l'original).", en = "Rise per turn, as a multiple of the nozzle diameter (0.15 mm for a 0.4 nozzle in the original)." }
+advanced = true
+default = 0.375
+min = 0.2
+max = 0.6
+step = 0.025
+---
+// Port de « nuts and bolts » de FullControl (A. Gleadall, GPL-3.0). L'angle
+// du sommet du filet suit la hauteur (hauteur / pas tours) : le rayon suit un
+// profil triangulaire entre le rayon intérieur et le rayon nominal. Avec
+// plusieurs parois, chacune monte sur sa part de la couche : la buse ne
+// redescend jamais contre une paroi déjà imprimée.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let sizes = #{ M6: [6.0, 5.0, 1.0], M8: [8.0, 6.75, 1.25], M10: [10.0, 8.5, 1.5], M12: [12.0, 10.25, 1.75] };
+let s = sizes[params.size];
+let dia_major = s[0];
+let dia_minor = s[1];
+let pitch = s[2];
+
+let male = params.part != "wing_nut";
+let wing_layers = floor(params.wing_height * dia_major / eh).to_int();
+let thread_layers = floor(params.thread_length / eh).to_int();
+let layers = if params.part == "wing_nut" { wing_layers }
+    else if params.part == "wing_bolt" { wing_layers + thread_layers }
+    else { thread_layers };
+let offset = ew / 2 + params.clearance;
+let rad_min = if male { dia_minor / 2 - offset } else { dia_minor / 2 + offset };
+let rad_max = if male { dia_major / 2 - offset } else { dia_major / 2 + offset };
+let segs = 64;
+let z0 = 0.333 * eh;                             // premier tour qui monte depuis le plateau
+let wall_step = if male { -ew * 0.8 } else { ew * 0.8 };
+
+if male && rad_min - (params.walls - 1) * ew * 0.8 < ew {
+    fail(#{ fr: "Trop de parois pour ce diamètre : le centre est plein.", en: "Too many walls for this diameter: the centre is full." });
+}
+
+// Courbe de Bézier (degré 4) entre cinq points de contrôle, en `n` segments.
+fn bezier(c, n, z) {
+    let out = points();
+    for i in 0..=n {
+        let t = i / n.to_float();
+        let u = 1.0 - t;
+        let b = [u * u * u * u, 4 * u * u * u * t, 6 * u * u * t * t, 4 * u * t * t * t, t * t * t * t];
+        let x = 0.0;
+        let y = 0.0;
+        for k in 0..5 {
+            x += b[k] * c[k][0];
+            y += b[k] * c[k][1];
+        }
+        out.push(x, y, z);
+    }
+    out
+}
+
+let path = new_path();
+path.travel_to(rad_max, 0, z0);
+for i in 0..layers {
+    let z_now = 0.0;
+    for w in 0..params.walls {
+        for j in 0..segs {
+            z_now = z0 + (i + (w + j / segs.to_float()) / params.walls) * eh;
+            let a_max = ((z_now - z0) / pitch * TAU) % TAU;
+            let a_now = j / segs.to_float() * TAU;
+            let d = min(min(abs(a_now - a_max), abs(a_now - (a_max - TAU))), abs(a_max - (a_now - TAU)));
+            let r = rad_min + (1 - d / (TAU / 2)) * (rad_max - rad_min) + w * wall_step;
+            if i + w + j > 0 {                    // le tout premier point est le départ
+                path.print_polar(r, a_now, z_now, ew, eh);
+            }
+        }
+    }
+    // Ailettes : deux courbes de Bézier, de part et d'autre.
+    if params.part == "wing_nut" || (params.part == "wing_bolt" && i < wing_layers) {
+        let r = rad_max + ew / 4;
+        let c1 = [[r, 0.0], [r, dia_major * 0.4], [0.0, dia_major * 2.25], [-r, dia_major * 0.4], [-r, 0.0]];
+        let c2 = [[-r, 0.0], [-r, -dia_major * 0.4], [0.0, -dia_major * 2.25], [r, -dia_major * 0.4], [r, 0.0]];
+        path.print_points(bezier(c1, 32, z_now), ew, eh);
+        path.print_points(bezier(c2, 32, z_now), ew, eh);
+    }
+}
+
+path

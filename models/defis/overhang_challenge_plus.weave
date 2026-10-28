@@ -1,0 +1,154 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Défi porte-à-faux plus", en = "Overhang challenge plus" }
+category = { fr = "Défis d'impression", en = "Print challenges" }
+description = { fr = "Une paroi verticale (cercle, hexagone, carré ou triangle), puis la même spirale qui s'écarte tour après tour avec l'angle de porte-à-faux choisi, de 45° à 135° : chaque tour recouvre une part du précédent et s'y accroche. Commencer vers 60 à 75° en cercle, régler le recouvrement, puis monter vers 90°, essayer l'hexagone, l'intérieur… ou le triangle au-delà de 90° pour les audacieux. Principe du défi « Overhang Challenge Plus » de FullControl ; modèle écrit pour FabWeave.", en = "A vertical wall (circle, hexagon, square or triangle), then the same spiral reaching out turn after turn at the chosen overhang angle, from 45° to 135°: each turn overlaps part of the previous one and hangs on to it. Start around 60 to 75° with a circle, tune the overlap, then go towards 90°, try the hexagon, the inside… or the triangle beyond 90° if you dare. Same principle as FullControl's \"Overhang Challenge Plus\"; model written for FabWeave." }
+author = "FabWeave, d'après FullControl (A. Gleadall)"
+tags = ["porte-à-faux", "sans support", "calibration", "défi", "fullcontrol"]
+source = "https://fullcontrol.xyz/#/models/2d37a5"
+recommended_nozzle = [0.4]
+
+[params.shape]
+type = "choice"
+label = { fr = "Forme", en = "Shape" }
+default = "circle"
+options = [
+    { value = "circle", label = { fr = "Cercle", en = "Circle" } },
+    { value = "6", label = { fr = "Hexagone", en = "Hexagon" } },
+    { value = "4", label = { fr = "Carré", en = "Square" } },
+    { value = "3", label = { fr = "Triangle", en = "Triangle" } },
+]
+
+[params.angle]
+type = "float"
+label = { fr = "Porte-à-faux", en = "Overhang" }
+unit = "°"
+help = { fr = "Angle depuis la verticale : 90° = à plat dans le vide ; au-delà, la spirale redescend en s'écartant.", en = "Angle from vertical: 90° = flat in mid-air; beyond, the spiral goes down as it reaches out." }
+default = 70
+min = 45
+max = 135
+step = 1
+
+[params.overlap]
+type = "float"
+label = { fr = "Recouvrement", en = "Overlap" }
+unit = "%"
+help = { fr = "Part de la largeur d'un tour posée sur le tour précédent. Plus de recouvrement accroche mieux les angles forts.", en = "Share of a turn's width resting on the previous turn. More overlap holds steep angles better." }
+default = 15
+min = 0
+max = 50
+step = 1
+
+[params.inwards]
+type = "bool"
+label = { fr = "Vers l'intérieur", en = "Inwards" }
+help = { fr = "Le porte-à-faux part vers le centre (un toit qui se referme) ; réduire un peu le recouvrement.", en = "The overhang goes towards the centre (a closing roof); reduce the overlap a little." }
+default = false
+
+[params.radius]
+type = "float"
+label = { fr = "Rayon", en = "Radius" }
+unit = "mm"
+help = { fr = "Rayon de la paroi de départ (cercle circonscrit pour un polygone).", en = "Radius of the starting wall (circumscribed circle for a polygon)." }
+default = 15
+min = 8
+max = 50
+step = 0.5
+
+[params.reach]
+type = "float"
+label = { fr = "Débord", en = "Reach" }
+unit = "mm"
+help = { fr = "Distance gagnée vers l'extérieur (ou l'intérieur) par le porte-à-faux.", en = "Distance gained outwards (or inwards) by the overhang." }
+default = 8
+min = 2
+max = 30
+step = 0.5
+
+[params.base_height]
+type = "float"
+label = { fr = "Hauteur de base", en = "Base height" }
+unit = "mm"
+default = 6
+min = 2
+max = 30
+step = 0.5
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse porte-à-faux", en = "Overhang speed" }
+unit = "mm/s"
+help = { fr = "Vitesse dans le porte-à-faux, ventilateur à fond : lent, le boudin a le temps de figer.", en = "Speed in the overhang, full fan: slow lets the bead set." }
+default = 8
+min = 2
+max = 40
+step = 0.5
+---
+// Paroi verticale en spirale continue (mode vase), puis la spirale continue
+// en s'écartant : par tour, le boudin avance de p = largeur × (1 − recouvrement)
+// le long de la pente, soit p·sin(angle) vers l'extérieur et p·cos(angle) en
+// hauteur (négatif au-delà de 90°).
+
+let w = printer.nozzle_diameter * 1.25;
+let h = printer.layer_height;
+let fh = printer.first_layer_height;
+let theta = rad(params.angle);
+let p = w * (1 - params.overlap / 100);
+let dir = if params.inwards { -1.0 } else { 1.0 };
+let dr = dir * p * sin(theta);
+let dz = p * cos(theta);
+let r0 = params.radius;
+let sides = if params.shape == "circle" { 0 } else { parse_int(params.shape) };
+let segs = 240;                                   // multiple de 3, 4 et 6 : sommets exacts
+
+if params.inwards && params.reach >= r0 - w {
+    fail(#{ fr: "Débord plus grand que le rayon : le toit se refermerait sur lui-même.", en: "Reach larger than the radius: the roof would close on itself." });
+}
+if dz > 1.5 * h {
+    warn(#{ fr: "Pente raide et peu de recouvrement : chaque tour monte de plus d'une couche et demie.", en: "Steep slope and little overlap: each turn rises by more than one and a half layers." });
+}
+
+// Rayon de la forme à l'angle a (polygone : sommets sur le cercle de rayon r).
+let shape_r = |r, a| {
+    if sides == 0 { return r; }
+    let sector = TAU / sides;
+    let local = a % sector;
+    r * cos(PI / sides) / cos(local - PI / sides)
+};
+
+let path = new_path();
+
+// Base : spirale verticale de la première couche à la hauteur de base.
+let base_turns = max(1, floor((params.base_height - fh) / h).to_int());
+let total = base_turns * segs;
+path.travel_to(shape_r.call(r0, 0.0), 0, fh);
+path.note(#{ fr: "Départ", en: "Start" });
+for t in 1..=total {
+    let tv = t / segs.to_float();
+    let a = tv * TAU;
+    let z = fh + tv * h;
+    let r = shape_r.call(r0, a);
+    path.print_to(r * cos(a), r * sin(a), z, w, if tv < 1.0 { fh } else { h });
+}
+let z_top = fh + base_turns * h;
+
+// Porte-à-faux : même spirale, rayon et hauteur qui varient de dr et dz par tour.
+let turns = params.reach / abs(dr);
+if dz < 0 && z_top + turns * dz < fh {
+    fail(#{ fr: "Au-delà de 90°, le porte-à-faux descendrait jusqu'au plateau : allonger la base ou réduire le débord.", en: "Beyond 90°, the overhang would reach down to the bed: make the base taller or reduce the reach." });
+}
+let n = ceiling(turns * segs).to_int();
+path.set_fan(100);
+path.set_speed(params.speed);
+path.note(#{ fr: "Début du porte-à-faux : lent, ventilateur à fond", en: "Overhang start: slow, full fan" });
+for t in 1..=n {
+    let tv = min(t / segs.to_float(), turns);
+    let a = tv * TAU;
+    let r = shape_r.call(r0 + tv * dr, a);
+    path.print_to(r * cos(a), r * sin(a), z_top + tv * dz, w, h);
+}
+path.note(#{ fr: "Fin", en: "End" });
+
+path

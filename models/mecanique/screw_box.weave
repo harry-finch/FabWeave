@@ -1,0 +1,187 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Boîte à visser", en = "Screw-top box" }
+category = { fr = "Mécanique", en = "Mechanical" }
+description = { fr = "Boîte ronde et son couvercle vissé, chacun d'une seule paroi en spirale continue (mode vase) et d'un boudin large, plus du double de la buse : la paroi est épaisse et étanche sans être tranchée. Le filet n'est pas une pièce ajoutée : le rayon de la paroi ondule en sinusoïde le long d'une hélice, au pas choisi. Imprimer la boîte, puis le couvercle (choix « Pièce »), avec les mêmes réglages.", en = "A round box and its screw-on lid, each made of a single wall printed as one continuous spiral (vase mode) with a wide bead, more than twice the nozzle: the wall is thick and watertight without slicing. The thread is not an added part: the wall radius waves as a sine along a helix, at the chosen pitch. Print the box, then the lid (\"Part\" choice), with the same settings." }
+author = "FabWeave"
+tags = ["boîte", "couvercle", "filetage", "mode vase", "étanche"]
+recommended_nozzle = [0.4, 0.5, 0.6]
+
+[params.part]
+type = "choice"
+label = { fr = "Pièce", en = "Part" }
+default = "box"
+options = [
+    { value = "box", label = { fr = "Boîte", en = "Box" } },
+    { value = "lid", label = { fr = "Couvercle", en = "Lid" } },
+]
+
+[params.radius]
+type = "float"
+label = { fr = "Rayon", en = "Radius" }
+unit = "mm"
+help = { fr = "Rayon de la paroi de la boîte (milieu du boudin, au creux du filet).", en = "Radius of the box wall (bead centre, at the thread root)." }
+default = 30
+min = 10
+max = 80
+step = 0.5
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+help = { fr = "Hauteur de la boîte, filet compris (sans effet sur le couvercle).", en = "Box height, thread included (no effect on the lid)." }
+default = 50
+min = 15
+max = 150
+step = 1
+
+[params.thread_length]
+type = "float"
+label = { fr = "Longueur du filet", en = "Thread length" }
+unit = "mm"
+help = { fr = "Hauteur filetée, en haut de la boîte et dans le couvercle.", en = "Threaded height, at the top of the box and inside the lid." }
+default = 10
+min = 4
+max = 30
+step = 0.5
+
+[params.pitch]
+type = "float"
+label = { fr = "Pas", en = "Pitch" }
+unit = "mm"
+help = { fr = "Montée du filet par tour : un pas large se visse vite et s'imprime mieux.", en = "Thread rise per turn: a coarse pitch screws quickly and prints better." }
+default = 4
+min = 2
+max = 8
+step = 0.25
+
+[params.thread_depth]
+type = "float"
+label = { fr = "Profondeur du filet", en = "Thread depth" }
+unit = "mm"
+default = 1.2
+min = 0.4
+max = 2.5
+step = 0.1
+
+[params.clearance]
+type = "float"
+label = { fr = "Jeu", en = "Clearance" }
+unit = "mm"
+help = { fr = "Espace entre le filet de la boîte et celui du couvercle.", en = "Gap between the box thread and the lid thread." }
+default = 0.3
+min = 0
+max = 1
+step = 0.05
+
+[params.bottom_layers]
+type = "int"
+label = { fr = "Couches de fond", en = "Bottom layers" }
+help = { fr = "Couches pleines du fond de la boîte et du dessus du couvercle.", en = "Solid layers of the box bottom and the lid top." }
+default = 3
+min = 1
+max = 6
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+help = { fr = "Largeur de la paroi, en multiple du diamètre de buse (0,9 mm pour une buse de 0,4).", en = "Wall width, as a multiple of the nozzle diameter (0.9 mm for a 0.4 nozzle)." }
+advanced = true
+default = 2.25
+min = 1.5
+max = 3
+step = 0.05
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+advanced = true
+default = 0.5
+min = 0.2
+max = 0.75
+step = 0.05
+---
+// Filet : rayon = paroi + profondeur × (½ + ½·cos(2π × phase)), phase =
+// z / pas − angle / tour : une hélice à droite. Le couvercle, imprimé dessus
+// en bas puis retourné sur la boîte, garde le même sens (un retournement est
+// une rotation) ; sa paroi suit le filet de la boîte, décalée d'une largeur
+// de boudin plus le jeu. Le filet naît et s'éteint sur un demi-tour de pas.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let fh = printer.first_layer_height;
+let lid = params.part == "lid";
+let pitch = params.pitch;
+let depth = params.thread_depth;
+let tl = params.thread_length;
+let base_r = if lid { params.radius + ew + params.clearance } else { params.radius };
+let height = if lid { tl + 2 * eh } else { params.height };
+let segs = max(90, ceiling(TAU * (base_r + depth) / 0.8)).to_int();
+let nb = params.bottom_layers;
+let z_bottom = fh + (nb - 1) * eh;
+
+if !lid && tl > params.height - 3 {
+    fail(#{ fr: "Filet plus long que la boîte.", en: "Thread longer than the box." });
+}
+
+// Part du filet à la hauteur z : boîte en haut, couvercle sur toute sa hauteur
+// au-dessus du dessus ; montée et descente adoucies sur un demi-pas.
+let thread_at = |z| {
+    let lo = if lid { z_bottom } else { height - tl };
+    let fade = pitch / 2;
+    let g = clamp(min((z - lo) / fade, (height - z) / fade), 0.0, 1.0);
+    g * g * (3 - 2 * g)
+};
+
+let path = new_path();
+path.set_speed_factor(1);
+
+// Fond (boîte) ou dessus (couvercle) : anneaux au rayon de la paroi.
+let fw = printer.nozzle_diameter * 1.125;
+for j in 0..nb {
+    let z = fh + j * eh;
+    let h = if j == 0 { fh } else { eh };
+    let contour = circle(0, 0, z, base_r, 0, segs);
+    let rings = contour.fill_rings(fw, ew / 2 + fw * 0.35);
+    let last = j == nb - 1;
+    if last {
+        rings.reverse();
+    } else {
+        path.travel_to(contour);
+        path.print_points(contour, ew, h);
+    }
+    for c in rings {
+        path.travel_to(c);
+        path.print_points(c, fw, h);
+    }
+    if last {
+        path.travel_to(contour);
+        path.print_points(contour, ew, h);
+    }
+}
+
+// Paroi en spirale continue : de la dernière couche du fond jusqu'en haut.
+let turns = floor((height - z_bottom) / eh).to_int();
+let total = turns * segs;
+for t in 1..=total {
+    let tv = t / segs.to_float();
+    let a = tv * TAU;
+    let z = z_bottom + tv * eh;
+    let phase = z / pitch - tv;
+    let r = base_r + depth * (0.5 + 0.5 * cos(TAU * phase)) * thread_at.call(z);
+    let h = if tv >= 1.0 { eh } else { eh * max(tv, 0.1) };
+    path.print_to(r * cos(a), r * sin(a), z, ew, h);
+    if t == 1 {
+        path.note(#{ fr: "Départ de la paroi", en: "Wall start" });
+    }
+}
+if lid {
+    path.note(#{ fr: "Couvercle : à retourner sur la boîte", en: "Lid: turn it over onto the box" });
+}
+
+path

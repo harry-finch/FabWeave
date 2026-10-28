@@ -93,7 +93,7 @@ Critères d'acceptation :
 7. **Filaments** : TPU, ASA, PETG-CF (PRF-04), préchauffe de l'enceinte de la CORE One, facteur des ponts par filament (PRF-06). *Fait le 28/10/2026.*
 8. **Bambu Lab A1 et P1S** (PRF-09) : profils et gabarits de Bambu Studio réécrits. *Fait le 28/10/2026 : gabarits traduits par l'import (nouvelles correspondances des variables de purge Bambu), non essayés sur machine.*
 9. **Essuyage et pause** (API-12). *Fait le 28/10/2026 : `path.wipe`, `path.pause`, gabarit de pause dans les sept profils et à l'import.*
-10. **Catalogue** : tour de température et test de débit (CAT-22), 2 000 rétractions (CAT-15), défi porte-à-faux plus (CAT-16), écrous et vis (CAT-13), support de téléphone (CAT-14), panier tressé (CAT-19), boîte à visser (CAT-20).
+10. **Catalogue** : tour de température et test de débit (CAT-22), 2 000 rétractions (CAT-15), défi porte-à-faux plus (CAT-16), écrous et vis (CAT-13), support de téléphone (CAT-14), panier tressé (CAT-19), boîte à visser (CAT-20). *28/10/2026 : les cinq derniers faits ; CAT-15 et CAT-22 font varier la rétraction et la température, ce qu'un modèle n'a pas le droit de faire : décision de l'utilisateur attendue.*
 
 - **Profils versionnés** (TOML) : plateau (taille, forme rectangulaire ou ronde, origine), buse, cinématique (vitesses max, vitesse Z max), cône de dégagement de la buse, dialecte du firmware, gabarits de démarrage et de fin ; filaments : températures (première couche, suivantes, plateau), refroidissement, rétraction, débit volumétrique max, vitesse nominale, facteur d'étirement des ponts.
 - **Bibliothèque** : Prusa MK4S et Core One (livrées en v0.1), **Bambu Lab A1, P1 et X1**, plus « Marlin générique ».
