@@ -32,3 +32,7 @@ v0.1 : orbite fluide (60 images/s) sur un parcours de 200 000 segments en lignes
 ### Mesure (24/10/2026, Apple M4, vue web Chromium de l'application)
 
 Vase à ondulations réglé à 200 196 points (12 points par ondulation, 100 ondulations) : **200 195 segments** en `LineSegments` à couleur par sommet. Rendu synchrone (`render` puis lecture d'un pixel pour attendre le GPU) sur 60 images en orbite : **1,9 ms** en médiane, 4,7 ms au plus, très loin des 16,7 ms d'une image à 60 images/s. Mesure faite panneau masqué (canevas 600 × 300) : le coût des lignes dépend surtout du nombre de sommets, pas de la taille du canevas. Accès de mesure : `window.__fabweaveView` en développement seulement.
+
+### Mesure du volumétrique (28/10/2026, Apple M4, Chrome, canevas 1 216 × 846 px en Retina)
+
+Même vase, 200 195 segments en volume : une instance par segment (`InstancedBufferGeometry`), section en stade de 8 côtés construite dans le *vertex shader*, deux fonds plats (32 triangles par segment, 6,4 millions en tout). Orbite de 60 images, rendu synchrone : **12,3 ms** en médiane, 14,3 ms au plus, après une première série qui compte la compilation du shader (45 ms la première image). Avec 10 côtés : 14,1 ms. Objectif de 60 images/s tenu sur cette machine ; à mesurer sur l'ordinateur d'atelier.

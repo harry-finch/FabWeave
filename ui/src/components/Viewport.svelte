@@ -9,11 +9,13 @@
   // Annotations du modèle (`path.note`) : pastilles d'étiquette (canevas.md),
   // décalées en haut à droite de leur point, masquables, choix mémorisé.
   // Gouttes (extrusion à l'arrêt) : sphères du diamètre de la goutte, même
-  // dégradé que le parcours.
+  // dégradé que le parcours. Boudins en volume (VIEW-06, `lib/beads.ts`) ou en
+  // lignes, au choix, mémorisé ; les déplacements restent des lignes.
   import { onMount } from 'svelte';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-  import { Focus, MessageSquareText } from '@lucide/svelte';
+  import { Cylinder, Focus, MessageSquareText } from '@lucide/svelte';
+  import { beadMesh } from '../lib/beads';
   import { storageKey } from '../lib/app';
   import { text } from '../lib/text';
   import { theme } from '../lib/theme.svelte';
@@ -43,6 +45,14 @@
     }
   })());
   let labels = $state<{ x: number; y: number; text: string }[]>([]);
+  const MODE_KEY = storageKey('view.volume.v1');
+  let volume = $state((() => {
+    try {
+      return localStorage.getItem(MODE_KEY) !== '0';
+    } catch {
+      return true;
+    }
+  })());
 
   /** Positions à l'écran des annotations (après chaque rendu). */
   function placeLabels() {
@@ -87,6 +97,8 @@
   const blobGeom = new THREE.IcosahedronGeometry(0.5, 1);
   const blobMat = new THREE.MeshBasicMaterial();
   let blobs: THREE.InstancedMesh | null = null;
+  // Boudins en volume : imprimés, et hors du volume (surlignés).
+  let beads: THREE.Mesh[] = [];
 
   const TOKENS = ['view-bg', 'view-bed', 'view-bed-edge', 'view-grid', 'view-bed-exclude', 'path-low', 'path-high', 'path-travel', 'danger'] as const;
   let colors: Record<(typeof TOKENS)[number], THREE.Color> = Object.fromEntries(TOKENS.map((k) => [k, new THREE.Color()])) as never;
@@ -172,6 +184,11 @@
   }
 
   function buildPath(f: FrameData | null) {
+    for (const b of beads) {
+      scene.remove(b);
+      b.geometry.dispose();
+    }
+    beads = [];
     printLines.geometry.dispose();
     travelLines.geometry.dispose();
     outsideLines.geometry.dispose();
@@ -204,6 +221,18 @@
       const outside: number[] = [];
       // Déplacements, essuyages (4) et pauses (5) en retrait.
       for (let i = 1; i < n; i++) (f.kinds[i] === 0 || f.kinds[i] >= 4 ? travels : f.outside[i] ? outside : prints).push(i - 1, i);
+      if (volume) {
+        // Segments imprimés (pas les gouttes, dessinées en sphères).
+        const ends = (list: number[]) => list.filter((_, k) => k % 2 === 1).filter((i) => f.kinds[i] !== 3);
+        const danger = colors['danger'];
+        beads.push(
+          beadMesh(f.positions, f.widths, f.heights, ends(prints), (i, c) => c.setRGB(col[i * 3], col[i * 3 + 1], col[i * 3 + 2])),
+          beadMesh(f.positions, f.widths, f.heights, ends(outside), (_, c) => c.copy(danger)),
+        );
+        scene.add(...beads);
+        prints.length = 0;
+        outside.length = 0;
+      }
       pg.setAttribute('position', pos);
       pg.setAttribute('color', new THREE.BufferAttribute(col, 3));
       pg.setIndex(prints);
@@ -309,6 +338,7 @@
 
   $effect(() => {
     void theme.applied;
+    void volume;
     readColors();
     buildPath(frame);
     render();
@@ -365,6 +395,22 @@
         }
         render();
       }}><MessageSquareText size={15} /></button
+    >
+    <button
+      class="btn quiet icon"
+      class:on={volume}
+      type="button"
+      aria-pressed={volume}
+      aria-label={t('view.volume')}
+      use:tip={t('view.volumeHint')}
+      onclick={() => {
+        volume = !volume;
+        try {
+          localStorage.setItem(MODE_KEY, volume ? '1' : '0');
+        } catch {
+          /* ignoré */
+        }
+      }}><Cylinder size={15} /></button
     >
     <button class="btn quiet icon" type="button" aria-label={t('view.fit')} use:tip={t('view.fit')} onclick={refit}><Focus size={15} /></button>
   </div>

@@ -125,6 +125,7 @@ pub struct Frame {
     kinds: Vec<u8>,
     speeds: Vec<f32>,
     widths: Vec<f32>,
+    heights: Vec<f32>,
     outside: Vec<u8>,
     report: String,
 }
@@ -151,6 +152,12 @@ impl Frame {
     /// goutte, 0 pour un déplacement.
     pub fn take_widths(&mut self) -> Vec<f32> {
         std::mem::take(&mut self.widths)
+    }
+
+    /// Hauteur du boudin qui arrive à chaque point (mm) ; 0 pour un
+    /// mouvement qui ne dépose rien.
+    pub fn take_heights(&mut self) -> Vec<f32> {
+        std::mem::take(&mut self.heights)
     }
 
     /// 1 pour un mouvement imprimé hors du volume d'impression ou dans une
@@ -247,8 +254,9 @@ impl Engine {
     pub fn evaluate(&mut self, values_json: &str) -> Frame {
         let ev = self.bench.evaluate(&values(values_json));
         let n = ev.path.as_ref().map_or(0, |p| p.points.len());
-        let (mut positions, mut kinds, mut speeds, mut widths, mut outside) = (
+        let (mut positions, mut kinds, mut speeds, mut widths, mut heights, mut outside) = (
             Vec::with_capacity(n * 3),
+            Vec::with_capacity(n),
             Vec::with_capacity(n),
             Vec::with_capacity(n),
             Vec::with_capacity(n),
@@ -265,6 +273,7 @@ impl Engine {
                 kinds.push(p.kind as u8);
                 speeds.push(m.speed as f32);
                 widths.push(if p.kind.deposits() { p.w as f32 } else { 0.0 });
+                heights.push(if p.kind.deposits() { p.h as f32 } else { 0.0 });
                 outside.push(u8::from(m.outside));
             }
         }
@@ -306,6 +315,7 @@ impl Engine {
             kinds,
             speeds,
             widths,
+            heights,
             outside,
             report,
         }

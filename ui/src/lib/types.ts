@@ -234,6 +234,8 @@ export interface FrameData {
   speeds: Float32Array;
   /** Largeur du boudin (mm), diamètre d'une goutte, 0 pour un déplacement. */
   widths: Float32Array;
+  /** Hauteur du boudin (mm), 0 pour un mouvement qui ne dépose rien. */
+  heights: Float32Array;
   /** 1 : mouvement imprimé hors du volume ou dans une zone exclue. */
   outside: Uint8Array;
   report: Report;

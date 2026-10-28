@@ -486,6 +486,8 @@ const fr = {
   },
   view: {
     fit: 'Cadrer (F)',
+    volume: 'Boudins en volume',
+    volumeHint: 'Boudins en volume, à leur largeur et leur hauteur réelles ; sinon en lignes (plus léger pour un très grand parcours).',
     notes: 'Annotations du modèle',
     travel: 'Déplacements',
     empty: 'Aucun parcours à afficher.',

@@ -131,7 +131,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | VIEW-03 | Rendu en lignes, couleur par ordre d'impression ; déplacements affichables | v0.1 | fait |
 | VIEW-04 | Annotations 3D du modèle (API-07), masquables (choix mémorisé), dans la langue de l'interface | v0.2 | fait |
 | VIEW-05 | Vignettes du catalogue rendues par l'application (parcours aux valeurs par défaut, vue oblique, couleurs du thème ; échec du script marqué) | v0.2 | fait |
-| VIEW-06 | Rendu volumétrique W × H | v0.4 | prévu |
+| VIEW-06 | Rendu volumétrique W × H : une instance par segment, section en stade construite dans le shader, fonds plats, éclairage simple ; bascule volume / lignes mémorisée | v0.4 | fait |
 | VIEW-07 | Coloration : type, vitesse, débit, W, H, ventilateur, Z ; légende | v0.4 | prévu |
 | VIEW-08 | Curseur de progression, simulation de la buse, coupe en Z | v0.4 | prévu |
 | VIEW-09 | Inspection du segment survolé | v0.4 | prévu |

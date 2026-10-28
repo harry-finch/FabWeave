@@ -112,7 +112,19 @@ Critères d'acceptation :
 
 Critères d'acceptation : G-code de chaque profil livré relu (démarrage, fin, unités, températures) ; ⏸ une impression validée par machine du fablab.
 
-## v0.4 — Visualisation et analyse (jalon 4)
+## v0.4 — Visualisation et analyse (jalon 4) · *en cours*
+
+Commencée le 28/10/2026 pendant les impressions de validation de la v0.3.
+
+Étapes et points d'arrêt :
+
+1. **Rendu en volume** (VIEW-06) : boudins à leur largeur et leur hauteur, éclairage simple, bascule volume / lignes mémorisée. *Fait le 28/10/2026 : 200 195 segments en 12,3 ms par image (M4).*
+2. **Coloration et légende** (VIEW-07).
+3. **Curseur de progression**, buse simulée, coupe en Z (VIEW-08).
+4. **Inspection du segment survolé** (VIEW-09).
+5. **Export PNG** de la vue (VIEW-10).
+6. **Temps estimé** comparé à PrusaSlicer sur le catalogue.
+7. ⏸ Validation de jalon.
 
 - **Rendu volumétrique** : boudins à section oblongue W × H, éclairage simple ; mode lignes pour les très grands parcours.
 - **Coloration** au choix : type de mouvement (impression, pont, déplacement), vitesse obtenue, débit volumétrique, largeur W, hauteur H, ventilateur, Z, ordre d'impression ; légende graduée.

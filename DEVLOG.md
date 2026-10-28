@@ -362,3 +362,17 @@ L'utilisateur demande de terminer la v0.3 pendant ses impressions. Fonctions enc
 **Vérification.** Test : réglage refusé dans un modèle ordinaire ; dans un modèle d'essai, avertissement, `M104 S205 ; essai : -10 °C`, rétraction de 2 mm remise de 2 mm malgré une longueur d'essai changée à 0,5 mm, bornes. Tour : consignes 230 → 195 °C relues ; test des rétractions : 1 999 rétractions, chaque longueur remise ; `fabweave check` des trois modèles.
 
 **Non fait.** Impression des modèles d'étalonnage.
+
+## 2026-10-28 — v0.4, étape 1 : rendu en volume
+
+L'utilisateur lance la v0.4 pendant ses impressions de validation de la v0.3 (CORE One, X1E). Étapes de la v0.4 inscrites dans la feuille de route.
+
+**Choix** (ADR-0003, prévu dès la v0.1).
+- Une instance par segment imprimé (`InstancedBufferGeometry`) : extrémités, largeur, hauteur, couleur ; la section en stade (W × H) est construite dans le *vertex shader*, le boudin centré une demi-hauteur sous la buse, prolongé d'une demi-épaisseur à chaque bout et fermé par deux fonds plats (les bouts ouverts laissaient voir l'intérieur aux raccords). Éclairage dans le shader : ambiant et deux lumières fixées à la caméra, des intensités seulement ; couleurs des jetons du thème, conversion d'espace colorimétrique de three.js en sortie.
+- Le moteur transmet aussi la hauteur de chaque boudin (`take_heights`). Déplacements toujours en lignes, gouttes en sphères, segments hors du volume en couleur d'erreur.
+- Bascule volume / lignes dans la barre de la vue, mémorisée ; volume par défaut.
+- Section de 8 côtés : 12,3 ms par image pour 200 195 segments contre 14,1 ms avec 10 (mesure dans l'ADR-0003).
+
+**Vérification.** Navigateur : vase à ondulations en volume (tissage lisible de près), thème clair, aucune erreur WebGL ; mesure de 200 195 segments.
+
+**Non fait.** Raccords arrondis entre segments (fonds plats seulement) ; mesure sur l'ordinateur d'atelier.

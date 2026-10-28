@@ -488,6 +488,8 @@ const en: Shape<typeof fr> = {
   },
   view: {
     fit: 'Fit (F)',
+    volume: 'Beads in volume',
+    volumeHint: 'Beads in volume, at their real width and height; otherwise as lines (lighter for a very large path).',
     notes: 'Model notes',
     travel: 'Travel moves',
     empty: 'No path to show.',
