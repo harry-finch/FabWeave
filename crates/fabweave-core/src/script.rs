@@ -4,7 +4,8 @@
 //!   (`nozzle_diameter`, `layer_height`, `first_layer_height`,
 //!   `nozzle_cone_angle`, `nozzle_cone_height`), `PI`, `TAU`.
 //! - API du parcours : `new_path()`, puis `print_to`, `print_polar`,
-//!   `travel_to`, `set_speed`, `set_speed_factor`, `set_fan`, `reset_fan`.
+//!   `travel_to`, `blob`, `set_speed`, `set_speed_factor`, `set_fan`,
+//!   `reset_fan`.
 //! - Fonctions mathématiques réenregistrées depuis `libm` : même résultat en
 //!   natif et en WebAssembly. Entiers et flottants s'acceptent partout.
 //! - Limites : opérations, profondeur, tailles, nombre de points ; pas de
@@ -121,6 +122,9 @@ pub struct ScriptPath {
     limit: usize,
 }
 
+/// Goutte la plus grosse (mm³, sphère de 12 mm) et la plus longue (s).
+const MAX_BLOB_VOLUME: f64 = 1000.0;
+const MAX_BLOB_DURATION: f64 = 60.0;
 /// Annotations au plus par parcours.
 const MAX_NOTES: usize = 50;
 /// Messages `warn` gardés au plus par exécution.
@@ -167,7 +171,29 @@ impl ScriptPath {
             speed: self.speed,
             fan: self.fan,
             flow: 1.0,
+            volume: 0.0,
+            duration: 0.0,
         });
+        Ok(())
+    }
+
+    /// Goutte à l'arrêt au point courant : `volume` mm³ en `duration` s.
+    pub(crate) fn push_blob(&mut self, volume: f64, duration: f64) -> R<()> {
+        let Some(last) = self.path.points.last() else {
+            return Err(fault("path.blob_without_position", ""));
+        };
+        if !(volume > 0.0 && volume <= MAX_BLOB_VOLUME) {
+            return Err(fault("path.invalid_blob", format!("volume : {volume}")));
+        }
+        if !(duration > 0.0 && duration <= MAX_BLOB_DURATION) {
+            return Err(fault("path.invalid_blob", format!("duration : {duration}")));
+        }
+        let d = libm::cbrt(6.0 * volume / std::f64::consts::PI);
+        self.push([last.x, last.y, last.z], d, d, MoveKind::Blob)?;
+        if let Some(p) = self.path.points.last_mut() {
+            p.volume = volume;
+            p.duration = duration;
+        }
         Ok(())
     }
 
@@ -361,6 +387,13 @@ fn register_path(engine: &mut Engine, max_points: usize) {
          -> R<()> {
             let xyz = [num(&x, "x")?, num(&y, "y")?, num(&z, "z")?];
             p.push_bridge(xyz, num(&w, "w")?, num(&h, "h")?, num(&flow, "flow")?)
+        },
+    );
+    // blob(volume, durée) : goutte à l'arrêt au point courant (mm³, s).
+    engine.register_fn(
+        "blob",
+        |p: &mut ScriptPath, volume: Dynamic, duration: Dynamic| -> R<()> {
+            p.push_blob(num(&volume, "volume")?, num(&duration, "duration")?)
         },
     );
     // note(texte) : annotation au dernier point ; note_at(x, y, z, texte).

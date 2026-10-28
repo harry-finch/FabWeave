@@ -17,6 +17,10 @@ pub enum MoveKind {
     Print = 1,
     /// Impression dans le vide (pont tendu) : débit corrigé, ventilateur forcé.
     Bridge = 2,
+    /// Goutte : extrusion à l'arrêt, au point précédent (API-15). Volume et
+    /// durée dans `volume` et `duration` ; `w` = `h` = diamètre de la sphère
+    /// de même volume (aperçu).
+    Blob = 3,
 }
 
 /// Vitesse demandée par le script.
@@ -43,6 +47,9 @@ pub struct WayPoint {
     pub fan: Option<u8>,
     /// Multiplicateur de débit propre au mouvement (ponts), 1 sinon.
     pub flow: f64,
+    /// Goutte : volume déposé (mm³) et durée demandée (s) ; 0 sinon.
+    pub volume: f64,
+    pub duration: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]

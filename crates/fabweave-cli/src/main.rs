@@ -172,6 +172,8 @@ fn hint(code: &str) -> &'static str {
         "path.too_high" => "la pièce dépasse la hauteur d'impression",
         "path.below_bed" => "un point descend sous Z = 0",
         "path.excluded_zone" => "la pièce passe dans une zone exclue du plateau (purge…)",
+        "path.blob_without_position" => "blob() avant tout point : placer la buse d'abord",
+        "path.invalid_blob" => "goutte : volume de 0 à 1000 mm³, durée de 0 à 60 s",
         "copies.too_close" => "copies trop proches : la tête heurterait la copie déjà imprimée",
         "copies.too_tall" => "pièce trop haute pour être copiée pièce par pièce (portique)",
         "nozzle.custom" => "buse hors des buses du profil : hauteurs de couche interpolées",

@@ -388,12 +388,17 @@ const en: Shape<typeof fr> = {
       duplicates_skipped: '{count} points identical to the previous one, skipped.',
       invalid_flow: 'Invalid bridge flow: 0 to 2 (1 = nominal flow).',
       too_many_notes: 'Too many notes (at most {detail}).',
+      blob_without_position: 'Blob without a position: move the nozzle (travel_to, print_to…) before blob().',
+      invalid_blob: 'Invalid blob ({detail}): volume from 0 to 1,000 mm³, duration from 0 to 60 s.',
     },
     points: {
       invalid_count: 'Invalid count (positive integer expected).',
       invalid_value: 'Invalid value (positive expected).',
       index_out_of_range: 'Point index outside the list.',
       empty: 'Empty point list.',
+    },
+    blob: {
+      too_slow: '{count} blobs would feed the filament below {value} mm/min: they take longer than requested.',
     },
     speed: {
       limited_first_layer: 'Speed capped at {value} mm/s on the first layer ({count} segments).',

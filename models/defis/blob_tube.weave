@@ -1,0 +1,107 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Tube de gouttes", en = "Blob tube" }
+category = { fr = "Défis d'impression", en = "Print challenges" }
+description = { fr = "Un tube fait de gouttes posées une à une : la buse s'arrête au-dessus de chaque point et pousse un volume de matière sans bouger. Couches pleines en haut et en bas, une goutte sur deux entre les deux : la paroi devient ajourée. Montre l'extrusion à l'arrêt, impossible dans un trancheur.", en = "A tube made of blobs laid one by one: the nozzle stops above each point and pushes out a volume of material without moving. Full layers at the top and bottom, every other blob in between, so the wall becomes open. Shows stationary extrusion, which a slicer cannot do." }
+author = "Andrew Gleadall (FullControl) ; port FabWeave"
+tags = ["gouttes", "extrusion à l'arrêt", "texture", "défi", "fullcontrol"]
+source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/blob_printing.ipynb"
+license = "GPL-3.0"
+recommended_nozzle = [0.4, 0.5, 0.6]
+
+[params.radius]
+type = "float"
+label = { fr = "Rayon", en = "Radius" }
+unit = "mm"
+help = { fr = "Rayon du cercle sur lequel les gouttes sont posées.", en = "Radius of the circle the blobs sit on." }
+default = 10
+min = 4
+max = 40
+step = 0.5
+
+[params.layers]
+type = "int"
+label = { fr = "Couches", en = "Layers" }
+help = { fr = "Nombre de rangées de gouttes ; chacune monte d'une demi-goutte.", en = "Number of blob rows; each one rises by half a blob." }
+default = 10
+min = 2
+max = 80
+
+[params.dense_layers]
+type = "int"
+label = { fr = "Couches pleines", en = "Full layers" }
+help = { fr = "Rangées complètes en bas et en haut ; entre les deux, une goutte sur deux.", en = "Complete rows at the bottom and at the top; in between, every other blob." }
+default = 2
+min = 0
+max = 10
+
+[params.blob_size]
+type = "float"
+label = { fr = "Taille", en = "Blob size" }
+unit = "mm"
+help = { fr = "Diamètre d'une goutte vue de dessus ; sa hauteur en vaut la moitié.", en = "Blob diameter seen from above; its height is half of it." }
+default = 1.6
+min = 0.8
+max = 3
+step = 0.1
+
+[params.overlap]
+type = "float"
+label = { fr = "Chevauchement", en = "Overlap" }
+unit = "%"
+help = { fr = "Recouvrement de deux gouttes voisines d'une rangée pleine.", en = "How much two neighbouring blobs of a full row overlap." }
+default = 33
+min = 0
+max = 60
+step = 1
+
+[params.blob_time]
+type = "float"
+label = { fr = "Durée", en = "Duration" }
+unit = "s"
+help = { fr = "Temps d'extrusion d'une goutte. FullControl conseille 0,5 à 1 s ; le débit max du filament peut l'allonger.", en = "Extrusion time of one blob. FullControl suggests 0.5 to 1 s; the filament's max flow may lengthen it." }
+default = 0.7
+min = 0.2
+max = 5
+step = 0.1
+---
+// Port de « blob printing » de FullControl (A. Gleadall, GPL-3.0). Chaque
+// goutte : déplacement au point, puis extrusion à l'arrêt (path.blob). La
+// buse reste à 95 % d'une hauteur de goutte au-dessus du dessous de la
+// rangée ; elle monte à la verticale du départ entre deux rangées.
+
+let size = params.blob_size;
+let bh = size / 2;                                  // hauteur d'une goutte (rangée)
+let pitch = size * (1 - params.overlap / 100);      // écart entre gouttes d'une rangée pleine
+let volume = bh * size * size;                      // comme FullControl : boîte de la goutte
+let n = max(2, round(TAU * params.radius / pitch / 2) * 2).to_int();  // nombre pair
+let dense = min(params.dense_layers, params.layers);
+let r = params.radius;
+
+if pitch < printer.nozzle_diameter {
+    warn(#{ fr: "Gouttes plus rapprochées que le diamètre de buse : elles se confondent.", en: "Blobs closer than the nozzle diameter: they merge." });
+}
+
+let path = new_path();
+path.set_fan(100);
+for layer in 0..params.layers {
+    let z = 0.95 * bh + layer * bh;
+    let full = layer < dense || layer >= params.layers - dense;
+    let step = if full { 1 } else { 2 };
+    for i in 0..n {
+        if i % step != 0 { continue; }
+        let a = i * TAU / n;
+        path.travel_to(r * cos(a), r * sin(a), z);
+        path.blob(volume, params.blob_time);
+        if layer == 0 && i == 0 {
+            path.note(#{ fr: "Première goutte", en: "First blob" });
+        }
+    }
+    // Retour au départ de la rangée : la buse monte à la verticale.
+    path.travel_to(r, 0, z);
+}
+path.note(#{ fr: "Dernière rangée", en: "Last row" });
+
+path

@@ -63,6 +63,10 @@ pub fn render(path: &Toolpath, plan: &Plan, width: usize, height: usize) -> Vec<
             let (ub, vb) = proj(b);
             let t = ((b.z - lo[2]) / zspan).clamp(0.0, 1.0);
             let shade = (125.0 + 117.0 * t) as u8; // gris moyen en bas, presque blanc en haut
+            if b.kind == MoveKind::Blob {
+                img.disc((ou + ub * k, ov + vb * k), (b.w * k / 2.0).max(0.7), shade);
+                continue;
+            }
             img.segment(
                 (ou + ua * k, ov + va * k),
                 (ou + ub * k, ov + vb * k),
@@ -85,21 +89,38 @@ impl Raster {
         let steps = (b.0 - a.0).abs().max((b.1 - a.1).abs()).ceil().max(1.0) as usize;
         for s in 0..=steps {
             let t = s as f64 / steps as f64;
-            let (x, y) = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
-            if x < 0.0 || y < 0.0 || x >= self.width as f64 || y >= self.height as f64 {
-                continue;
-            }
-            let p = ((y as usize) * self.width + x as usize) * 4;
-            let rgba = &mut self.rgba;
-            let alpha = 0.45;
-            let old_a = f64::from(rgba[p + 3]) / 255.0;
-            let new_a = alpha + old_a * (1.0 - alpha);
-            for c in 0..3 {
-                let old = f64::from(rgba[p + c]) * old_a * (1.0 - alpha);
-                rgba[p + c] = ((f64::from(shade) * alpha + old) / new_a).round() as u8;
-            }
-            rgba[p + 3] = (new_a * 255.0).round() as u8;
+            self.blend(a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, shade);
         }
+    }
+
+    /// Disque plein (goutte), mélangé comme les segments.
+    fn disc(&mut self, c: (f64, f64), r: f64, shade: u8) {
+        let n = r.ceil() as i64;
+        for dy in -n..=n {
+            for dx in -n..=n {
+                let (fx, fy) = (dx as f64, dy as f64);
+                if fx * fx + fy * fy <= r * r {
+                    self.blend(c.0 + fx, c.1 + fy, shade);
+                }
+            }
+        }
+    }
+
+    /// Pixel mélangé à 45 % d'opacité (hors image : ignoré).
+    fn blend(&mut self, x: f64, y: f64, shade: u8) {
+        if x < 0.0 || y < 0.0 || x >= self.width as f64 || y >= self.height as f64 {
+            return;
+        }
+        let p = ((y as usize) * self.width + x as usize) * 4;
+        let rgba = &mut self.rgba;
+        let alpha = 0.45;
+        let old_a = f64::from(rgba[p + 3]) / 255.0;
+        let new_a = alpha + old_a * (1.0 - alpha);
+        for c in 0..3 {
+            let old = f64::from(rgba[p + c]) * old_a * (1.0 - alpha);
+            rgba[p + c] = ((f64::from(shade) * alpha + old) / new_a).round() as u8;
+        }
+        rgba[p + 3] = (new_a * 255.0).round() as u8;
     }
 }
 

@@ -4,7 +4,7 @@ version = 1
 [meta]
 name = { fr = "Vase à ondulations", en = "Ripple vase" }
 category = { fr = "Vases et luminaires", en = "Vases & lamps" }
-description = { fr = "Paroi d'un seul boudin large, imprimée en spirale continue. La buse ondule vers l'intérieur et l'extérieur à chaque tour, avec un demi-pas de décalage d'un tour à l'autre : la paroi se tisse d'elle-même. Branches en étoile, torsion et renflement en option ; fond plein d'une ou deux couches, qui épouse les ondulations.", en = "A single wide bead wall printed as one continuous spiral. The nozzle ripples in and out on every turn, shifted by half a ripple from one turn to the next, so the wall weaves itself. Optional star tips, twist and bulge; optional one or two layer solid bottom that follows the ripples." }
+description = { fr = "Paroi d'un seul boudin large, imprimée en spirale continue. La buse ondule vers l'intérieur et l'extérieur à chaque tour, avec un demi-pas de décalage d'un tour à l'autre : la paroi se tisse d'elle-même. Branches en étoile, torsion et renflement en option ; fond plein d'une ou deux couches (lignes ou anneaux), qui épouse les ondulations.", en = "A single wide bead wall printed as one continuous spiral. The nozzle ripples in and out on every turn, shifted by half a ripple from one turn to the next, so the wall weaves itself. Optional star tips, twist and bulge; optional one or two layer solid bottom (lines or rings) that follows the ripples." }
 author = "Andrew Gleadall (FullControl) ; port FabWeave"
 tags = ["vase", "spirale", "texture", "fullcontrol"]
 source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/ripple_texture.ipynb"
@@ -39,6 +39,16 @@ options = [
     { value = "none", label = { fr = "Aucun", en = "None" } },
     { value = "1", label = { fr = "1 couche", en = "1 layer" } },
     { value = "2", label = { fr = "2 couches", en = "2 layers" } },
+]
+
+[params.bottom_pattern]
+type = "choice"
+label = { fr = "Motif du fond", en = "Bottom pattern" }
+help = { fr = "Lignes croisées d'une couche à l'autre, ou anneaux qui suivent le contour vers le centre (sans effet sans fond).", en = "Lines crossed from one layer to the next, or rings that follow the outline towards the centre (no effect without a bottom)." }
+default = "lines"
+options = [
+    { value = "lines", label = { fr = "Lignes", en = "Lines" } },
+    { value = "rings", label = { fr = "Anneaux", en = "Rings" } },
 ]
 
 [params.twist]
@@ -189,8 +199,10 @@ let path = new_path();
 
 // Le fond : couche j au contour du tour (j − nb) ; la dernière se termine au
 // départ de la spirale. Lignes de 1,125 × buse, croisées d'une couche à l'autre,
-// qui mordent de 15 % sur le boudin du contour. Vitesse nominale du filament
-// (plafonnée en première couche), et non celle, lente, de la paroi.
+// ou anneaux concentriques, qui mordent de 15 % sur le boudin du contour.
+// Anneaux de la dernière couche du centre vers le bord : le contour, puis la
+// spirale, suivent sans long trajet. Vitesse nominale du filament (plafonnée
+// en première couche), et non celle, lente, de la paroi.
 let fw = printer.nozzle_diameter * 1.125;
 path.set_speed_factor(1);
 for j in 0..nb {
@@ -204,8 +216,15 @@ for j in 0..nb {
         let a = angle_at.call(tv);
         contour.push(r * cos(a), r * sin(a), z);
     }
-    let chains = contour.fill_lines(fw, if j % 2 == 0 { PI / 4 } else { -PI / 4 }, ew / 2 + fw * 0.35);
     let last = j == nb - 1;
+    let inset = ew / 2 + fw * 0.35;
+    let chains = if params.bottom_pattern == "rings" {
+        let rings = contour.fill_rings(fw, inset);
+        if last { rings.reverse(); }
+        rings
+    } else {
+        contour.fill_lines(fw, if j % 2 == 0 { PI / 4 } else { -PI / 4 }, inset)
+    };
     if !last {
         path.travel_to(contour);
         path.print_points(contour, ew, h);

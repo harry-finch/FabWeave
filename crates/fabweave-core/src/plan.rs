@@ -24,6 +24,9 @@ use crate::profile::{Accelerations, BedShape, FilamentProfile, Origin, PrinterPr
 
 /// Longueur sous laquelle deux points sont confondus (mm).
 pub const MIN_SEGMENT: f64 = 1e-4;
+/// Avance la plus lente écrite (mm/s) : `F1`, une goutte ne pousse pas le
+/// filament plus lentement.
+pub const MIN_FEED: f64 = 1.0 / 60.0;
 
 /// Plafond qui a fixé la vitesse d'un mouvement.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -46,7 +49,7 @@ pub enum SpeedLimit {
 pub struct Move {
     /// Longueur 3D (mm).
     pub length: f64,
-    /// Vitesse obtenue (mm/s).
+    /// Vitesse obtenue (mm/s) ; pour une goutte, celle du filament poussé.
     pub speed: f64,
     /// Vitesse demandée par le modèle (mm/s).
     pub requested: f64,
@@ -82,6 +85,8 @@ pub struct LimitCounts {
 pub struct Stats {
     pub points: usize,
     pub print_moves: usize,
+    /// Gouttes (extrusion à l'arrêt).
+    pub blobs: usize,
     pub travel_moves: usize,
     pub retractions: usize,
     pub skipped: usize,
@@ -262,6 +267,7 @@ pub fn plan_at(
     let mut moves = Vec::with_capacity(pts.len());
     let mut limited = LimitCounts::default();
     let (mut print_moves, mut travel_moves, mut retractions, mut skipped) = (0, 0, 0, 0);
+    let (mut blobs, mut slowed_blobs) = (0, 0);
     let (mut print_length, mut travel_length, mut time, mut e_total) = (0.0, 0.0, 0.0, 0.0);
     let (mut max_flow, mut max_req_flow, mut max_speed) = (0.0_f64, 0.0_f64, 0.0_f64);
     let mut fl_bounds: Option<Bounds> = None;
@@ -307,6 +313,50 @@ pub fn plan_at(
             time: 0.0,
             outside: false,
         };
+        if b.kind == MoveKind::Blob {
+            // Goutte : `volume` en `duration`, débit plafonné par le filament
+            // (la goutte dure alors plus longtemps), filament poussé à F1 au
+            // moins (résolution de la commande).
+            let mult = flow_mult * b.flow;
+            let req_flow = b.volume * mult / b.duration;
+            max_req_flow = max_req_flow.max(req_flow);
+            let mut duration = b.duration;
+            if req_flow > sp.max_volumetric {
+                duration = b.volume * mult / sp.max_volumetric;
+                m.limit = SpeedLimit::Flow;
+                limited.flow += 1;
+            }
+            m.e = b.volume * mult / f_area;
+            m.speed = m.e / duration;
+            if m.speed < MIN_FEED {
+                m.speed = MIN_FEED;
+                duration = m.e / MIN_FEED;
+                slowed_blobs += 1;
+            }
+            m.requested = m.e / b.duration;
+            m.flow = b.volume * mult / duration;
+            let default_fan = if first_layer {
+                filament.cooling.first_layer_fan
+            } else {
+                filament.cooling.fan
+            };
+            m.fan = b
+                .fan
+                .map_or(default_fan, f64::from)
+                .round()
+                .clamp(0.0, 100.0) as u8;
+            m.outside = off_limits(a, b);
+            m.time = duration;
+            time += duration;
+            e_total += m.e;
+            max_flow = max_flow.max(m.flow);
+            blobs += 1;
+            if first_layer {
+                grow(&mut fl_bounds, [b.x + offset[0], b.y + offset[1], b.z]);
+            }
+            moves.push(m);
+            continue;
+        }
         if length < MIN_SEGMENT {
             m.skipped = true;
             skipped += 1;
@@ -415,6 +465,7 @@ pub fn plan_at(
     let stats = Stats {
         points: pts.len(),
         print_moves,
+        blobs,
         travel_moves,
         retractions,
         skipped,
@@ -432,7 +483,7 @@ pub fn plan_at(
         limited,
     };
 
-    if print_moves == 0 {
+    if print_moves + blobs == 0 {
         // Tous les points imprimés étaient confondus (division entière dans le
         // script, pas trop petit…).
         issues.push(Issue::error("path.empty").count(skipped));
@@ -466,6 +517,13 @@ pub fn plan_at(
             Issue::info("speed.limited_z")
                 .count(l.z_axis)
                 .value(lim.max_z_speed),
+        );
+    }
+    if slowed_blobs > 0 {
+        issues.push(
+            Issue::warning("blob.too_slow")
+                .count(slowed_blobs)
+                .value(MIN_FEED * 60.0),
         );
     }
     if skipped > 0 {
@@ -569,13 +627,15 @@ fn accelerated_times(
         let l = moves[i].length;
         [(b.x - a.x) / l, (b.y - a.y) / l, (b.z - a.z) / l]
     };
-    let flows = |i: usize| i > 0 && !moves[i].skipped && !moves[i].retract;
+    // Arrêt complet : déplacement rétracté ou goutte.
+    let stops = |i: usize| moves[i].retract || pts[i].kind == MoveKind::Blob;
+    let flows = |i: usize| i > 0 && !moves[i].skipped && !stops(i);
     // Vitesse de fin de chaque mouvement (= début du suivant fluide).
     let mut exit = vec![0.0_f64; n];
     let mut prev: Option<usize> = None;
     for i in 1..n {
         if !flows(i) {
-            if moves[i].retract {
+            if stops(i) {
                 if let Some(p) = prev {
                     exit[p] = 0.0;
                 }
@@ -598,18 +658,18 @@ fn accelerated_times(
     // Entrée de chaque mouvement fluide = sortie du précédent fluide.
     let mut entry = vec![0.0_f64; n];
     let mut last: Option<usize> = None;
-    for i in 1..n {
-        if moves[i].retract {
+    for (i, e) in entry.iter_mut().enumerate().skip(1) {
+        if stops(i) {
             last = None;
         } else if flows(i) {
-            entry[i] = last.map_or(0.0, |p| exit[p]);
+            *e = last.map_or(0.0, |p| exit[p]);
             last = Some(i);
         }
     }
     // Passe arrière : freiner à temps ; passe avant : accélérer au plus.
     let mut next_entry = 0.0;
     for i in (1..n).rev() {
-        if moves[i].retract {
+        if stops(i) {
             next_entry = 0.0;
         } else if flows(i) {
             exit[i] = exit[i].min(next_entry);
@@ -619,7 +679,7 @@ fn accelerated_times(
     }
     let mut prev_exit = 0.0;
     for i in 1..n {
-        if moves[i].retract {
+        if stops(i) {
             prev_exit = 0.0;
         } else if flows(i) {
             entry[i] = entry[i].min(prev_exit);
@@ -633,7 +693,9 @@ fn accelerated_times(
         if m.skipped {
             continue;
         }
-        times[i] = if m.retract {
+        times[i] = if pts[i].kind == MoveKind::Blob {
+            m.time
+        } else if m.retract {
             // Déplacement à l'arrêt aux deux bouts, puis rétraction et saut.
             let (a, b) = (&pts[i - 1], &pts[i]);
             let xy = (b.x - a.x).hypot(b.y - a.y);
@@ -684,6 +746,8 @@ mod tests {
             speed,
             fan: None,
             flow: 1.0,
+            volume: 0.0,
+            duration: 0.0,
         }
     }
 

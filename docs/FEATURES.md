@@ -38,8 +38,8 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-11 | Subdivision (`pts.subdivide`, faite en v0.2) ; discrétisation adaptative (tolérance de corde) | v0.2 / v0.5 | en cours |
 | API-12 | Essuyage (*wipe*), pause (insertion d'objet, ruban de renfort) | v0.3 | prévu |
 | API-13 | Remplissage natif d'un contour fermé en lignes parallèles reliées en zigzag (`fill_lines`, contour quelconque, retrait au bord) : fonds pleins, grilles | v0.2 | fait |
-| API-14 | Remplissage en anneaux concentriques (décalage d'un contour vers l'intérieur) | v0.3 | prévu |
-| API-15 | Extrusion à l'arrêt (`path.blob(volume, durée)` : goutte sans mouvement), pour CAT-12 | v0.3 | prévu |
+| API-14 | Remplissage en anneaux concentriques (`fill_rings`, décalage d'un contour vers l'intérieur, îlots, coutures alignées) | v0.3 | fait |
+| API-15 | Extrusion à l'arrêt (`path.blob(volume, durée)` : goutte sans mouvement, débit plafonné), pour CAT-12 | v0.3 | fait |
 | API-16 | `pts.slice(from, to)` ; `floor`, `round`, `ceiling` acceptent un entier | v0.2 | fait |
 
 ## Moteur : physique et G-code (ENG)
@@ -94,7 +94,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | Id | Modèle | Origine | Ce qu'il teste | Jalon | État |
 | --- | --- | --- | --- | --- | --- |
 | CAT-01 | Vase à ondulations (texture *ripple*) | FullControl « Ripple Texture Demo » | Spirale continue, largeur variable | v0.1 | fait |
-| CAT-23 | *Ajout* : option « Fond » des vases (aucun, 1 ou 2 couches pleines sous la spirale, API-13), d'abord sur CAT-01 | Fablab | Remplissage d'un contour, passage du fond à la spirale | v0.2 | fait |
+| CAT-23 | *Ajout* : option « Fond » des vases (aucun, 1 ou 2 couches pleines sous la spirale, en lignes API-13 ou en anneaux API-14), d'abord sur CAT-01 | Fablab | Remplissage d'un contour, passage du fond à la spirale | v0.2 | fait |
 | CAT-02 | Tamis micro-maillage (ponts tendus) | Recherche FabWeave | Déplacements, rétractions, ponts | v0.2 | fait |
 | CAT-03 | Entretoise non planaire | FullControl « Nonplanar Spacer » | Z variable, plafond de vitesse Z | v0.2 | fait |
 | CAT-04 | Ressort hélicoïdal non planaire : ressort-soufflet en spirale, plis en dents de scie, en anneaux ou en hélice | Recherche FabWeave | Z continu, oscillation radiale | v0.2 | fait |
@@ -105,7 +105,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | CAT-09 | Treillis en polygones étoilés (sous-famille M1 ; M2 à M4 plus tard) | FullControl « Star-Polygon Lattice » | Treillis, croisements | v0.2 | fait |
 | CAT-10 | Adaptateur hexagonal | FullControl « Hex Adapter » | Polygones, transitions | v0.2 | fait |
 | CAT-11 | Moteur de motifs polaires (listes de l'original remplacées par branches, saut, rayon intérieur) | FullControl « Fractional Design Engine (Polar) » | Motifs polaires paramétriques | v0.2 | fait |
-| CAT-12 | Impression par gouttes | FullControl « Blob Printing » | Extrusion à l'arrêt, points isolés | v0.3 | prévu (API-15) |
+| CAT-12 | Impression par gouttes (tube de gouttes) | FullControl « Blob Printing » | Extrusion à l'arrêt, points isolés | v0.3 | fait |
 | CAT-13 | Écrous et vis | FullControl « Nuts and Bolts » | Filetage | v0.3 | prévu |
 | CAT-14 | Support de téléphone à angle libre | FullControl « AnyAngle Phone Stand » | Objet utilitaire complet | v0.3 | prévu |
 | CAT-15 | Test des 2 000 rétractions | FullControl « 2000-Retractions Test » | Calibration de la rétraction | v0.3 | prévu |

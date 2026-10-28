@@ -6,7 +6,7 @@ Inspiré de [FullControl](https://fullcontrol.xyz) (Andrew Gleadall, Loughboroug
 
 Les modèles sont de simples fichiers texte `.weave` : un en-tête TOML (description, curseurs) et un script [Rhai](https://rhai.rs) qui trace le parcours. Un modèle s'écrit à la main ou se fait générer par une IA à partir d'une spécification courte, puis se glisse dans l'application.
 
-> État : **v0.1 validée** (vase imprimé sur la CORE One) ; **v0.2 en cours** : catalogue de onze modèles, ouverture de `.weave`, outil `fabweave`, prompt pour IA. Voir [STATUS.md](STATUS.md) et [ROADMAP.md](ROADMAP.md).
+> État : **v0.2 validée** (catalogue, ouverture de `.weave`, outil `fabweave`, prompt pour IA) ; **v0.3 en cours** : imprimantes et filaments (Bambu Lab X1E, profils complets, buse, placement, adhésion, édition et import des profils), catalogue de douze modèles. Voir [STATUS.md](STATUS.md) et [ROADMAP.md](ROADMAP.md).
 
 ## Lancer
 

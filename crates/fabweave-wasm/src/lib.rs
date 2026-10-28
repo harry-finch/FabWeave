@@ -124,6 +124,7 @@ pub struct Frame {
     positions: Vec<f32>,
     kinds: Vec<u8>,
     speeds: Vec<f32>,
+    widths: Vec<f32>,
     outside: Vec<u8>,
     report: String,
 }
@@ -136,7 +137,7 @@ impl Frame {
     }
 
     /// Nature du mouvement qui arrive à chaque point : 0 déplacement,
-    /// 1 impression, 2 pont.
+    /// 1 impression, 2 pont, 3 goutte.
     pub fn take_kinds(&mut self) -> Vec<u8> {
         std::mem::take(&mut self.kinds)
     }
@@ -144,6 +145,12 @@ impl Frame {
     /// Vitesse obtenue du mouvement qui arrive à chaque point (mm/s).
     pub fn take_speeds(&mut self) -> Vec<f32> {
         std::mem::take(&mut self.speeds)
+    }
+
+    /// Largeur du boudin qui arrive à chaque point (mm) ; diamètre pour une
+    /// goutte, 0 pour un déplacement.
+    pub fn take_widths(&mut self) -> Vec<f32> {
+        std::mem::take(&mut self.widths)
     }
 
     /// 1 pour un mouvement imprimé hors du volume d'impression ou dans une
@@ -240,8 +247,9 @@ impl Engine {
     pub fn evaluate(&mut self, values_json: &str) -> Frame {
         let ev = self.bench.evaluate(&values(values_json));
         let n = ev.path.as_ref().map_or(0, |p| p.points.len());
-        let (mut positions, mut kinds, mut speeds, mut outside) = (
+        let (mut positions, mut kinds, mut speeds, mut widths, mut outside) = (
             Vec::with_capacity(n * 3),
+            Vec::with_capacity(n),
             Vec::with_capacity(n),
             Vec::with_capacity(n),
             Vec::with_capacity(n),
@@ -256,6 +264,11 @@ impl Engine {
                 ]);
                 kinds.push(p.kind as u8);
                 speeds.push(m.speed as f32);
+                widths.push(if p.kind == fabweave_core::MoveKind::Travel {
+                    0.0
+                } else {
+                    p.w as f32
+                });
                 outside.push(u8::from(m.outside));
             }
         }
@@ -296,6 +309,7 @@ impl Engine {
             positions,
             kinds,
             speeds,
+            widths,
             outside,
             report,
         }
@@ -330,7 +344,7 @@ impl Engine {
 
     /// Parcours d'un modèle aux valeurs par défaut, pour sa vignette :
     /// `x, y, z, nature` à la suite (4 nombres par point), au plus `max_points`
-    /// points (sous-échantillonné). Vide si le modèle ne se calcule pas.
+    /// points (sous-échantillonné ; déplacements et gouttes toujours gardés). Vide si le modèle ne se calcule pas.
     pub fn thumbnail(
         &mut self,
         model: &str,
@@ -353,7 +367,13 @@ impl Engine {
         let stride = n.div_ceil(max_points.max(2) as usize).max(1);
         let mut out = Vec::with_capacity(n / stride * 4 + 4);
         for (i, p) in path.points.iter().enumerate() {
-            if i % stride == 0 || i + 1 == n || p.kind == fabweave_core::MoveKind::Travel {
+            if i % stride == 0
+                || i + 1 == n
+                || matches!(
+                    p.kind,
+                    fabweave_core::MoveKind::Travel | fabweave_core::MoveKind::Blob
+                )
+            {
                 out.extend([p.x as f32, p.y as f32, p.z as f32, p.kind as u8 as f32]);
             }
         }

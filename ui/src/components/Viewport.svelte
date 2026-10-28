@@ -8,6 +8,8 @@
   // Couleurs : jetons `--view-*` et `--path-*`, relus au changement de thème.
   // Annotations du modèle (`path.note`) : pastilles d'étiquette (canevas.md),
   // décalées en haut à droite de leur point, masquables, choix mémorisé.
+  // Gouttes (extrusion à l'arrêt) : sphères du diamètre de la goutte, même
+  // dégradé que le parcours.
   import { onMount } from 'svelte';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -81,6 +83,10 @@
   const outsideMat = new THREE.LineBasicMaterial();
   const outsideLines = new THREE.LineSegments(new THREE.BufferGeometry(), outsideMat);
   scene.add(bed, printLines, travelLines, outsideLines);
+  // Gouttes : une sphère de diamètre 1 par goutte, mise à l'échelle.
+  const blobGeom = new THREE.IcosahedronGeometry(0.5, 1);
+  const blobMat = new THREE.MeshBasicMaterial();
+  let blobs: THREE.InstancedMesh | null = null;
 
   const TOKENS = ['view-bg', 'view-bed', 'view-bed-edge', 'view-grid', 'view-bed-exclude', 'path-low', 'path-high', 'path-travel', 'danger'] as const;
   let colors: Record<(typeof TOKENS)[number], THREE.Color> = Object.fromEntries(TOKENS.map((k) => [k, new THREE.Color()])) as never;
@@ -208,6 +214,39 @@
     printLines.geometry = pg;
     travelLines.geometry = tg;
     outsideLines.geometry = og;
+    buildBlobs(f);
+  }
+
+  function buildBlobs(f: FrameData | null) {
+    if (blobs) {
+      scene.remove(blobs);
+      blobs.dispose();
+      blobs = null;
+    }
+    if (!f) return;
+    const idx: number[] = [];
+    for (let i = 1; i < f.kinds.length; i++) if (f.kinds[i] === 3) idx.push(i);
+    if (!idx.length) return;
+    let zmin = Infinity;
+    let zmax = -Infinity;
+    for (let i = 0; i < f.kinds.length; i++) {
+      zmin = Math.min(zmin, f.positions[i * 3 + 2]);
+      zmax = Math.max(zmax, f.positions[i * 3 + 2]);
+    }
+    const span = zmax - zmin || 1;
+    blobs = new THREE.InstancedMesh(blobGeom, blobMat, idx.length);
+    const m = new THREE.Matrix4();
+    const c = new THREE.Color();
+    idx.forEach((i, k) => {
+      const d = f.widths[i] || 1;
+      // La goutte s'étale sous la buse : centre à une demi-goutte sous le point.
+      m.makeScale(d, d, d).setPosition(f.positions[i * 3], f.positions[i * 3 + 1], f.positions[i * 3 + 2] - d / 2);
+      blobs!.setMatrixAt(k, m);
+      if (f.outside[i]) c.copy(colors['danger']);
+      else c.copy(colors['path-low']).lerp(colors['path-high'], (f.positions[i * 3 + 2] - zmin) / span);
+      blobs!.setColorAt(k, c);
+    });
+    scene.add(blobs);
   }
 
   /** Cadre la pièce (ou le plateau) vue de devant, à gauche, en hauteur. */

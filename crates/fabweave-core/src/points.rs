@@ -531,6 +531,25 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
     engine.register_fn("fill_lines", move |p: &mut Points, spacing: D, angle: D| {
         fill(p, spacing, angle, Dynamic::from_float(0.0))
     });
+    // fill_rings(spacing[, inset]) : anneaux concentriques du contour, du bord
+    // vers le centre, chacun fermé (tableau de listes de points).
+    let rings = move |p: &mut Points, spacing: D, inset: D| -> R<rhai::Array> {
+        let spacing = positive(&spacing, "spacing")?;
+        let inset = num(&inset, "inset")?;
+        if !(inset >= 0.0 && inset.is_finite()) {
+            return Err(fault("points.invalid_value", format!("inset : {inset}")));
+        }
+        let rings = crate::fill::fill_rings(&p.0, spacing, inset, limit)
+            .map_err(|n| fault("path.too_many_points", n.to_string()))?;
+        Ok(rings
+            .into_iter()
+            .map(|c| Dynamic::from(Points(c)))
+            .collect())
+    };
+    engine.register_fn("fill_rings", rings);
+    engine.register_fn("fill_rings", move |p: &mut Points, spacing: D| {
+        rings(p, spacing, Dynamic::from_float(0.0))
+    });
 
     // --- Vers le parcours -------------------------------------------------------------
     engine.register_fn(

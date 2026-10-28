@@ -144,6 +144,7 @@ Le script est écrit en [Rhai](https://rhai.rs/book/) (syntaxe proche de Rust et
 | `path.reset_fan()` | Revient au ventilateur du filament. |
 | `path.len()` | Nombre de points. |
 | `path.bridge_to(x, y, z, w, h, flow)` | Pont tendu dans le vide : ventilateur au moins celui des ponts du filament, débit × `flow` (0 à 2 ; 0,85 tend le fil). |
+| `path.blob(volume, durée)` | Goutte : la buse reste au point courant et pousse `volume` mm³ (multiplicateur de débit du filament compris) en `durée` secondes (`G1 E… F…` sans coordonnées). Volume de 0 à 1 000 mm³, durée de 0 à 60 s ; une goutte plus rapide que le débit max du filament dure plus longtemps (`speed.limited_flow`). Aperçu : sphère de même volume. |
 | `path.print_points(pts, w, h)` | Imprime une liste de points (ci-dessous) d'un coup ; un premier point confondu avec la position courante est sauté (après `travel_to(pts)`). |
 | `path.bridge_points(pts, w, h, flow)` | Idem en pont. |
 | `path.travel_to(pts)` | Déplacement jusqu'au premier point de la liste. |
@@ -205,6 +206,8 @@ for c in disc.fill_lines(0.45, PI / 4, 0.6) {
 path
 ```
 
+**Anneaux concentriques** : `contour.fill_rings(spacing)` ou `contour.fill_rings(spacing, inset)` renvoie un **tableau de listes de points fermées** (des anneaux) : le contour décalé vers l'intérieur de `inset` mm, puis de `spacing` en `spacing` jusqu'au centre (jonctions arrondies aux angles rentrants ; au centre reste un jour d'au plus `spacing`). Un contour étranglé donne plusieurs anneaux au même niveau. Les anneaux vont du bord vers le centre, tournent dans le sens du contour et commencent au point le plus proche du départ du précédent (coutures alignées) ; `rings.reverse()` les donne du centre vers le bord. Même usage que `fill_lines` : `for r in disc.fill_rings(0.45, 0.6) { path.travel_to(r); path.print_points(r, 0.45, 0.2); }`.
+
 Fond plein : contour = ligne médiane de la paroi, `spacing` = largeur des lignes, `inset` ≈ demi-largeur de la paroi + 35 % de la largeur des lignes (elles mordent sur la paroi) ; angle tourné de 90° d'une couche à l'autre. Grille de fils : `spacing` = pore + largeur, chaque ligne imprimée en pont (voir le tamis du catalogue).
 
 Exemple : un tamis carré de 12 couches, fils tendus d'un bord à l'autre du cadre, croisés à 90° d'une couche à l'autre.
@@ -261,7 +264,7 @@ Mesurée sur Apple M4 (voir [ADR-0002](adr/0002-format-weave-toml-et-rhai.md)) :
 
 1. Contrôle les valeurs des paramètres, exécute le script.
 2. Prépare le parcours selon les choix de l'utilisateur (section 6, « Préparation ») : rotation, copies, bordure ou radeau. Place le centre de l'encombrement au point choisi (centre du plateau par défaut) ; refuse une pièce qui dépasse le plateau, descend sous Z = 0, dépasse la hauteur d'impression ou passe dans une zone exclue du plateau (purge, pinces).
-3. Pour chaque mouvement : extrusion relative `E` = section × longueur 3D × multiplicateur de débit ÷ section du filament ; vitesse = demande du script, plafonnée (première couche, machine, débit volumétrique, axe Z) ; ventilateur (première couche, filament, script, ponts) ; durée avec les accélérations du profil (trapèze de vitesse, passage des angles limité par le *jerk*).
+3. Pour chaque mouvement : extrusion relative `E` = section × longueur 3D × multiplicateur de débit ÷ section du filament (goutte : volume × multiplicateur ÷ section du filament, en la durée demandée, plafonnée par le débit max) ; vitesse = demande du script, plafonnée (première couche, machine, débit volumétrique, axe Z) ; ventilateur (première couche, filament, script, ponts) ; durée avec les accélérations du profil (trapèze de vitesse, passage des angles limité par le *jerk*).
 4. Écrit le G-code : vignettes du profil, gabarit de démarrage, `M83`, accélérations, mouvements (seuls les axes qui changent) avec progression `M73 P R` et changements de couche dans le dialecte du profil, consignes de température après la première couche, gabarit de fin, métadonnées (temps estimé, filament) lues par les imprimantes Prusa.
 
 ## 5. Messages du moteur
@@ -279,7 +282,8 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `script.syntax`, `script.unknown_variable`, `script.unknown_property`, `script.unknown_function`, `script.wrong_type`, `script.arithmetic`, `script.index_out_of_range`, `script.constant_assignment`, `script.runtime`, `script.thrown` | erreur | Erreur du script (ligne et colonne dans le fichier). |
 | `script.too_many_operations`, `script.too_deep`, `script.data_too_large` | erreur | Limite du bac à sable atteinte. |
 | `script.no_path` | erreur | Le script ne se termine pas par le parcours. |
-| `path.invalid_position`, `path.invalid_width`, `path.invalid_height`, `path.invalid_speed`, `path.invalid_fan`, `path.invalid_flow`, `path.too_many_points`, `path.too_many_notes` | erreur | Appel de l'API invalide. |
+| `path.invalid_position`, `path.invalid_width`, `path.invalid_height`, `path.invalid_speed`, `path.invalid_fan`, `path.invalid_flow`, `path.invalid_blob`, `path.too_many_points`, `path.too_many_notes` | erreur | Appel de l'API invalide. |
+| `path.blob_without_position` | erreur | `path.blob` avant tout point : la goutte n'a pas de position. |
 | `points.invalid_count`, `points.invalid_value`, `points.index_out_of_range`, `points.empty` | erreur | Argument invalide d'une fonction de points (nombre de segments, rayon…). |
 | `model.warning` | avertissement | `warn()` du modèle (son texte, sa ligne). |
 | `model.failure` | erreur | `fail()` du modèle. Aux bornes d'un paramètre, `fabweave check` tolère ce refus (combinaison impossible avec les autres valeurs par défaut, par exemple un trou plus grand que la pièce) ; aux valeurs par défaut, jamais. |
@@ -288,7 +292,8 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `path.out_of_bed`, `path.below_bed`, `path.too_high` | erreur | La pièce ne tient pas dans le volume d'impression. |
 | `path.excluded_zone` | erreur | La pièce passe dans une zone exclue du plateau (`field` : `printer.bed.exclude[i]`, `name` : nom de la zone par langue, `count` : segments en cause). |
 | `path.duplicates_skipped` | info (avertissement au-delà d'un point sur dix) | Points confondus avec le précédent, ignorés. |
-| `speed.limited_first_layer`, `speed.limited_machine`, `speed.limited_flow`, `speed.limited_z` | info | Vitesse plafonnée (nombre de segments, valeur du plafond). |
+| `speed.limited_first_layer`, `speed.limited_machine`, `speed.limited_flow`, `speed.limited_z` | info | Vitesse plafonnée (nombre de segments, valeur du plafond) ; `speed.limited_flow` compte aussi les gouttes allongées. |
+| `blob.too_slow` | avertissement | Gouttes qui pousseraient le filament sous `F1` (1 mm/min) : elles durent plus longtemps que demandé (nombre de gouttes). |
 | `nozzle.not_recommended` | avertissement | Buse montée hors de `recommended_nozzle`. |
 | `nozzle.custom` | info | Diamètre libre, hors des buses du profil : hauteurs de couche interpolées. |
 | `nozzle.not_abrasive` | avertissement | Filament abrasif dans une buse qui ne l'est pas. |

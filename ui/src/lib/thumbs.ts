@@ -59,6 +59,14 @@ export function renderThumb(pts: Float32Array, size: number): string {
       if (pts[i * 4 + 3] === 0) continue; // déplacement : rien
       const zb = Math.min(BUCKETS - 1, Math.floor(((pts[i * 4 + 2] - z0) / Math.max(z1 - z0, 1e-6)) * BUCKETS));
       if (zb !== b) continue;
+      if (pts[i * 4 + 3] === 3) {
+        // Goutte : disque d'environ 1,6 mm (la vignette ne connaît pas sa taille).
+        const [u, v] = proj(i);
+        const r = Math.max(0.8 * k, dpr);
+        ctx.moveTo(ou + u * k + r, ov + v * k);
+        ctx.arc(ou + u * k, ov + v * k, r, 0, Math.PI * 2);
+        continue;
+      }
       const [ua, va] = proj(i - 1);
       const [ub, vb] = proj(i);
       ctx.moveTo(ou + ua * k, ov + va * k);

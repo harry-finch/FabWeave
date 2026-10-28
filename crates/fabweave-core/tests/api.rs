@@ -289,3 +289,134 @@ p",
         );
     }
 }
+
+#[test]
+fn fill_rings_from_the_script() {
+    let ev = eval(
+        "let p = new_path();
+let sq = rectangle(-10, -10, 0.2, 20, 20);
+let rings = sq.fill_rings(1, 0.5);
+let all = sq.fill_rings(1);
+print(`${rings.len()} ${rings[0].len()} ${all.len()}`);
+for r in rings {
+    p.travel_to(r);
+    p.print_points(r, 1, 0.2);
+}
+p",
+    );
+    assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
+    // Carré de 20 mm : anneaux à 0,5 ; 1,5 ; … ; 9,5 mm du bord, fermés ;
+    // sans retrait, le premier est le contour lui-même.
+    assert_eq!(ev.log[0], "10 5 10");
+    let pts = &ev.path.unwrap().points;
+    assert!(pts
+        .iter()
+        .all(|q| q.x.abs() <= 9.5 + 1e-6 && q.y.abs() <= 9.5 + 1e-6));
+    for (body, code) in [
+        (
+            "rectangle(0, 0, 0, 5, 5).fill_rings(0)",
+            "points.invalid_value",
+        ),
+        (
+            "rectangle(0, 0, 0, 5, 5).fill_rings(0.5, -1)",
+            "points.invalid_value",
+        ),
+        (
+            "rectangle(0, 0, 0, 200, 200).fill_rings(0.0001)",
+            "path.too_many_points",
+        ),
+    ] {
+        let ev = eval(&format!("let x = {body};\nnew_path()"));
+        assert!(
+            ev.issues.iter().any(|i| i.code == code),
+            "{body}: {:?}",
+            ev.issues
+        );
+    }
+}
+
+#[test]
+fn blobs_extrude_without_moving() {
+    let w = bench(
+        "",
+        "let p = new_path();
+p.travel_to(0, 0, 1);
+p.blob(2, 0.5);
+p.travel_to(5, 0, 1);
+p.blob(20, 0.5);
+p.print_to(10, 0, 1, 0.5, 0.3);
+p",
+    );
+    let ev = w.evaluate(&Map::new());
+    assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
+    let path = ev.path.as_ref().unwrap();
+    let plan = ev.plan.as_ref().unwrap();
+    let blob = &path.points[1];
+    assert_eq!(blob.kind, MoveKind::Blob);
+    assert_eq!(
+        (blob.x, blob.y, blob.volume, blob.duration),
+        (0.0, 0.0, 2.0, 0.5)
+    );
+    // Diamètre de la sphère de 2 mm³ (aperçu).
+    assert!((blob.w - (12.0 / std::f64::consts::PI).cbrt()).abs() < 1e-12);
+    // Filament poussé : volume × multiplicateur ÷ section du filament.
+    let area = std::f64::consts::PI * 1.75 * 1.75 / 4.0;
+    let flow_mult = plan.moves[1].e * area / 2.0;
+    assert!((flow_mult - 1.0).abs() < 0.1, "multiplicateur {flow_mult}");
+    assert!((plan.moves[1].time - 0.5).abs() < 1e-12);
+    // 20 mm³ en 0,5 s dépasse le débit max (15 mm³/s) : la goutte dure plus
+    // longtemps, et c'est compté.
+    assert!((plan.moves[3].time - 20.0 * flow_mult / 15.0).abs() < 1e-9);
+    assert_eq!(plan.stats.limited.flow, 1);
+    assert_eq!(plan.stats.blobs, 2);
+    assert!(ev.issues.iter().any(|i| i.code == "speed.limited_flow"));
+    assert!(plan.stats.time.is_finite() && plan.stats.time > 0.5 + plan.moves[3].time);
+
+    // G-code : extrusion seule, sans coordonnées.
+    let g = w.gcode(&ev).unwrap();
+    let body = &g[g.find("; --- FabWeave : parcours").unwrap()..];
+    let lines: Vec<&str> = body
+        .lines()
+        .filter(|l| l.starts_with("G1 E") && !l.contains("E-"))
+        .collect();
+    assert!(lines.len() >= 2, "{lines:?}");
+    let feed = plan.moves[1].e / 0.5 * 60.0;
+    assert!(
+        body.contains(&format!("F{}", feed.round())),
+        "F{} : {lines:?}",
+        feed.round()
+    );
+
+    for (body, code) in [
+        (
+            "let p = new_path();\np.blob(1, 1);\np",
+            "path.blob_without_position",
+        ),
+        (
+            "let p = new_path();\np.travel_to(0, 0, 1);\np.blob(0, 1);\np",
+            "path.invalid_blob",
+        ),
+        (
+            "let p = new_path();\np.travel_to(0, 0, 1);\np.blob(1, 0);\np",
+            "path.invalid_blob",
+        ),
+        (
+            "let p = new_path();\np.travel_to(0, 0, 1);\np.blob(1, 90);\np",
+            "path.invalid_blob",
+        ),
+    ] {
+        let ev = eval(body);
+        assert!(
+            ev.issues.iter().any(|i| i.code == code),
+            "{body}: {:?}",
+            ev.issues
+        );
+    }
+}
+
+#[test]
+fn a_path_of_blobs_only_is_not_empty() {
+    let ev = eval("let p = new_path();\np.travel_to(0, 0, 1);\np.blob(2, 1);\np");
+    assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
+    assert!(ev.plan.is_some());
+}

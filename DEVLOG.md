@@ -199,3 +199,21 @@ v0.0 validée par l'utilisateur.
 **Défauts trouvés et corrigés.** Firmware des Prusa récentes non reconnu (`printer_notes` sans `PRINTER_VENDOR_PRUSA3D` : reconnu au modèle `MK4S`, `COREONE`…) ; « Expression exceeds maximum complexity » de Rhai sur la température de palpage ; `binary_gcode = 1` listé comme gabarit ; saut de ligne perdu en tête des blocs ; en-têtes de la table des zones non traduits ; libellés tronqués ; après suppression, retour au premier profil livré au lieu de la base de l'import.
 
 **Non fait.** Fichiers réels d'utilisateurs (OrcaSlicer surtout) ; paquets `.bbscfg` / `.orca_printer` (archives ZIP) ; gabarits de changement de couche ; profils de l'utilisateur partagés entre postes (fichier TOML exporté seulement) ; impression avec un profil importé.
+
+## 2026-10-28 — v0.3, étape 5 : anneaux concentriques et gouttes
+
+Étape 4 validée par l'utilisateur ; ADR-0006 acceptée.
+
+**Entrées.** Notebook `blob_printing.ipynb` de FullControl (tube de gouttes : taille 1,6 mm, hauteur moitié, chevauchement 33 %, volume = hauteur × taille², buse à 95 % d'une hauteur de goutte, deux rangées pleines en haut et en bas, une goutte sur deux entre les deux, 0,5 à 1 s par goutte conseillées). `i_overlay` 9.1, déjà employé par FabVents pour décaler les contours.
+
+**Choix.**
+- **Anneaux concentriques** (`fill_rings(spacing[, inset])`, API-14) : décalages de `i_overlay` en arithmétique entière (même résultat en natif et en WebAssembly), jonctions arrondies. Chaque anneau est décalé du précédent (érosion par un disque : deux décalages valent un décalage de leur somme) et simplifié à 0,01 mm près. Décaler le contour d'origine d'une grande distance coûte cher (29 ms pour 9,6 mm sur 400 points ; 250 ms le fond entier) ; décaler sans simplifier multiplie les points (800 000 au 15e anneau). Pas à pas avec simplification : 31 anneaux en 9 ms. Îlots d'un même niveau dans l'ordre du plus proche ; chaque anneau dans le sens du contour, commencé au sommet le plus proche du départ du précédent (coutures alignées).
+- Vase à ondulations : paramètre « Motif du fond » (lignes ou anneaux, lignes par défaut : G-code inchangé) ; anneaux de la dernière couche du centre vers le bord, pour que le contour puis la spirale suivent.
+- **Goutte** (`path.blob(volume, durée)`, API-15) : mouvement `Blob` au point courant, `G1 E… F…` sans coordonnées. `E` = volume × multiplicateur de débit ÷ section du filament. Une goutte plus rapide que le débit max dure plus longtemps (comptée dans `speed.limited_flow`) ; sous `F1`, elle est ralentie et signalée (`blob.too_slow`). Dans l'estimation du temps avec accélérations, une goutte est un arrêt complet. Volume de 0 à 1 000 mm³, durée de 0 à 60 s ; goutte sans position refusée. Aperçu : sphère de même volume, centrée une demi-goutte sous la buse (vue 3D en `InstancedMesh`, vignettes du moteur en disques) ; le WebAssembly transmet la largeur de chaque point.
+- **Tube de gouttes** (CAT-12) : port du notebook, durée par goutte en secondes au lieu de la vitesse d'extrusion propre à chaque imprimante ; amorçage par la ligne de purge du profil au lieu des gouttes d'amorçage de l'original ; ventilateur à 100 % comme l'original.
+
+**Vérification.** 93 tests : anneaux d'un carré (dix, fermés, dans le sens du contour, coutures alignées), contour horaire, col qui sépare en deux îlots, limite de points, déterminisme sur un contour ondulé ; `fill_rings` depuis le script ; goutte (position, diamètre, `E`, durée, débit plafonné, `G1 E… F…` dans le G-code, erreurs) ; parcours fait seulement de gouttes. Tube de gouttes : 406 gouttes, 5 min, 1,0 g ; G-code relu (`G1 E0.85146 F73` par goutte, rétraction entre les gouttes des rangées ajourées, plus espacées que `min_travel`). Navigateur : voir STATUS.
+
+**Défauts trouvés et corrigés.** Décalages lents puis explosion du nombre de points (voir Choix) ; boucle signalée par clippy après l'ajout des arrêts sur goutte ; compte de calculs de `fabweave check` du vase (un paramètre de plus).
+
+**Non fait.** Impression des gouttes et d'un fond en anneaux ; pas de dégradé d'éclairage sur les sphères (couleur à plat, comme les lignes) ; la vignette du catalogue dessine les gouttes à une taille fixe (elle ne reçoit pas leur diamètre).

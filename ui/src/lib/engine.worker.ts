@@ -40,14 +40,16 @@ onmessage = async (ev: MessageEvent<Request>) => {
       const positions = f.take_positions();
       const kinds = f.take_kinds();
       const speeds = f.take_speeds();
+      const widths = f.take_widths();
       const outside = f.take_outside();
       const report = JSON.parse(f.report());
       f.free();
       const ms = performance.now() - t0;
-      post({ kind: 'frame', id: req.id, frame: { positions, kinds, speeds, outside, report, ms } }, [
+      post({ kind: 'frame', id: req.id, frame: { positions, kinds, speeds, widths, outside, report, ms } }, [
         positions.buffer as ArrayBuffer,
         kinds.buffer as ArrayBuffer,
         speeds.buffer as ArrayBuffer,
+        widths.buffer as ArrayBuffer,
         outside.buffer as ArrayBuffer,
       ]);
     } else if (req.kind === 'load') {

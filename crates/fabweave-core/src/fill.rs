@@ -1,7 +1,8 @@
-//! Remplissage d'un contour fermé par des lignes parallèles (API-13) : fonds
-//! pleins, couches de dessus, grilles. Calcul natif, déterministe.
+//! Remplissage d'un contour fermé : lignes parallèles reliées en zigzag
+//! (API-13) ou anneaux concentriques (API-14). Fonds pleins, couches de
+//! dessus, grilles. Calcul natif, déterministe.
 //!
-//! Le contour est un polygone quelconque dans le plan XY (convexe ou non,
+//! **Lignes.** Le contour est un polygone quelconque dans le plan XY (convexe ou non,
 //! ondulé, en étoile ; règle pair-impair pour les croisements). Les lignes,
 //! parallèles à la direction `angle` et espacées de `spacing`, sont coupées
 //! par le contour puis raccourcies de `inset` (distance perpendiculaire au
@@ -11,6 +12,20 @@
 //!
 //! Résultat : une liste de chaînes, chacune une liste de points à imprimer
 //! d'un trait, à la hauteur du premier point du contour.
+//!
+//! **Anneaux.** Le contour est décalé vers l'intérieur de `inset`, puis
+//! chaque anneau de `spacing` vers l'intérieur pour donner le suivant, tant
+//! qu'il reste de la place (`i_overlay`, arithmétique entière, jonctions
+//! arrondies aux angles rentrants : deux décalages successifs valent un
+//! décalage de leur somme). Chaque anneau est simplifié à `SIMPLIFY` près
+//! (sinon ses points se multiplient d'un décalage à l'autre). Un
+//! contour étranglé se sépare en plusieurs anneaux au même niveau. Chaque
+//! anneau est fermé, tourne dans le sens du contour et commence au point le
+//! plus proche du départ de l'anneau précédent (coutures alignées, trajets
+//! courts). Au centre reste un jour d'au plus `spacing`.
+
+use i_overlay::mesh::float::outline::offset::OutlineOffset;
+use i_overlay::mesh::float::style::{LineJoin, OutlineStyle};
 
 /// Un lien plus long que `LINK_MAX × spacing` le long des lignes coupe la
 /// chaîne : il chevaucherait trop les lignes voisines.
@@ -19,18 +34,18 @@ const LINK_MAX: f64 = 3.0;
 /// `inset / SIN_MIN` (sinon une ligne rasante disparaîtrait).
 const SIN_MIN: f64 = 0.25;
 
-/// Lignes de remplissage de `contour`, en chaînes à imprimer d'un trait.
-pub fn fill_lines(
-    contour: &[[f64; 3]],
-    spacing: f64,
-    angle: f64,
-    inset: f64,
-) -> Vec<Vec<[f64; 3]>> {
+/// Angle d'un segment des jonctions arrondies (longueur / rayon).
+const ROUND_JOIN: f64 = 0.2;
+/// Écart toléré à la simplification d'un anneau (mm), sous la résolution du
+/// G-code (0,001 mm écrit, mais 0,01 mm d'écart est invisible à l'impression).
+const SIMPLIFY: f64 = 0.01;
+
+/// Polygone plan de `contour` (points confondus et point de fermeture
+/// retirés), passé par `map`.
+fn polygon(contour: &[[f64; 3]], map: impl Fn([f64; 3]) -> [f64; 2]) -> Vec<[f64; 2]> {
     let mut poly: Vec<[f64; 2]> = Vec::with_capacity(contour.len());
-    let (c, s) = (libm::cos(angle), libm::sin(angle));
     for p in contour {
-        // Repère tourné : les lignes deviennent horizontales (y' constant).
-        let q = [p[0] * c + p[1] * s, -p[0] * s + p[1] * c];
+        let q = map(*p);
         if poly
             .last()
             .is_none_or(|l: &[f64; 2]| l[0] != q[0] || l[1] != q[1])
@@ -41,6 +56,164 @@ pub fn fill_lines(
     if poly.len() > 1 && poly[0] == poly[poly.len() - 1] {
         poly.pop();
     }
+    poly
+}
+
+/// Aire signée (positive dans le sens inverse des aiguilles d'une montre).
+fn signed_area(poly: &[[f64; 2]]) -> f64 {
+    (0..poly.len())
+        .map(|i| {
+            let (a, b) = (poly[i], poly[(i + 1) % poly.len()]);
+            a[0] * b[1] - b[0] * a[1]
+        })
+        .sum::<f64>()
+        / 2.0
+}
+
+/// Anneaux concentriques qui remplissent `contour`, du bord vers le centre ;
+/// chacun fermé (dernier point = premier). `max_points` borne le total.
+pub fn fill_rings(
+    contour: &[[f64; 3]],
+    spacing: f64,
+    inset: f64,
+    max_points: usize,
+) -> Result<Vec<Vec<[f64; 3]>>, usize> {
+    let mut poly = polygon(contour, |p| [p[0], p[1]]);
+    if poly.len() < 3 || spacing.is_nan() || spacing <= 0.0 || inset.is_nan() || inset < 0.0 {
+        return Ok(Vec::new());
+    }
+    let area = signed_area(&poly);
+    if area.is_nan() || area == 0.0 {
+        return Ok(Vec::new());
+    }
+    let ccw = area > 0.0;
+    if !ccw {
+        poly.reverse();
+    }
+    let z = contour[0][2];
+    let mut rings: Vec<Vec<[f64; 3]>> = Vec::new();
+    let mut total = 0usize;
+    let mut seam = poly[0];
+    let mut level: Vec<Vec<[f64; 2]>> = vec![poly];
+    let mut step = inset;
+    loop {
+        if step > 0.0 {
+            let shapes: Vec<Vec<Vec<[f64; 2]>>> = level.into_iter().map(|c| vec![c]).collect();
+            let style = OutlineStyle::new(-step).line_join(LineJoin::Round(ROUND_JOIN));
+            level = shapes
+                .outline(&style)
+                .into_iter()
+                .filter_map(|s| s.into_iter().next())
+                .map(|c| simplify(&c, SIMPLIFY))
+                .filter(|c| c.len() >= 3 && signed_area(c).abs() > spacing * spacing / 4.0)
+                .collect();
+        }
+        step = spacing;
+        if level.is_empty() {
+            break;
+        }
+        // Îlots d'un même niveau : le plus proche de la couture d'abord.
+        let mut left = level.clone();
+        while !left.is_empty() {
+            let best = left
+                .iter()
+                .enumerate()
+                .map(|(i, c)| (i, nearest(c, seam).1))
+                .min_by(|a, b| a.1.total_cmp(&b.1))
+                .map_or(0, |(i, _)| i);
+            let mut c = left.swap_remove(best);
+            if signed_area(&c) < 0.0 {
+                c.reverse();
+            }
+            let start = nearest(&c, seam).0;
+            c.rotate_left(start);
+            if !ccw {
+                // Sens du contour d'origine, même point de départ.
+                c[1..].reverse();
+            }
+            seam = c[0];
+            total += c.len() + 1;
+            if total > max_points {
+                return Err(max_points);
+            }
+            let mut ring: Vec<[f64; 3]> = c.iter().map(|p| [p[0], p[1], z]).collect();
+            ring.push(ring[0]);
+            rings.push(ring);
+        }
+    }
+    Ok(rings)
+}
+
+/// Contour fermé simplifié (Douglas-Peucker) : les sommets à moins de `tol`
+/// de la corde sont retirés.
+fn simplify(c: &[[f64; 2]], tol: f64) -> Vec<[f64; 2]> {
+    fn rdp(pts: &[[f64; 2]], tol: f64, out: &mut Vec<[f64; 2]>) {
+        let n = pts.len();
+        let (a, b) = (pts[0], pts[n - 1]);
+        let far = (1..n.saturating_sub(1))
+            .map(|i| (i, segment_distance(pts[i], a, b)))
+            .max_by(|x, y| x.1.total_cmp(&y.1));
+        match far {
+            Some((i, d)) if d > tol => {
+                rdp(&pts[..=i], tol, out);
+                rdp(&pts[i..], tol, out);
+            }
+            _ => out.push(a),
+        }
+    }
+    if c.len() < 4 {
+        return c.to_vec();
+    }
+    // Deux moitiés, du premier sommet au plus éloigné et retour : aucune
+    // corde n'est nulle.
+    let far = farthest(c);
+    let mut out = Vec::with_capacity(c.len());
+    rdp(&c[..=far], tol, &mut out);
+    let back: Vec<[f64; 2]> = c[far..].iter().chain(&c[..1]).copied().collect();
+    rdp(&back, tol, &mut out);
+    out
+}
+
+/// Indice du sommet le plus éloigné du premier.
+fn farthest(c: &[[f64; 2]]) -> usize {
+    c.iter()
+        .enumerate()
+        .map(|(i, q)| (i, (q[0] - c[0][0]).powi(2) + (q[1] - c[0][1]).powi(2)))
+        .max_by(|a, b| a.1.total_cmp(&b.1))
+        .map_or(0, |(i, _)| i)
+}
+
+/// Distance du point `p` au segment `a`–`b`.
+fn segment_distance(p: [f64; 2], a: [f64; 2], b: [f64; 2]) -> f64 {
+    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+    let l2 = dx * dx + dy * dy;
+    let t = if l2 > 0.0 {
+        (((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    (p[0] - a[0] - t * dx).hypot(p[1] - a[1] - t * dy)
+}
+
+/// Indice et distance (au carré) du sommet de `c` le plus proche de `p`.
+fn nearest(c: &[[f64; 2]], p: [f64; 2]) -> (usize, f64) {
+    c.iter()
+        .enumerate()
+        .map(|(i, q)| (i, (q[0] - p[0]).powi(2) + (q[1] - p[1]).powi(2)))
+        .min_by(|a, b| a.1.total_cmp(&b.1))
+        .unwrap_or((0, f64::INFINITY))
+}
+
+/// Lignes de remplissage de `contour`, en chaînes à imprimer d'un trait.
+pub fn fill_lines(
+    contour: &[[f64; 3]],
+    spacing: f64,
+    angle: f64,
+    inset: f64,
+) -> Vec<Vec<[f64; 3]>> {
+    let (c, s) = (libm::cos(angle), libm::sin(angle));
+    // Repère tourné : les lignes deviennent horizontales (y' constant).
+    let poly = polygon(contour, |p| [p[0] * c + p[1] * s, -p[0] * s + p[1] * c]);
     if poly.len() < 3 || spacing.is_nan() || spacing <= 0.0 {
         return Vec::new();
     }
@@ -228,6 +401,92 @@ mod tests {
         assert!(fill_lines(&square(1.0), 0.4, 0.0, 1.0).is_empty());
     }
 
+    fn inside_square(p: &[f64; 3], h: f64) -> bool {
+        p[0].abs() <= h + 1e-6 && p[1].abs() <= h + 1e-6
+    }
+
+    #[test]
+    fn a_square_gives_closed_rings_inward() {
+        let rings = fill_rings(&square(20.0), 1.0, 0.5, 100_000).unwrap();
+        // Décalages 0,5 ; 1,5 ; … ; 9,5 : dix anneaux.
+        assert_eq!(rings.len(), 10, "{}", rings.len());
+        for (k, r) in rings.iter().enumerate() {
+            assert_eq!(r.first(), r.last());
+            let h = 10.0 - 0.5 - k as f64;
+            assert!(r.iter().all(|p| inside_square(p, h) && p[2] == 0.2), "{k}");
+            // Au moins un point sur le bord décalé.
+            assert!(
+                r.iter()
+                    .any(|p| (p[0].abs().max(p[1].abs()) - h).abs() < 1e-3),
+                "{k}"
+            );
+            let flat: Vec<[f64; 2]> = r.iter().map(|p| [p[0], p[1]]).collect();
+            assert!(
+                signed_area(&flat[..flat.len() - 1]) > 0.0,
+                "sens du contour"
+            );
+        }
+        // Coutures alignées : chaque anneau part près du départ du précédent.
+        for w in rings.windows(2) {
+            let (a, b) = (w[0][0], w[1][0]);
+            assert!((a[0] - b[0]).hypot(a[1] - b[1]) < 1.5, "{a:?} {b:?}");
+        }
+    }
+
+    #[test]
+    fn a_clockwise_contour_keeps_its_direction() {
+        let mut sq = square(20.0);
+        sq.reverse();
+        let rings = fill_rings(&sq, 1.0, 0.5, 100_000).unwrap();
+        assert_eq!(rings.len(), 10);
+        for r in &rings {
+            let flat: Vec<[f64; 2]> = r.iter().map(|p| [p[0], p[1]]).collect();
+            assert!(signed_area(&flat[..flat.len() - 1]) < 0.0);
+        }
+    }
+
+    #[test]
+    fn a_waist_splits_rings_into_islands() {
+        // Deux carrés de 20 mm reliés par un col de 4 mm.
+        let bowtie = vec![
+            [-25.0, -10.0, 0.0],
+            [-5.0, -10.0, 0.0],
+            [-5.0, -2.0, 0.0],
+            [5.0, -2.0, 0.0],
+            [5.0, -10.0, 0.0],
+            [25.0, -10.0, 0.0],
+            [25.0, 10.0, 0.0],
+            [5.0, 10.0, 0.0],
+            [5.0, 2.0, 0.0],
+            [-5.0, 2.0, 0.0],
+            [-5.0, 10.0, 0.0],
+            [-25.0, 10.0, 0.0],
+        ];
+        let rings = fill_rings(&bowtie, 1.0, 0.5, 100_000).unwrap();
+        // Les deux premiers niveaux passent le col ; ensuite deux îlots.
+        let left = rings
+            .iter()
+            .filter(|r| r.iter().all(|p| p[0] < 0.0))
+            .count();
+        let right = rings
+            .iter()
+            .filter(|r| r.iter().all(|p| p[0] > 0.0))
+            .count();
+        assert!(left >= 7 && left == right, "{left} {right}");
+        assert_eq!(rings.len(), left + right + 2);
+    }
+
+    #[test]
+    fn rings_respect_the_point_limit_and_degenerate_input() {
+        assert_eq!(fill_rings(&square(20.0), 0.1, 0.0, 50), Err(50));
+        assert!(fill_rings(&[], 1.0, 0.0, 100).unwrap().is_empty());
+        assert!(fill_rings(&square(20.0), 0.0, 0.0, 100).unwrap().is_empty());
+        assert!(fill_rings(&square(1.0), 0.4, 1.0, 100).unwrap().is_empty());
+        // Sans retrait, le premier anneau est le contour lui-même.
+        let rings = fill_rings(&square(4.0), 1.0, 0.0, 100).unwrap();
+        assert_eq!(rings[0].len(), 5);
+    }
+
     #[test]
     fn deterministic_on_a_rippled_contour() {
         let ripple: Vec<[f64; 3]> = (0..=400)
@@ -245,6 +504,12 @@ mod tests {
         assert!(!a.is_empty());
         for p in a.iter().flatten() {
             assert!(p[0].hypot(p[1]) < 20.6, "{p:?}");
+        }
+        let a = fill_rings(&ripple, 0.45, 0.6, 1_000_000).unwrap();
+        assert_eq!(a, fill_rings(&ripple, 0.45, 0.6, 1_000_000).unwrap());
+        assert!(a.len() > 25, "{}", a.len());
+        for p in a.iter().flatten() {
+            assert!(p[0].hypot(p[1]) < 20.6 - 0.59, "{p:?}");
         }
     }
 }

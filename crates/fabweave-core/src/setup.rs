@@ -427,6 +427,8 @@ mod tests {
             speed: Speed::Factor(1.0),
             fan: None,
             flow: 1.0,
+            volume: 0.0,
+            duration: 0.0,
         }
     }
 

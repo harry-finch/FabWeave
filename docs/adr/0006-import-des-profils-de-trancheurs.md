@@ -1,6 +1,6 @@
 # ADR-0006 : Import des profils de trancheurs
 
-Status: Proposed (à valider avec l'étape 4 de la v0.3)
+Status: Accepted (étape 4 de la v0.3 validée le 28/10/2026)
 Date: 2026-10-27
 
 ## Context
@@ -13,7 +13,7 @@ Trois difficultés :
 - **Les gabarits de G-code n'ont pas notre syntaxe.** Les trancheurs emploient `[var]`, `{expr}` et des blocs `{if}…{elsif}…{else}…{endif}`, des noms de variables différents (`nozzle_temperature_initial_layer`, `first_layer_print_min[0]`), des réglages du fichier (`printer_notes`, `z_offset`), des expressions régulières (`=~ /.*PET.*/`) et des variables d'état (`layer_num`) qui n'existent pas au démarrage dans FabWeave.
 - **Un gabarit mal traduit est dangereux.** Une ligne de démarrage sautée peut laisser le plateau froid, une buse non palpée ou une purge au mauvais endroit.
 
-## Decision (proposée)
+## Decision
 
 1. **Import dans le moteur** (`fabweave_core::import`, pur) : lecture du `.ini` (à plat ou en paquet, héritage résolu dans le fichier) et du `.json` ; un profil par préréglage d'imprimante ou de filament ; réglages d'impression refusés (`import.process_profile`).
 2. **Profil de base** : chaque profil importé part d'un profil livré (même firmware, même matière). Les valeurs absentes en viennent, **sauf** ce qui est propre à une machine ou à un filament (zones exclues, buses proposées, couches par buse, cône, dégagement de la tête, vignettes, débits par buse), laissé vide. Un rapport liste chaque valeur reprise avec sa clé, chaque valeur absente avec ce qu'elle devient, les clés ignorées et les gabarits du trancheur sans équivalent.

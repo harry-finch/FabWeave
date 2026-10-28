@@ -386,12 +386,17 @@ const fr = {
       duplicates_skipped: '{count} points confondus avec le précédent, ignorés.',
       invalid_flow: 'Débit de pont invalide : de 0 à 2 (1 = débit nominal).',
       too_many_notes: 'Trop d’annotations (au plus {detail}).',
+      blob_without_position: 'Goutte sans position : placer la buse (travel_to, print_to…) avant blob().',
+      invalid_blob: 'Goutte invalide ({detail}) : volume de 0 à 1 000 mm³, durée de 0 à 60 s.',
     },
     points: {
       invalid_count: 'Nombre invalide (entier positif attendu).',
       invalid_value: 'Valeur invalide (positive attendue).',
       index_out_of_range: 'Indice de point hors de la liste.',
       empty: 'Liste de points vide.',
+    },
+    blob: {
+      too_slow: '{count} gouttes pousseraient le filament sous {value} mm/min : elles durent plus longtemps que demandé.',
     },
     speed: {
       limited_first_layer: 'Vitesse plafonnée à {value} mm/s sur la première couche ({count} segments).',
