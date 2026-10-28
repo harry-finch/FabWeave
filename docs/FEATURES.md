@@ -41,6 +41,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-14 | Remplissage en anneaux concentriques (`fill_rings`, décalage d'un contour vers l'intérieur, îlots, coutures alignées) | v0.3 | fait |
 | API-15 | Extrusion à l'arrêt (`path.blob(volume, durée)` : goutte sans mouvement, débit plafonné), pour CAT-12 | v0.3 | fait |
 | API-16 | `pts.slice(from, to)` ; `floor`, `round`, `ceiling` acceptent un entier | v0.2 | fait |
+| API-17 | Bruit de gradient 3D natif `noise(x, y, z)` (−1 à 1, motifs de taille ≈ 1, déterministe, sans couture sur un cylindre pris en 3D) : textures aléatoires continues | v0.3 | fait |
 
 ## Moteur : physique et G-code (ENG)
 
@@ -116,6 +117,8 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | CAT-20 | Boîte à visser en mode vase | Recherche FabWeave | Extrusion large (W = 0,9 mm), filet sinusoïdal | v0.3 | prévu |
 | CAT-21 | Charnière souple monolithique | Recherche FabWeave | Lames continues sans couture | v0.4 | prévu |
 | CAT-22 | *Ajout* : tour de température et test de débit | Fablab | Calibration d'un nouveau filament | v0.3 | prévu |
+| CAT-24 | *Ajout* : photophore vermiculé (relief en vermicelles tiré d'un bruit, fond en anneaux) | Photo de l'utilisateur (28/10/2026) | Bruit 3D (API-17), paroi en spirale | v0.3 | fait |
+| CAT-25 | *Ajout* : vase à écailles (polygone aux faces creusées, taille resserrée, écailles en quinconce) | Photo de l'utilisateur (28/10/2026) ; texture de FullControl « ripple texture » | Points à pas égal le long du contour, sortie selon la normale | v0.3 | fait |
 
 ## Visualisation (VIEW)
 

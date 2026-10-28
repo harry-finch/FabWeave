@@ -16,6 +16,7 @@ pub mod image;
 pub mod import;
 pub mod issue;
 pub mod model;
+pub mod noise;
 pub mod package;
 pub mod params;
 pub mod path;

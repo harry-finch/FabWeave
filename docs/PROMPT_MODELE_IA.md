@@ -74,7 +74,7 @@ Variables fournies : `params.<id>` (constantes), `printer.nozzle_diameter`, `pri
 
 **Messages** : `warn("…")` signale un risque (le parcours est produit) ; `fail("…")` refuse des valeurs incohérentes. Texte simple ou `#{ fr: "…", en: "…" }`.
 
-**Maths** : `sin cos tan asin acos atan sqrt exp ln log`, `atan2(y, x)`, `pow(x, y)`, `hypot(x, y)`, `min`, `max`, `clamp(x, lo, hi)`, `lerp(a, b, t)`, `rad(degrés)`, `deg(radians)`, `floor(x)`, `round(x)`, `ceiling(x)` (renvoient un flottant, acceptent un entier), `abs(x)`, `x.to_int()`, `x.to_float()`.
+**Maths** : `sin cos tan asin acos atan sqrt exp ln log`, `atan2(y, x)`, `pow(x, y)`, `hypot(x, y)`, `min`, `max`, `clamp(x, lo, hi)`, `lerp(a, b, t)`, `noise(x, y, z)` (bruit continu de −1 à 1, motifs de taille ≈ 1 : diviser les coordonnées par la taille voulue ; sur un cylindre, prendre x = cos(a) × r, y = sin(a) × r pour éviter la couture), `rad(degrés)`, `deg(radians)`, `floor(x)`, `round(x)`, `ceiling(x)` (renvoient un flottant, acceptent un entier), `abs(x)`, `x.to_int()`, `x.to_float()`.
 
 ## 4. Pièges à éviter absolument
 

@@ -315,6 +315,14 @@ fn register_math(engine: &mut Engine) {
         let (a, b, t) = (num(&a, "a")?, num(&b, "b")?, num(&t, "t")?);
         Ok(a + (b - a) * t)
     });
+    // noise(x, y, z) : bruit de gradient 3D, de -1 à 1, motifs de taille ≈ 1.
+    engine.register_fn("noise", |x: Dynamic, y: Dynamic, z: Dynamic| -> R<f64> {
+        Ok(crate::noise::noise3(
+            num(&x, "x")?,
+            num(&y, "y")?,
+            num(&z, "z")?,
+        ))
+    });
     engine.register_fn("clamp", |x: Dynamic, lo: Dynamic, hi: Dynamic| -> R<f64> {
         let (x, lo, hi) = (num(&x, "x")?, num(&lo, "lo")?, num(&hi, "hi")?);
         Ok(x.max(lo).min(hi))

@@ -420,3 +420,19 @@ fn a_path_of_blobs_only_is_not_empty() {
     assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
     assert!(ev.plan.is_some());
 }
+
+#[test]
+fn noise_is_continuous_and_reproducible() {
+    let ev = eval(
+        "let a = noise(1.3, 2.7, 0.4);
+let b = noise(1.3, 2.7, 0.4);
+let c = noise(1.3001, 2.7, 0.4);
+print(`${noise(0, 0, 0)} ${a == b} ${abs(a - c) < 0.001} ${abs(a) <= 1.0}`);
+let p = new_path();
+p.print_to(0, 0, 0.2, 0.4, 0.2);
+p.print_to(10, 0, 0.2, 0.4, 0.2);
+p",
+    );
+    assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
+    assert_eq!(ev.log[0], "0.0 true true true");
+}

@@ -230,7 +230,7 @@ Les arguments numériques acceptent entiers et flottants. Une largeur, une haute
 
 ### Fonctions mathématiques
 
-`sin cos tan asin acos atan sinh cosh tanh exp ln log sqrt` (un argument), `atan(y, x)` et `atan2(y, x)`, `pow(x, y)`, `hypot(x, y)`, `min(a, b)`, `max(a, b)`, `clamp(x, lo, hi)`, `lerp(a, b, t)`, `rad(degrés)`, `deg(radians)`. Les fonctions de Rhai restent disponibles : `floor(x)`, `ceiling(x)`, `round(x)`, `abs(x)`, `x.to_int()`, `x.to_float()`…
+`sin cos tan asin acos atan sinh cosh tanh exp ln log sqrt` (un argument), `atan(y, x)` et `atan2(y, x)`, `pow(x, y)`, `hypot(x, y)`, `min(a, b)`, `max(a, b)`, `clamp(x, lo, hi)`, `lerp(a, b, t)`, `rad(degrés)`, `deg(radians)`. `noise(x, y, z)` : bruit de gradient 3D (calcul natif), valeur de −1 à 1, continue, nulle sur les points entiers, motifs d'une taille d'environ 1 ; diviser les coordonnées par la taille du motif voulue, les décaler pour un autre tirage. Sur un cylindre, le prendre en `(cos(a) × r, sin(a) × r, z)` : pas de couture (voir le photophore vermiculé du catalogue). Les fonctions de Rhai restent disponibles : `floor(x)`, `ceiling(x)`, `round(x)`, `abs(x)`, `x.to_int()`, `x.to_float()`…
 
 Ces fonctions donnent le même résultat en natif et dans le navigateur (`libm`). Préférer `pow(x, y)` à `x ** y`.
 
@@ -257,6 +257,7 @@ Mesurée sur Apple M4 (voir [ADR-0002](adr/0002-format-weave-toml-et-rhai.md)) :
 - préférer les listes de points natives aux boucles de script ;
 
 - copier les paramètres utilisés dans la boucle dans des variables locales avant la boucle (≈ 15 % de gain) ;
+- dans une boucle de dizaines de milliers de points, écrire le calcul en ligne plutôt que d'appeler une fermeture (`f.call(…)`) qui renvoie un tableau : dans le navigateur, le vase à écailles passe de 1,1 s à 0,75 s au premier calcul ;
 - calculer une fois hors de la boucle ce qui ne dépend pas de l'indice ;
 - ne pas multiplier les points inutiles (2 points suffisent pour un zigzag).
 

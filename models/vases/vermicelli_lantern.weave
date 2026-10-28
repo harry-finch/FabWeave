@@ -1,0 +1,229 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Photophore vermiculé", en = "Vermicelli lantern" }
+category = { fr = "Vases et luminaires", en = "Vases & lamps" }
+description = { fr = "Cylindre d'une seule paroi, imprimé en spirale continue, couvert de petits reliefs en forme de vermicelles : la buse s'écarte vers l'extérieur le long de lignes tirées d'un bruit continu, coupées en tronçons. Le relief accroche la lumière ; prévu pour une bougie LED (une flamme ramollit le PLA à quelques centimètres). Changer le tirage donne un autre motif.", en = "A single-wall cylinder printed as one continuous spiral, covered with small worm-like reliefs: the nozzle moves outwards along lines drawn from continuous noise, cut into short pieces. The relief catches the light; meant for an LED tealight (a flame softens PLA a few centimetres away). Change the draw for another pattern." }
+author = "FabWeave"
+tags = ["photophore", "bougie LED", "texture", "relief", "spirale", "bruit"]
+recommended_nozzle = [0.4, 0.5, 0.6]
+
+[params.radius]
+type = "float"
+label = { fr = "Rayon", en = "Radius" }
+unit = "mm"
+help = { fr = "Rayon du cylindre, sous le relief. 35 mm laisse passer une bougie chauffe-plat (Ø 38 mm) avec du jeu.", en = "Cylinder radius, under the relief. 35 mm leaves room for a tealight (Ø 38 mm)." }
+default = 35
+min = 15
+max = 80
+step = 0.5
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+default = 60
+min = 10
+max = 150
+step = 1
+
+[params.bottom]
+type = "choice"
+label = { fr = "Fond", en = "Bottom" }
+help = { fr = "Couches pleines en anneaux sous la spirale, au contour exact de la paroi. Sans fond, c'est un manchon à poser sur la bougie.", en = "Solid ring layers under the spiral, following the exact outline of the wall. Without a bottom it is a sleeve to put over the candle." }
+default = "2"
+options = [
+    { value = "none", label = { fr = "Aucun", en = "None" } },
+    { value = "1", label = { fr = "1 couche", en = "1 layer" } },
+    { value = "2", label = { fr = "2 couches", en = "2 layers" } },
+]
+
+[params.depth]
+type = "float"
+label = { fr = "Relief", en = "Relief" }
+unit = "mm"
+help = { fr = "Saillie des vermicelles vers l'extérieur.", en = "How far the worms stick out." }
+default = 1.2
+min = 0
+max = 3
+step = 0.1
+
+[params.scale]
+type = "float"
+label = { fr = "Taille du motif", en = "Pattern size" }
+unit = "mm"
+help = { fr = "Taille des boucles du motif : petite, des vermicelles serrés ; grande, de larges méandres.", en = "Size of the pattern loops: small gives tight worms, large gives wide meanders." }
+default = 4
+min = 1.5
+max = 15
+step = 0.1
+
+[params.thickness]
+type = "float"
+label = { fr = "Épaisseur", en = "Thickness" }
+unit = "%"
+help = { fr = "Largeur des vermicelles, en part du motif.", en = "Width of the worms, as a share of the pattern." }
+default = 30
+min = 5
+max = 60
+step = 1
+
+[params.breaks]
+type = "float"
+label = { fr = "Coupures", en = "Breaks" }
+unit = "%"
+help = { fr = "Part des lignes coupée en tronçons : 0 % donne un labyrinthe continu ; davantage, des vermicelles séparés.", en = "Share of the lines cut away: 0% gives a continuous maze; more gives separate worms." }
+default = 40
+min = 0
+max = 80
+step = 5
+
+[params.seed]
+type = "int"
+label = { fr = "Tirage", en = "Draw" }
+help = { fr = "Numéro du motif : chaque valeur donne un dessin différent, toujours le même pour un même numéro.", en = "Pattern number: each value gives a different drawing, always the same for the same number." }
+default = 1
+min = 1
+max = 999
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+help = { fr = "Vitesse de la paroi ; la moitié sur le premier tour. Les plafonds de l'imprimante et du filament s'appliquent.", en = "Wall speed; half of it on the first turn. Printer and filament limits apply." }
+default = 15
+min = 3
+max = 60
+step = 0.5
+
+[params.segment]
+type = "float"
+label = { fr = "Pas", en = "Step" }
+unit = "mm"
+help = { fr = "Longueur des segments le long de la paroi : plus court, relief plus fin mais beaucoup plus de points.", en = "Segment length along the wall: shorter gives finer relief but many more points." }
+advanced = true
+default = 0.6
+min = 0.3
+max = 2
+step = 0.05
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+help = { fr = "Largeur de la paroi, en multiple du diamètre de buse.", en = "Wall width, as a multiple of the nozzle diameter." }
+advanced = true
+default = 2
+min = 1
+max = 3
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+help = { fr = "Montée par tour, en multiple du diamètre de buse.", en = "Rise per turn, as a multiple of the nozzle diameter." }
+advanced = true
+default = 0.6
+min = 0.2
+max = 0.8
+step = 0.05
+---
+// Paroi en spirale continue (mode vase). Rayon = rayon de base + relief.
+// Relief : lignes de niveau zéro d'un bruit 3D pris sur le cylindre
+// (aucune couture), épaissies, et coupées en tronçons courts là où un second
+// bruit, plus fin, est bas.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let r0 = params.radius;
+let n = ceiling(TAU * r0 / params.segment).to_int();       // points par tour
+let k = 1.0 / params.scale;
+let band = params.thickness / 100.0;
+let cut = params.breaks / 100.0 * 1.2 - 0.6;               // seuil du second bruit
+let off = params.seed * 17.31;
+let depth = params.depth;
+
+// Relief (mm) à l'angle a et à la hauteur z.
+let relief = |a, z| {
+    let x = cos(a) * r0 * k + off;
+    let y = sin(a) * r0 * k - off;
+    let line = 1.0 - abs(noise(x, y, z * k)) / band;       // 1 sur la ligne, 0 à « band »
+    if line <= 0.0 { return 0.0; }
+    let keep = clamp((noise(x * 1.6 + 31.7, y * 1.6, z * k * 1.6) - cut) * 6.0, 0.0, 1.0);
+    depth * line * line * (3.0 - 2.0 * line) * keep          // profil adouci
+};
+
+let nb = if params.bottom == "2" { 2 } else if params.bottom == "1" { 1 } else { 0 };
+let fh = printer.first_layer_height;
+let z_bottom = if nb == 0 { 0.0 } else { fh + (nb - 1) * eh };
+let turns = floor((params.height - z_bottom) / eh).to_int();
+let z0 = if nb == 0 { 0.8 * eh } else { z_bottom };
+
+let path = new_path();
+
+// Fond : anneaux au contour du premier tour, la dernière couche du centre
+// vers le bord pour que la spirale parte du contour.
+let fw = printer.nozzle_diameter * 1.125;
+path.set_speed_factor(1);
+for j in 0..nb {
+    let z = fh + j * eh;
+    let h = if j == 0 { fh } else { eh };
+    let contour = points();
+    for i in 0..=n {
+        let a = i * TAU / n - TAU / 4;
+        let r = r0 + relief.call(a, 0.0);
+        contour.push(r * cos(a), r * sin(a), z);
+    }
+    let rings = contour.fill_rings(fw, ew / 2 + fw * 0.35);
+    let last = j == nb - 1;
+    if last {
+        rings.reverse();
+    } else {
+        path.travel_to(contour);
+        path.print_points(contour, ew, h);
+    }
+    for c in rings {
+        path.travel_to(c);
+        path.print_points(c, fw, h);
+    }
+    if last {
+        path.travel_to(contour);
+        path.print_points(contour, ew, h);
+    }
+}
+
+// Spirale : la buse monte de `eh` par tour.
+path.set_speed(params.speed / 2);
+let full = false;
+let start = if nb == 0 { 0 } else { 1 };
+let total = turns * n;
+for t in start..=total {
+    let tv = t / n.to_float();
+    let a = tv * TAU - TAU / 4;
+    let z = tv * eh;
+    let h = if tv >= 1.0 { eh } else if nb == 0 { eh * (1.0 + tv * 0.4) } else { eh * max(tv, 0.1) };
+    if tv >= 1.0 && !full {
+        path.set_speed(params.speed);
+        full = true;
+    }
+    // Comme `relief`, écrit en ligne : un appel de fermeture par point coûte
+    // cher dans le navigateur.
+    let ca = cos(a);
+    let sa = sin(a);
+    let x = ca * r0 * k + off;
+    let y = sa * r0 * k - off;
+    let line = 1.0 - abs(noise(x, y, z * k)) / band;
+    let r = r0;
+    if line > 0.0 {
+        let keep = clamp((noise(x * 1.6 + 31.7, y * 1.6, z * k * 1.6) - cut) * 6.0, 0.0, 1.0);
+        r += depth * line * line * (3.0 - 2.0 * line) * keep;
+    }
+    path.print_to(r * ca, r * sa, z0 + z, ew, h);
+    if t == start {
+        path.note(#{ fr: "Départ de la spirale", en: "Spiral start" });
+    }
+}
+
+path

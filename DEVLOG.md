@@ -217,3 +217,19 @@ v0.0 validée par l'utilisateur.
 **Défauts trouvés et corrigés.** Décalages lents puis explosion du nombre de points (voir Choix) ; boucle signalée par clippy après l'ajout des arrêts sur goutte ; compte de calculs de `fabweave check` du vase (un paramètre de plus).
 
 **Non fait.** Impression des gouttes et d'un fond en anneaux ; pas de dégradé d'éclairage sur les sphères (couleur à plat, comme les lignes) ; la vignette du catalogue dessine les gouttes à une taille fixe (elle ne reçoit pas leur diamètre).
+
+## 2026-10-28 — Deux modèles d'après photos : photophore vermiculé, vase à écailles
+
+En attendant les impressions de l'étape 6, à la demande de l'utilisateur (photo `tmp/nouveaux-modeles.png`, hors dépôt, deux pièces à reproduire).
+
+**Lecture des photos.** À gauche, un cylindre couvert de petits reliefs en C, courts et serrés, éclairé de l'intérieur. À droite, un vase hexagonal aux faces creusées et à la taille resserrée, couvert d'écailles en quinconce : la texture de « ripple texture » de FullControl (un point sur deux sorti, nombre impair de points par tour).
+
+**Choix.**
+- **`noise(x, y, z)`** (API-17), bruit de gradient 3D natif : gradients tirés d'un hachage entier des nœuds (pas de table copiée), courbe de degré 5 ; pur et déterministe. Pris sur le cylindre en 3D, il n'a pas de couture.
+- **Photophore vermiculé** (CAT-24) : paroi en spirale, rayon + relief. Relief = lignes de niveau zéro du bruit, épaissies (`1 − |n| / épaisseur`, profil adouci), coupées en tronçons là où un second bruit, 1,6 fois plus fin, est bas. Réglages comparés sur des cartes de hauteur de la paroi déroulée : un masque aussi large que le motif retire des zones entières ; 1,6 fois plus fin, il donne des vermicelles courts répartis partout, comme sur la photo. Fond en anneaux (2 couches par défaut). Prévu pour une bougie LED.
+- **Vase à écailles** (CAT-25) : contour polygonal aux faces creusées en parabole, points répartis à pas égal le long du contour (écailles de même taille sur les faces et aux arêtes), sortie selon la normale à la paroi, taille en sablier, torsion facultative ; source FullControl citée pour la texture.
+- Dans les deux scripts, le calcul de la boucle principale est écrit en ligne : appeler une fermeture qui renvoie un tableau à chaque point est nettement plus lent dans le navigateur (vase à écailles : 1,1 s → 0,75 s au premier calcul). Conseil ajouté à la spécification.
+
+**Vérification.** `fabweave check` des deux modèles aux bornes de chaque paramètre ; catalogue sur cinq imprimantes ; test de `noise` (borné, centré, continu, valeur de référence) et depuis un script. Navigateur : formes comparées aux photos ; 380 ms (112 000 points) et 200 ms (76 000 points) par calcul, moteur chaud ; le premier calcul après chargement est 2 à 4 fois plus lent.
+
+**Non fait.** Impression ; le rendu en lignes de la vue 3D ne montre pas bien un relief (pas d'ombrage).
