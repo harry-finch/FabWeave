@@ -236,6 +236,9 @@ export interface FrameData {
   widths: Float32Array;
   /** Hauteur du boudin (mm), 0 pour un mouvement qui ne dépose rien. */
   heights: Float32Array;
+  /** Débit volumétrique obtenu (mm³/s) et ventilateur (%) de chaque mouvement. */
+  flows: Float32Array;
+  fans: Uint8Array;
   /** 1 : mouvement imprimé hors du volume ou dans une zone exclue. */
   outside: Uint8Array;
   report: Report;

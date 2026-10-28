@@ -71,6 +71,17 @@
   --path-low: #7d838c;
   --path-high: #f2f2f2;
   --path-travel: #565b62;
+  /* Coloration du parcours par grandeur (VIEW-07) : une seule teinte, violet
+     (le bleu est réservé à l'action et à la sélection), du bas (près du fond)
+     au haut de l'échelle. Rampe validée (contraste ≥ 2:1 au bout bas). */
+  --scale-1: #6246a0;
+  --scale-2: #7f61c5;
+  --scale-3: #9d80e7;
+  --scale-4: #bca9f7;
+  --scale-5: #ddd4ff;
+  /* Coloration par type : pont, goutte (l'impression reste neutre). */
+  --path-bridge: #d55181;
+  --path-blob: #9085e9;
 
   /* Fenêtres et infobulles. */
   --backdrop: rgb(0 0 0 / 0.5);
@@ -153,6 +164,13 @@
   --path-low: #9aa0a8;
   --path-high: #2a2d31;
   --path-travel: #b4b8bd;
+  --scale-1: #af9ee4;
+  --scale-2: #9379d7;
+  --scale-3: #7853c5;
+  --scale-4: #5f38a7;
+  --scale-5: #431f7e;
+  --path-bridge: #c4386f;
+  --path-blob: #6250d6;
 
   --segment-track: #e3e3e3;
   --track: #e0e0e0;

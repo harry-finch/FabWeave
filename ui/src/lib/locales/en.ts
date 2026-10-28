@@ -489,6 +489,18 @@ const en: Shape<typeof fr> = {
   view: {
     fit: 'Fit (F)',
     volume: 'Beads in volume',
+    colorBy: 'Path colour',
+    color: {
+      z: 'Height (Z)',
+      order: 'Print order',
+      type: 'Move type',
+      speed: 'Speed reached',
+      flow: 'Flow',
+      width: 'Bead width',
+      height: 'Layer height',
+      fan: 'Fan',
+    },
+    type: { print: 'Print', bridge: 'Bridge', blob: 'Blob' },
     volumeHint: 'Beads in volume, at their real width and height; otherwise as lines (lighter for a very large path).',
     notes: 'Model notes',
     travel: 'Travel moves',

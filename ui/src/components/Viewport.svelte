@@ -11,11 +11,16 @@
   // Gouttes (extrusion à l'arrêt) : sphères du diamètre de la goutte, même
   // dégradé que le parcours. Boudins en volume (VIEW-06, `lib/beads.ts`) ou en
   // lignes, au choix, mémorisé ; les déplacements restent des lignes.
+  // Coloration au choix (VIEW-07, `lib/coloring.ts`), mémorisée, avec sa
+  // légende en bas à gauche.
   import { onMount } from 'svelte';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   import { Cylinder, Focus, MessageSquareText } from '@lucide/svelte';
   import { beadMesh } from '../lib/beads';
+  import { COLOR_MODES, MODE_UNIT, colorize, type ColorMode, type Legend } from '../lib/coloring';
+  import { fmtLength, lengthUnit, num, pct } from '../lib/format';
+  import { ui } from '../lib/ui.svelte';
   import { storageKey } from '../lib/app';
   import { text } from '../lib/text';
   import { theme } from '../lib/theme.svelte';
@@ -45,6 +50,16 @@
     }
   })());
   let labels = $state<{ x: number; y: number; text: string }[]>([]);
+  const COLOR_KEY = storageKey('view.color.v1');
+  let colorMode = $state<ColorMode>((() => {
+    try {
+      const v = localStorage.getItem(COLOR_KEY) as ColorMode | null;
+      return v && COLOR_MODES.includes(v) ? v : 'z';
+    } catch {
+      return 'z';
+    }
+  })());
+  let legend = $state<Legend | null>(null);
   const MODE_KEY = storageKey('view.volume.v1');
   let volume = $state((() => {
     try {
@@ -100,7 +115,24 @@
   // Boudins en volume : imprimés, et hors du volume (surlignés).
   let beads: THREE.Mesh[] = [];
 
-  const TOKENS = ['view-bg', 'view-bed', 'view-bed-edge', 'view-grid', 'view-bed-exclude', 'path-low', 'path-high', 'path-travel', 'danger'] as const;
+  const TOKENS = [
+    'view-bg',
+    'view-bed',
+    'view-bed-edge',
+    'view-grid',
+    'view-bed-exclude',
+    'path-low',
+    'path-high',
+    'path-travel',
+    'danger',
+    'scale-1',
+    'scale-2',
+    'scale-3',
+    'scale-4',
+    'scale-5',
+    'path-bridge',
+    'path-blob',
+  ] as const;
   let colors: Record<(typeof TOKENS)[number], THREE.Color> = Object.fromEntries(TOKENS.map((k) => [k, new THREE.Color()])) as never;
 
   function readColors() {
@@ -198,24 +230,15 @@
     const n = f ? f.kinds.length : 0;
     if (f && n > 1) {
       const pos = new THREE.BufferAttribute(f.positions, 3);
-      // Dégradé selon Z, de --path-low à --path-high.
-      let zmin = Infinity;
-      let zmax = -Infinity;
-      for (let i = 0; i < n; i++) {
-        const z = f.positions[i * 3 + 2];
-        zmin = Math.min(zmin, z);
-        zmax = Math.max(zmax, z);
-      }
-      const span = zmax - zmin || 1;
-      const col = new Float32Array(n * 3);
-      const lo = colors['path-low'];
-      const hi = colors['path-high'];
-      for (let i = 0; i < n; i++) {
-        const k = (f.positions[i * 3 + 2] - zmin) / span;
-        col[i * 3] = lo.r + (hi.r - lo.r) * k;
-        col[i * 3 + 1] = lo.g + (hi.g - lo.g) * k;
-        col[i * 3 + 2] = lo.b + (hi.b - lo.b) * k;
-      }
+      const { colors: col, legend: lg } = colorize(f, colorMode, {
+        low: colors['path-low'],
+        high: colors['path-high'],
+        ramp: [colors['scale-1'], colors['scale-2'], colors['scale-3'], colors['scale-4'], colors['scale-5']],
+        print: colors['path-high'],
+        bridge: colors['path-bridge'],
+        blob: colors['path-blob'],
+      });
+      legend = lg;
       const prints: number[] = [];
       const travels: number[] = [];
       const outside: number[] = [];
@@ -244,10 +267,11 @@
     printLines.geometry = pg;
     travelLines.geometry = tg;
     outsideLines.geometry = og;
-    buildBlobs(f);
+    if (!f || n < 2) legend = null;
+    buildBlobs(f, pg.getAttribute('color') as THREE.BufferAttribute | undefined);
   }
 
-  function buildBlobs(f: FrameData | null) {
+  function buildBlobs(f: FrameData | null, col?: THREE.BufferAttribute) {
     if (blobs) {
       scene.remove(blobs);
       blobs.dispose();
@@ -257,13 +281,6 @@
     const idx: number[] = [];
     for (let i = 1; i < f.kinds.length; i++) if (f.kinds[i] === 3) idx.push(i);
     if (!idx.length) return;
-    let zmin = Infinity;
-    let zmax = -Infinity;
-    for (let i = 0; i < f.kinds.length; i++) {
-      zmin = Math.min(zmin, f.positions[i * 3 + 2]);
-      zmax = Math.max(zmax, f.positions[i * 3 + 2]);
-    }
-    const span = zmax - zmin || 1;
     blobs = new THREE.InstancedMesh(blobGeom, blobMat, idx.length);
     const m = new THREE.Matrix4();
     const c = new THREE.Color();
@@ -272,8 +289,8 @@
       // La goutte s'étale sous la buse : centre à une demi-goutte sous le point.
       m.makeScale(d, d, d).setPosition(f.positions[i * 3], f.positions[i * 3 + 1], f.positions[i * 3 + 2] - d / 2);
       blobs!.setMatrixAt(k, m);
-      if (f.outside[i]) c.copy(colors['danger']);
-      else c.copy(colors['path-low']).lerp(colors['path-high'], (f.positions[i * 3 + 2] - zmin) / span);
+      if (f.outside[i] || !col) c.copy(colors['danger']);
+      else c.setRGB(col.getX(i), col.getY(i), col.getZ(i));
       blobs!.setColorAt(k, c);
     });
     scene.add(blobs);
@@ -299,6 +316,31 @@
     controls?.target.copy(sphere.center);
     controls?.update();
     render();
+  }
+
+  /** Valeur de la légende, dans l'unité de la grandeur. */
+  function legendValue(mode: ColorMode, v: number): string {
+    switch (MODE_UNIT[mode]) {
+      case 'length':
+        return `${fmtLength(v, ui.units, 2)} ${lengthUnit(ui.units)}`;
+      case '%':
+        return pct(v);
+      case 'mm/s':
+        return `${num(v)} mm/s`;
+      case 'mm³/s':
+        return `${num(v, 1)} mm³/s`;
+      default:
+        return num(v);
+    }
+  }
+
+  function setColorMode(m: ColorMode) {
+    colorMode = m;
+    try {
+      localStorage.setItem(COLOR_KEY, m);
+    } catch {
+      /* ignoré */
+    }
   }
 
   export function refit() {
@@ -339,6 +381,7 @@
   $effect(() => {
     void theme.applied;
     void volume;
+    void colorMode;
     readColors();
     buildPath(frame);
     render();
@@ -378,6 +421,32 @@
     <span class="dot" style:left="{l.x}px" style:top="{l.y}px"></span>
     <span class="label" style:left="{l.x + 10}px" style:top="{l.y - 28}px">{l.text}</span>
   {/each}
+  <label class="colorby">
+    <span class="sr">{t('view.colorBy')}</span>
+    <select class="input" value={colorMode} aria-label={t('view.colorBy')} use:tip={t('view.colorBy')} onchange={(e) => setColorMode(e.currentTarget.value as ColorMode)}>
+      {#each COLOR_MODES as m (m)}
+        <option value={m}>{t(`view.color.${m}`)}</option>
+      {/each}
+    </select>
+  </label>
+  {#if legend}
+    <div class="legend">
+      {#if legend.mode === 'type'}
+        {#each legend.types as ty (ty)}
+          <span class="item"><span class="swatch {ty}"></span>{t(`view.type.${ty}`)}</span>
+        {/each}
+      {:else if legend.max > legend.min}
+        <div class="bar" class:neutral={legend.mode === 'z'}></div>
+        <div class="ticks tabular">
+          <span>{legendValue(legend.mode, legend.min)}</span>
+          <span>{legendValue(legend.mode, (legend.min + legend.max) / 2)}</span>
+          <span>{legendValue(legend.mode, legend.max)}</span>
+        </div>
+      {:else}
+        <span class="item tabular"><span class="swatch {legend.mode === 'z' ? 'print' : 'scale'}"></span>{legendValue(legend.mode, legend.min)}</span>
+      {/if}
+    </div>
+  {/if}
   <div class="tools">
     <button
       class="btn quiet icon"
@@ -439,6 +508,84 @@
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+  }
+
+  .colorby {
+    position: absolute;
+    top: var(--s2);
+    left: var(--s2);
+  }
+
+  .colorby .input {
+    width: auto;
+    min-width: 150px;
+    background: var(--bg-panel);
+  }
+
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .legend {
+    position: absolute;
+    left: var(--s2);
+    bottom: var(--s2);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 180px;
+    padding: var(--s1) var(--s2);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+    pointer-events: none;
+  }
+
+  .bar {
+    height: 8px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--scale-1), var(--scale-2), var(--scale-3), var(--scale-4), var(--scale-5));
+  }
+
+  .bar.neutral {
+    background: linear-gradient(to right, var(--path-low), var(--path-high));
+  }
+
+  .ticks {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s2);
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--path-high);
+  }
+
+  .swatch.bridge {
+    background: var(--path-bridge);
+  }
+
+  .swatch.blob {
+    background: var(--path-blob);
+  }
+
+  .swatch.scale {
+    background: var(--scale-3);
   }
 
   .btn.on {

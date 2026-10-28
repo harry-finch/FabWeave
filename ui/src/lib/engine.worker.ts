@@ -42,16 +42,20 @@ onmessage = async (ev: MessageEvent<Request>) => {
       const speeds = f.take_speeds();
       const widths = f.take_widths();
       const heights = f.take_heights();
+      const flows = f.take_flows();
+      const fans = f.take_fans();
       const outside = f.take_outside();
       const report = JSON.parse(f.report());
       f.free();
       const ms = performance.now() - t0;
-      post({ kind: 'frame', id: req.id, frame: { positions, kinds, speeds, widths, heights, outside, report, ms } }, [
+      post({ kind: 'frame', id: req.id, frame: { positions, kinds, speeds, widths, heights, flows, fans, outside, report, ms } }, [
         positions.buffer as ArrayBuffer,
         kinds.buffer as ArrayBuffer,
         speeds.buffer as ArrayBuffer,
         widths.buffer as ArrayBuffer,
         heights.buffer as ArrayBuffer,
+        flows.buffer as ArrayBuffer,
+        fans.buffer as ArrayBuffer,
         outside.buffer as ArrayBuffer,
       ]);
     } else if (req.kind === 'load') {

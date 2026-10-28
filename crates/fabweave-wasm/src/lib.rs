@@ -126,6 +126,8 @@ pub struct Frame {
     speeds: Vec<f32>,
     widths: Vec<f32>,
     heights: Vec<f32>,
+    flows: Vec<f32>,
+    fans: Vec<u8>,
     outside: Vec<u8>,
     report: String,
 }
@@ -158,6 +160,17 @@ impl Frame {
     /// mouvement qui ne dépose rien.
     pub fn take_heights(&mut self) -> Vec<f32> {
         std::mem::take(&mut self.heights)
+    }
+
+    /// Débit volumétrique obtenu du mouvement qui arrive à chaque point
+    /// (mm³/s), 0 pour un déplacement.
+    pub fn take_flows(&mut self) -> Vec<f32> {
+        std::mem::take(&mut self.flows)
+    }
+
+    /// Ventilateur pendant le mouvement qui arrive à chaque point (%).
+    pub fn take_fans(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.fans)
     }
 
     /// 1 pour un mouvement imprimé hors du volume d'impression ou dans une
@@ -254,6 +267,7 @@ impl Engine {
     pub fn evaluate(&mut self, values_json: &str) -> Frame {
         let ev = self.bench.evaluate(&values(values_json));
         let n = ev.path.as_ref().map_or(0, |p| p.points.len());
+        let (mut flows, mut fans) = (Vec::with_capacity(n), Vec::with_capacity(n));
         let (mut positions, mut kinds, mut speeds, mut widths, mut heights, mut outside) = (
             Vec::with_capacity(n * 3),
             Vec::with_capacity(n),
@@ -274,6 +288,8 @@ impl Engine {
                 speeds.push(m.speed as f32);
                 widths.push(if p.kind.deposits() { p.w as f32 } else { 0.0 });
                 heights.push(if p.kind.deposits() { p.h as f32 } else { 0.0 });
+                flows.push(m.flow as f32);
+                fans.push(m.fan);
                 outside.push(u8::from(m.outside));
             }
         }
@@ -316,6 +332,8 @@ impl Engine {
             speeds,
             widths,
             heights,
+            flows,
+            fans,
             outside,
             report,
         }

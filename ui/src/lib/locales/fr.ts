@@ -487,6 +487,18 @@ const fr = {
   view: {
     fit: 'Cadrer (F)',
     volume: 'Boudins en volume',
+    colorBy: 'Couleur du parcours',
+    color: {
+      z: 'Hauteur (Z)',
+      order: 'Ordre d’impression',
+      type: 'Type de mouvement',
+      speed: 'Vitesse obtenue',
+      flow: 'Débit',
+      width: 'Largeur du boudin',
+      height: 'Hauteur de couche',
+      fan: 'Ventilateur',
+    },
+    type: { print: 'Impression', bridge: 'Pont', blob: 'Goutte' },
     volumeHint: 'Boudins en volume, à leur largeur et leur hauteur réelles ; sinon en lignes (plus léger pour un très grand parcours).',
     notes: 'Annotations du modèle',
     travel: 'Déplacements',

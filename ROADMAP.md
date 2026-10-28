@@ -119,7 +119,7 @@ Commencée le 28/10/2026 pendant les impressions de validation de la v0.3.
 Étapes et points d'arrêt :
 
 1. **Rendu en volume** (VIEW-06) : boudins à leur largeur et leur hauteur, éclairage simple, bascule volume / lignes mémorisée. *Fait le 28/10/2026 : 200 195 segments en 12,3 ms par image (M4).*
-2. **Coloration et légende** (VIEW-07).
+2. **Coloration et légende** (VIEW-07). *Fait le 28/10/2026 : huit grandeurs, rampe violette validée dans les deux thèmes.*
 3. **Curseur de progression**, buse simulée, coupe en Z (VIEW-08).
 4. **Inspection du segment survolé** (VIEW-09).
 5. **Export PNG** de la vue (VIEW-10).

@@ -376,3 +376,16 @@ L'utilisateur lance la v0.4 pendant ses impressions de validation de la v0.3 (CO
 **Vérification.** Navigateur : vase à ondulations en volume (tissage lisible de près), thème clair, aucune erreur WebGL ; mesure de 200 195 segments.
 
 **Non fait.** Raccords arrondis entre segments (fonds plats seulement) ; mesure sur l'ordinateur d'atelier.
+
+## 2026-10-28 — v0.4, étape 2 : coloration et légende
+
+Étape 1 validée par l'utilisateur.
+
+**Choix.**
+- Huit colorations : hauteur Z (dégradé neutre du thème, par défaut : la vue reste calme), ordre d'impression, type de mouvement, vitesse obtenue, débit, largeur et hauteur du boudin, ventilateur. Valeur d'un point = celle du mouvement qui y arrive ; étendue mesurée sur les seuls mouvements qui déposent ; un point d'arrivée de déplacement prend la valeur du segment imprimé qui en part (en lignes, un segment garde une couleur). Le moteur transmet aussi le débit et le ventilateur de chaque mouvement.
+- Palette (skill dataviz) : grandeurs en rampe d'une seule teinte, **violette** (le bleu est l'action et la sélection dans la famille Fab ; l'inspection de l'étape 4 surlignera en bleu), cinq jetons `--scale-1…5` ancrés sur le fond dans chaque thème ; un premier essai échouait au contraste du bout bas (1,9:1 et 1,5:1), revalidé à 2,36:1 (sombre) et 2,09:1 (clair). Type : impression neutre, pont `--path-bridge` (magenta), goutte `--path-blob` (violet clair), validés en couples (daltonismes compris) ; hors du volume toujours en couleur d'erreur.
+- Choix « Couleur du parcours » en haut à gauche de la vue, mémorisé ; légende en bas à gauche : barre graduée et trois valeurs dans l'unité de la grandeur (longueurs en mm ou en pouces), ou pastilles des types présents.
+
+**Vérification.** Navigateur : test de débit coloré par vitesse (les étages au-delà de 15 mm³/s ont la même teinte : le plafond du PLA se voit), tamis en type de mouvement (ponts), débit en thème clair ; `npm run check`.
+
+**Non fait.** Raison d'un plafonnement par segment (étape 4, inspection).
