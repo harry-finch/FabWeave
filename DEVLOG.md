@@ -268,3 +268,15 @@ En attendant les impressions de l'étape 6, à la demande de l'utilisateur (phot
 **Analyse.** Le dessous d'une goutte n'est qu'à 0,16 mm du radeau (buse à 0,96 mm, goutte de 0,8 mm), et une goutte est une masse chaude poussée sans bouger : elle s'étale et se soude. L'écart plus grand aide, sans garantie pour ce modèle.
 
 **Vérification.** Test du radeau : couche de contact en lignes de 0,4 mm, plus nombreuses que celles de la base ; valeur par défaut lue à 0,3 mm. Non imprimé.
+
+## 2026-10-28 — Photophore à vermicelles : de vraies boucles de buse
+
+**Retour de l'utilisateur.** Le photophore vermiculé (relief tiré d'un bruit) n'est pas le rendu imaginé : sur la photo, chaque vermicelle est une vraie extrusion de la buse, et c'est le hasard de ces petites excroissances qui fait la texture. Nouveau modèle, l'ancien reste au catalogue.
+
+**Choix** (CAT-26).
+- Paroi fine en spirale continue (boudin de 1,5 × la buse, translucide) ; à des endroits tirés au hasard, la buse sort en arc (sinus) jusqu'à 1 à 2,5 mm, sur 2 à 5 mm, et revient, dans la même extrusion. Chaque tour tire de nouvelles positions : les boucles qui dépassent la largeur du boudin sont dans le vide et retombent sur celles d'en dessous, c'est l'effet cherché.
+- Hasard reproductible : générateur de Park et Miller écrit dans le script (entiers sans dépassement), graine = « Tirage ». Pas de nouvelle fonction de l'API.
+- Boucles plus lentes que la paroi (60 %), pour que le boudin refroidisse avant de trop retomber ; fond en anneaux au rayon de la paroi, boucles qui naissent au-dessus.
+- Le dernier pas de paroi avant une boucle s'allonge jusqu'à elle (sinon, rarement, un segment de quelques microns) ; le départ de la spirale ne répète pas le dernier point du fond.
+
+**Vérification.** `fabweave check` aux bornes ; 121 000 points, 105 min, 12,1 g ; vu de dessus dans l'application, arcs qui se chevauchent d'un tour à l'autre. L'affaissement n'est pas simulé : le rendu réel se jugera à l'impression.

@@ -118,6 +118,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | CAT-21 | Charnière souple monolithique | Recherche FabWeave | Lames continues sans couture | v0.4 | prévu |
 | CAT-22 | *Ajout* : tour de température et test de débit | Fablab | Calibration d'un nouveau filament | v0.3 | prévu |
 | CAT-24 | *Ajout* : photophore vermiculé (relief en vermicelles tiré d'un bruit, fond en anneaux) | Photo de l'utilisateur (28/10/2026) | Bruit 3D (API-17), paroi en spirale | v0.3 | fait |
+| CAT-26 | *Ajout* : photophore à vermicelles (paroi fine en spirale d'où la buse sort au hasard en petites boucles, qui retombent dans le vide) | Photo de l'utilisateur (28/10/2026), seconde lecture | Excursions aléatoires reproductibles, affaissement voulu | v0.3 | fait |
 | CAT-25 | *Ajout* : vase à écailles (polygone aux faces creusées, taille resserrée, écailles en quinconce) | Photo de l'utilisateur (28/10/2026) ; texture de FullControl « ripple texture » | Points à pas égal le long du contour, sortie selon la normale | v0.3 | fait |
 
 ## Visualisation (VIEW)
