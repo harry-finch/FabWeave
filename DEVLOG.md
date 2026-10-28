@@ -233,3 +233,13 @@ En attendant les impressions de l'étape 6, à la demande de l'utilisateur (phot
 **Vérification.** `fabweave check` des deux modèles aux bornes de chaque paramètre ; catalogue sur cinq imprimantes ; test de `noise` (borné, centré, continu, valeur de référence) et depuis un script. Navigateur : formes comparées aux photos ; 380 ms (112 000 points) et 200 ms (76 000 points) par calcul, moteur chaud ; le premier calcul après chargement est 2 à 4 fois plus lent.
 
 **Non fait.** Impression ; le rendu en lignes de la vue 3D ne montre pas bien un relief (pas d'ombrage).
+
+## 2026-10-28 — Fond des vases : au contour sans texture
+
+**Retour de l'utilisateur.** Sur les modèles avec fond, celui-ci « dépasse du modèle, on dirait un radeau ».
+
+**Cause.** Le fond suivait le contour du premier tour, texture comprise (pointes des ondulations, écailles sorties, vermicelles du bas). Il ne sortait pas de la ligne médiane de la paroi, mais il formait une couche pleine aussi large que les pointes, tout autour, alors que la paroi au-dessus alterne creux et pointes. Sur le photophore, il reproduisait même les vermicelles de la base, là où la paroi au-dessus n'en a pas.
+
+**Choix.** Fond au contour **sans texture** : creux des ondulations (vase à ondulations), contour sans écailles (vase à écailles), cercle de base (photophore). La texture naît sur les 6 premiers tours au-dessus du fond (environ 1,5 mm, profil adouci), sinon ses premières pointes déborderaient du fond dans le vide. Sans fond, rien ne change. Règle ajoutée à la spécification et au prompt pour IA.
+
+**Vérification.** Rayon maximal du fond comparé à la paroi juste au-dessus : vase à ondulations 20,00 / 20,98 mm, photophore 35,01 / 35,95 mm, vase à écailles 35,00 / 35,16 mm (le fond ne dépasse plus). Pied du vase à écailles vu de face dans l'application. Fichiers d'essai régénérés (CORE One, photophore, vase à écailles).

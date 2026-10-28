@@ -70,7 +70,7 @@ step = 5
 [params.bottom]
 type = "choice"
 label = { fr = "Fond", en = "Bottom" }
-help = { fr = "Couches pleines en anneaux sous la spirale, au contour exact de la paroi (écailles comprises).", en = "Solid ring layers under the spiral, following the exact outline of the wall (scales included)." }
+help = { fr = "Couches pleines en anneaux sous la spirale, au contour de la paroi sans écailles : le fond ne dépasse pas, et les écailles naissent sur les premiers tours au-dessus.", en = "Solid ring layers under the spiral, following the outline of the wall without scales: the bottom does not stick out, and the scales grow over the first turns above it." }
 default = "2"
 options = [
     { value = "none", label = { fr = "Aucun", en = "None" } },
@@ -197,14 +197,15 @@ let twist = rad(params.twist);
 let depth = params.depth;
 let height = params.height;
 
-// Position du point `t` de la spirale (compté depuis le départ), à la hauteur z.
-let at = |t, z| {
+// Position du point `t` de la spirale (compté depuis le départ), à la hauteur
+// z, part `g` des écailles.
+let at = |t, z, g| {
     let i = t % ppt;
     let sc = 1.0 - waist * sin(PI * clamp(z / height, 0.0, 1.0));
     let rot = twist * z / height;
     let c = cos(rot);
     let s = sin(rot);
-    let out = if t % 2 == 0 { depth } else { 0.0 };
+    let out = if t % 2 == 0 { depth * g } else { 0.0 };
     let x = bx[i] * sc + bnx[i] * out;
     let y = by[i] * sc + bny[i] * out;
     [x * c - y * s, x * s + y * c]
@@ -212,8 +213,9 @@ let at = |t, z| {
 
 let path = new_path();
 
-// Fond : anneaux au contour du premier tour (écailles comprises) ; la dernière
-// couche du centre vers le bord, pour que la spirale parte du contour.
+// Fond : anneaux au contour sans écailles (pour ne pas dépasser de la paroi) ;
+// la dernière couche du centre vers le bord, pour que la spirale parte du
+// contour. Les écailles naissent ensuite sur `ramp` mm.
 let fw = printer.nozzle_diameter * 1.125;
 path.set_speed_factor(1);
 for j in 0..nb {
@@ -221,7 +223,7 @@ for j in 0..nb {
     let h = if j == 0 { fh } else { eh };
     let contour = points();
     for i in 0..=ppt {
-        let p = at.call(i, 0.0);
+        let p = at.call(i, 0.0, 0.0);
         contour.push(p[0], p[1], z);
     }
     let rings = contour.fill_rings(fw, ew / 2 + fw * 0.35);
@@ -244,6 +246,7 @@ for j in 0..nb {
 
 path.set_speed(params.speed / 2);
 let full = false;
+let ramp = 6 * eh;
 let start = if nb == 0 { 0 } else { 1 };
 let total = turns * ppt;
 for t in start..=total {
@@ -258,7 +261,8 @@ for t in start..=total {
     // cher dans le navigateur.
     let i = t % ppt;
     let sc = 1.0 - waist * sin(PI * min(z / height, 1.0));
-    let out = if t % 2 == 0 { depth } else { 0.0 };
+    let g = if nb == 0 { 1.0 } else { clamp(z / ramp, 0.0, 1.0) };
+    let out = if t % 2 == 0 { depth * g * g * (3.0 - 2.0 * g) } else { 0.0 };
     let x = bx[i] * sc + bnx[i] * out;
     let y = by[i] * sc + bny[i] * out;
     if twist == 0.0 {

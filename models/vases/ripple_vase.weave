@@ -4,7 +4,7 @@ version = 1
 [meta]
 name = { fr = "Vase à ondulations", en = "Ripple vase" }
 category = { fr = "Vases et luminaires", en = "Vases & lamps" }
-description = { fr = "Paroi d'un seul boudin large, imprimée en spirale continue. La buse ondule vers l'intérieur et l'extérieur à chaque tour, avec un demi-pas de décalage d'un tour à l'autre : la paroi se tisse d'elle-même. Branches en étoile, torsion et renflement en option ; fond plein d'une ou deux couches (lignes ou anneaux), qui épouse les ondulations.", en = "A single wide bead wall printed as one continuous spiral. The nozzle ripples in and out on every turn, shifted by half a ripple from one turn to the next, so the wall weaves itself. Optional star tips, twist and bulge; optional one or two layer solid bottom (lines or rings) that follows the ripples." }
+description = { fr = "Paroi d'un seul boudin large, imprimée en spirale continue. La buse ondule vers l'intérieur et l'extérieur à chaque tour, avec un demi-pas de décalage d'un tour à l'autre : la paroi se tisse d'elle-même. Branches en étoile, torsion et renflement en option ; fond plein d'une ou deux couches (lignes ou anneaux), qui suit la forme sans dépasser de la paroi.", en = "A single wide bead wall printed as one continuous spiral. The nozzle ripples in and out on every turn, shifted by half a ripple from one turn to the next, so the wall weaves itself. Optional star tips, twist and bulge; optional one or two layer solid bottom (lines or rings) that follows the shape without sticking out of the wall." }
 author = "Andrew Gleadall (FullControl) ; port FabWeave"
 tags = ["vase", "spirale", "texture", "fullcontrol"]
 source = "https://github.com/FullControlXYZ/fullcontrol/blob/master/models/ripple_texture.ipynb"
@@ -33,7 +33,7 @@ step = 1
 [params.bottom]
 type = "choice"
 label = { fr = "Fond", en = "Bottom" }
-help = { fr = "Couches pleines sous la spirale, au contour exact de la base (ondulations comprises). La spirale démarre sur la dernière, sans couture. Sans fond, le vase est un manchon ouvert, comme l'original.", en = "Solid layers under the spiral, following the exact outline of the base (ripples included). The spiral starts on the last one, without a seam. Without a bottom the vase is an open sleeve, like the original." }
+help = { fr = "Couches pleines sous la spirale, au contour de la base pris au creux des ondulations : le fond ne dépasse pas de la paroi, et les ondulations naissent sur les premiers tours au-dessus. La spirale démarre sur la dernière couche, sans couture. Sans fond, le vase est un manchon ouvert, comme l'original.", en = "Solid layers under the spiral, following the outline of the base at the bottom of the ripples: the bottom does not stick out of the wall, and the ripples grow over the first turns above it. The spiral starts on the last layer, without a seam. Without a bottom the vase is an open sleeve, like the original." }
 default = "none"
 options = [
     { value = "none", label = { fr = "Aucun", en = "None" } },
@@ -188,17 +188,19 @@ let layers = floor((params.height - z_bottom) / eh).to_int();
 let total = floor(layers * layer_segs).to_int();
 let z0 = if nb == 0 { 0.8 * eh } else { z_bottom };       // premier tour écrasé, ou posé sur le fond
 
-// Forme : angle et rayon au tour `tv` (flottant ; négatif pour le fond), hauteur `z` dans la spirale.
+// Forme : angle et rayon au tour `tv` (flottant ; négatif pour le fond), hauteur `z` dans la spirale,
+// part `rip` des ondulations (0 : rayon au creux des ondulations).
 let angle_at = |tv| tv * TAU * (1.0 + twist / layers) - TAU / 4;  // départ devant, au milieu
-let radius_at = |tv, z| params.inner_radius
-    + params.ripple_depth * (0.5 + 0.5 * cos(ripples * tv * TAU))
+let radius_at = |tv, z, rip| params.inner_radius
+    + rip * params.ripple_depth * (0.5 + 0.5 * cos(ripples * tv * TAU))
     + params.tip_length * pow(0.5 - 0.5 * cos(params.star_tips * tv * TAU), params.tip_pointiness)
     + params.bulge * sin(z / params.height * 0.5 * TAU);
 
 let path = new_path();
 
-// Le fond : couche j au contour du tour (j − nb) ; la dernière se termine au
-// départ de la spirale. Lignes de 1,125 × buse, croisées d'une couche à l'autre,
+// Le fond : couche j au contour du tour (j − nb), sans les ondulations (au
+// creux) pour ne pas dépasser de la paroi ; la dernière se termine au départ
+// de la spirale. Les ondulations naissent sur les premiers tours au-dessus. Lignes de 1,125 × buse, croisées d'une couche à l'autre,
 // ou anneaux concentriques, qui mordent de 15 % sur le boudin du contour.
 // Anneaux de la dernière couche du centre vers le bord : le contour, puis la
 // spirale, suivent sans long trajet. Vitesse nominale du filament (plafonnée
@@ -212,7 +214,7 @@ for j in 0..nb {
     let n = ceiling(layer_segs).to_int();
     for i in 0..=n {
         let tv = j - nb + i / n.to_float();
-        let r = radius_at.call(tv, 0.0);
+        let r = radius_at.call(tv, 0.0, 0.0);
         let a = angle_at.call(tv);
         contour.push(r * cos(a), r * sin(a), z);
     }
@@ -244,11 +246,13 @@ for j in 0..nb {
 
 path.set_speed(params.speed / 2);
 let full_speed = false;
+let ramp = 6 * eh;                                        // naissance des ondulations sur le fond
 let t_start = if nb == 0 { 0 } else { 1 };                // sur le fond, le point 0 clôt le contour
 for t in t_start..total {
     let tv = t / layer_segs;                              // 0 → layers
     let z = tv * eh;
-    let r = radius_at.call(tv, z);
+    let g = if nb == 0 { 1.0 } else { clamp(z / ramp, 0.0, 1.0) };
+    let r = radius_at.call(tv, z, g * g * (3.0 - 2.0 * g));
     // Premier tour : la hauteur du boudin s'ajuste à l'écart réel sous la buse
     // (sur le plateau : grandit pour combler l'écart ; sur le fond : part de presque rien).
     let h = if tv >= 1.0 { eh } else if nb == 0 { eh * (1.0 + tv * boost) } else { eh * max(tv, 0.1) };

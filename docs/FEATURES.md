@@ -95,7 +95,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | Id | Modèle | Origine | Ce qu'il teste | Jalon | État |
 | --- | --- | --- | --- | --- | --- |
 | CAT-01 | Vase à ondulations (texture *ripple*) | FullControl « Ripple Texture Demo » | Spirale continue, largeur variable | v0.1 | fait |
-| CAT-23 | *Ajout* : option « Fond » des vases (aucun, 1 ou 2 couches pleines sous la spirale, en lignes API-13 ou en anneaux API-14), d'abord sur CAT-01 | Fablab | Remplissage d'un contour, passage du fond à la spirale | v0.2 | fait |
+| CAT-23 | *Ajout* : option « Fond » des vases (aucun, 1 ou 2 couches pleines sous la spirale, en lignes API-13 ou en anneaux API-14, au contour sans texture pour ne pas dépasser de la paroi), d'abord sur CAT-01, puis CAT-24 et CAT-25 | Fablab | Remplissage d'un contour, passage du fond à la spirale | v0.2 | fait |
 | CAT-02 | Tamis micro-maillage (ponts tendus) | Recherche FabWeave | Déplacements, rétractions, ponts | v0.2 | fait |
 | CAT-03 | Entretoise non planaire | FullControl « Nonplanar Spacer » | Z variable, plafond de vitesse Z | v0.2 | fait |
 | CAT-04 | Ressort hélicoïdal non planaire : ressort-soufflet en spirale, plis en dents de scie, en anneaux ou en hélice | Recherche FabWeave | Z continu, oscillation radiale | v0.2 | fait |

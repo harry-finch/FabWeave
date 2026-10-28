@@ -31,7 +31,7 @@ step = 1
 [params.bottom]
 type = "choice"
 label = { fr = "Fond", en = "Bottom" }
-help = { fr = "Couches pleines en anneaux sous la spirale, au contour exact de la paroi. Sans fond, c'est un manchon à poser sur la bougie.", en = "Solid ring layers under the spiral, following the exact outline of the wall. Without a bottom it is a sleeve to put over the candle." }
+help = { fr = "Couches pleines en anneaux sous la spirale, au rayon de base (sans relief) : le fond ne dépasse pas de la paroi, et le relief naît sur les premiers tours au-dessus. Sans fond, c'est un manchon à poser sur la bougie.", en = "Solid ring layers under the spiral, at the base radius (without relief): the bottom does not stick out of the wall, and the relief grows over the first turns above it. Without a bottom it is a sleeve to put over the candle." }
 default = "2"
 options = [
     { value = "none", label = { fr = "Aucun", en = "None" } },
@@ -145,16 +145,6 @@ let cut = params.breaks / 100.0 * 1.2 - 0.6;               // seuil du second br
 let off = params.seed * 17.31;
 let depth = params.depth;
 
-// Relief (mm) à l'angle a et à la hauteur z.
-let relief = |a, z| {
-    let x = cos(a) * r0 * k + off;
-    let y = sin(a) * r0 * k - off;
-    let line = 1.0 - abs(noise(x, y, z * k)) / band;       // 1 sur la ligne, 0 à « band »
-    if line <= 0.0 { return 0.0; }
-    let keep = clamp((noise(x * 1.6 + 31.7, y * 1.6, z * k * 1.6) - cut) * 6.0, 0.0, 1.0);
-    depth * line * line * (3.0 - 2.0 * line) * keep          // profil adouci
-};
-
 let nb = if params.bottom == "2" { 2 } else if params.bottom == "1" { 1 } else { 0 };
 let fh = printer.first_layer_height;
 let z_bottom = if nb == 0 { 0.0 } else { fh + (nb - 1) * eh };
@@ -163,19 +153,15 @@ let z0 = if nb == 0 { 0.8 * eh } else { z_bottom };
 
 let path = new_path();
 
-// Fond : anneaux au contour du premier tour, la dernière couche du centre
-// vers le bord pour que la spirale parte du contour.
+// Fond : anneaux dans le cercle de base (sans relief, pour ne pas dépasser de
+// la paroi), la dernière couche du centre vers le bord pour que la spirale
+// parte du contour. Le relief naît ensuite sur `ramp` mm.
 let fw = printer.nozzle_diameter * 1.125;
 path.set_speed_factor(1);
 for j in 0..nb {
     let z = fh + j * eh;
     let h = if j == 0 { fh } else { eh };
-    let contour = points();
-    for i in 0..=n {
-        let a = i * TAU / n - TAU / 4;
-        let r = r0 + relief.call(a, 0.0);
-        contour.push(r * cos(a), r * sin(a), z);
-    }
+    let contour = circle(0, 0, z, r0, -TAU / 4, n);
     let rings = contour.fill_rings(fw, ew / 2 + fw * 0.35);
     let last = j == nb - 1;
     if last {
@@ -197,6 +183,7 @@ for j in 0..nb {
 // Spirale : la buse monte de `eh` par tour.
 path.set_speed(params.speed / 2);
 let full = false;
+let ramp = 6 * eh;
 let start = if nb == 0 { 0 } else { 1 };
 let total = turns * n;
 for t in start..=total {
@@ -208,8 +195,9 @@ for t in start..=total {
         path.set_speed(params.speed);
         full = true;
     }
-    // Comme `relief`, écrit en ligne : un appel de fermeture par point coûte
-    // cher dans le navigateur.
+    // Relief (mm) : 1 sur la ligne de niveau zéro du bruit, 0 à « band »,
+    // profil adouci ; coupé là où le second bruit est bas. Écrit en ligne : un
+    // appel de fermeture par point coûte cher dans le navigateur.
     let ca = cos(a);
     let sa = sin(a);
     let x = ca * r0 * k + off;
@@ -218,7 +206,8 @@ for t in start..=total {
     let r = r0;
     if line > 0.0 {
         let keep = clamp((noise(x * 1.6 + 31.7, y * 1.6, z * k * 1.6) - cut) * 6.0, 0.0, 1.0);
-        r += depth * line * line * (3.0 - 2.0 * line) * keep;
+        let g = if nb == 0 { 1.0 } else { clamp(z / ramp, 0.0, 1.0) };
+        r += depth * line * line * (3.0 - 2.0 * line) * keep * g * g * (3.0 - 2.0 * g);
     }
     path.print_to(r * ca, r * sa, z0 + z, ew, h);
     if t == start {
