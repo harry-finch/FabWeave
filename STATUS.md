@@ -26,4 +26,4 @@
 
 ## Prochaine action
 
-⏸ Étape 6 de la v0.3 : une impression validée par machine du fablab ; MK4S validée le 28/10, restent la CORE One et la X1E. Essai sur la X1E (fichiers de `.tmp/essais-x1e/`, régénérés à l'étape 2) avec l'impression de validation de l'étape 6 ; mesurer le cône des buses du fablab (pente et hauteur).
+⏸ Étape 6 de la v0.3 : une impression validée par machine du fablab ; MK4S validée le 28/10, restent la CORE One et la X1E. Fichiers d'essai et fiche « quoi regarder » dans `.tmp/essais-v0.3/` (CORE One : vase à fond en anneaux ; X1E : tube de gouttes en `.gcode.3mf` et en `.gcode`, carte SD) ; mesurer le cône des buses du fablab (pente et hauteur).
