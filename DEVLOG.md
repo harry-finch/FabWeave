@@ -243,3 +243,15 @@ En attendant les impressions de l'étape 6, à la demande de l'utilisateur (phot
 **Choix.** Fond au contour **sans texture** : creux des ondulations (vase à ondulations), contour sans écailles (vase à écailles), cercle de base (photophore). La texture naît sur les 6 premiers tours au-dessus du fond (environ 1,5 mm, profil adouci), sinon ses premières pointes déborderaient du fond dans le vide. Sans fond, rien ne change. Règle ajoutée à la spécification et au prompt pour IA.
 
 **Vérification.** Rayon maximal du fond comparé à la paroi juste au-dessus : vase à ondulations 20,00 / 20,98 mm, photophore 35,01 / 35,95 mm, vase à écailles 35,00 / 35,16 mm (le fond ne dépasse plus). Pied du vase à écailles vu de face dans l'application. Fichiers d'essai régénérés (CORE One, photophore, vase à écailles).
+
+## 2026-10-28 — Bordure d'un vase en spirale : le tour complet
+
+**Retour de l'utilisateur.** Le « fond qui dépasse » de l'entrée précédente était en fait la bordure d'adhérence, restée active dans la section Plateau repliée ; et cette bordure ne faisait pas le tour complet d'un vase sans fond.
+
+**Cause.** L'empreinte de la bordure et du radeau ne retenait que les boudins sous Z min + hauteur de première couche. Un vase en spirale monte en continu : son premier tour va de 0,19 à 0,43 mm (0,24 mm par tour) et dépasse ce seuil (0,39 mm) sur son dernier sixième. L'empreinte était un arc en C, que la bordure entourait sans faire le tour du centre.
+
+**Choix.** Empreinte sous Z min + deux hauteurs de couche (la plus grande de la première et des suivantes, à 1 % près) : le premier tour entier d'une spirale y entre ; pour une pièce en couches, la deuxième couche, posée sur la première, s'y ajoute sans rien changer, la troisième reste dehors.
+
+**Vérification.** Test : spirale de 10 mm de rayon montant de 0,24 mm par tour, la boucle de bordure contre la pièce fait un tour complet autour du centre (elle n'en faisait aucun). Cas de l'utilisateur recalculé (vase à ondulations, rayon 10, 3 branches, torsion 20 %, bordure 5 mm).
+
+**Ouvert.** Radeau impossible à décoller sous le tube de gouttes (l'interface le retire bien : c'est la pièce imprimée) ; réglages du radeau à revoir avec l'utilisateur. Adhésion commune à tous les modèles et invisible quand la section Plateau est repliée.

@@ -361,9 +361,13 @@ pub fn arrange(path: &Toolpath, setup: &Setup, printer: &PrinterProfile) -> (Too
             .fold(f64::INFINITY, f64::min);
         if min_z.is_finite() {
             let flh = printer.layers.first_layer_height;
-            // Comme le plan : première couche sous Z min + sa hauteur (à 1 %
-            // près, pour exclure la couche suivante posée pile au-dessus).
-            let beads = adhesion::first_layer_beads(&out, min_z + flh * 0.99);
+            // Empreinte : boudins sous Z min + deux hauteurs de couche. Un vase
+            // en spirale monte en continu : son premier tour dépasse la hauteur
+            // de première couche, et sous ce seul seuil son empreinte serait un
+            // arc ouvert. La couche suivante d'une pièce en couches s'y ajoute,
+            // posée sur la première (à 1 % près, la troisième reste dehors).
+            let step = flh.max(printer.layers.layer_height);
+            let beads = adhesion::first_layer_beads(&out, min_z + 2.0 * step * 0.99);
             let w = printer.nozzle.diameter * 1.125;
             let added = match setup.adhesion {
                 Adhesion::Brim { width, gap } => {
@@ -566,6 +570,56 @@ mod tests {
         for p in &out.points[..start] {
             let d = p.x.abs().max(p.y.abs());
             assert!(d > 10.0 && d < 10.225 + 2.6, "{p:?}");
+        }
+    }
+
+    #[test]
+    fn a_brim_goes_all_around_a_spiral_vase() {
+        // Vase en spirale : le premier tour monte de 0,19 à 0,43 mm, au-delà
+        // de la hauteur de première couche (0,2 mm) ; la bordure doit quand
+        // même l'entourer en entier.
+        let n = 120;
+        let mut points = vec![wp(10.0, 0.0, 0.192, MoveKind::Travel)];
+        for i in 1..=3 * n {
+            let a = std::f64::consts::TAU * i as f64 / n as f64;
+            let z = 0.192 + 0.24 * i as f64 / n as f64;
+            points.push(wp(10.0 * a.cos(), 10.0 * a.sin(), z, MoveKind::Print));
+        }
+        let part = Toolpath {
+            points,
+            ..Default::default()
+        };
+        let s = Setup {
+            adhesion: Adhesion::Brim {
+                width: 2.0,
+                gap: 0.1,
+            },
+            ..Default::default()
+        };
+        let (out, issues) = arrange(&part, &s, &printer());
+        assert!(issues.is_empty(), "{issues:?}");
+        let start = out.starts[0];
+        // Dernière boucle de la bordure (contre la pièce) : elle fait le tour
+        // du centre (indice de 1), et non d'un arc en C (indice de 0).
+        let last = (0..start)
+            .rev()
+            .find(|&i| out.points[i].kind == MoveKind::Travel)
+            .unwrap();
+        let lp = &out.points[last..start];
+        let turn: f64 = lp
+            .windows(2)
+            .map(|w| {
+                let d = w[1].y.atan2(w[1].x) - w[0].y.atan2(w[0].x);
+                (d + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU) - std::f64::consts::PI
+            })
+            .sum();
+        assert!(
+            (turn.abs() - std::f64::consts::TAU).abs() < 0.1,
+            "tour de {turn} rad"
+        );
+        for p in lp {
+            let r = p.x.hypot(p.y);
+            assert!(r > 10.225 && r < 10.225 + 0.1 + 0.6, "{r}");
         }
     }
 

@@ -2,7 +2,8 @@
 //! radeau (*raft*), au choix de l'utilisateur et non du modèle.
 //!
 //! Les deux partent de l'**empreinte de la première couche** : les boudins
-//! posés sur le plateau sont tracés dans une grille (cellules de 0,1 mm, ou
+//! posés sur le plateau (sous Z min + deux hauteurs de couche, pour qu'un
+//! vase en spirale donne son premier tour entier) sont tracés dans une grille (cellules de 0,1 mm, ou
 //! plus grandes pour une très grande pièce : 2 millions de cellules au plus),
 //! les trous de la pièce bouchés (la bordure ne court qu'à
 //! l'extérieur, le radeau est plein), puis chaque cellule reçoit sa distance
@@ -485,7 +486,7 @@ pub fn raft(beads: &[Bead], margin: f64, w: f64, heights: &[f64]) -> Option<(Vec
 }
 
 /// Segments imprimés de la première couche d'un parcours : mouvements dont
-/// les deux bouts sont sous `top`.
+/// les deux bouts sont sous `top` (choisi par l'appelant).
 pub fn first_layer_beads(path: &Toolpath, top: f64) -> Vec<Bead> {
     path.points
         .windows(2)
