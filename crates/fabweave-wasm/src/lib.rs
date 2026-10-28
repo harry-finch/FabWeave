@@ -137,7 +137,7 @@ impl Frame {
     }
 
     /// Nature du mouvement qui arrive à chaque point : 0 déplacement,
-    /// 1 impression, 2 pont, 3 goutte.
+    /// 1 impression, 2 pont, 3 goutte, 4 essuyage, 5 pause.
     pub fn take_kinds(&mut self) -> Vec<u8> {
         std::mem::take(&mut self.kinds)
     }
@@ -264,11 +264,7 @@ impl Engine {
                 ]);
                 kinds.push(p.kind as u8);
                 speeds.push(m.speed as f32);
-                widths.push(if p.kind == fabweave_core::MoveKind::Travel {
-                    0.0
-                } else {
-                    p.w as f32
-                });
+                widths.push(if p.kind.deposits() { p.w as f32 } else { 0.0 });
                 outside.push(u8::from(m.outside));
             }
         }
@@ -371,7 +367,9 @@ impl Engine {
                 || i + 1 == n
                 || matches!(
                     p.kind,
-                    fabweave_core::MoveKind::Travel | fabweave_core::MoveKind::Blob
+                    fabweave_core::MoveKind::Travel
+                        | fabweave_core::MoveKind::Blob
+                        | fabweave_core::MoveKind::Wipe
                 )
             {
                 out.extend([p.x as f32, p.y as f32, p.z as f32, p.kind as u8 as f32]);

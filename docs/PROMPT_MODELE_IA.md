@@ -58,6 +58,8 @@ Variables fournies : `params.<id>` (constantes), `printer.nozzle_diameter`, `pri
 | `path.print_polar(r, angle, z, w, h)` | Idem en polaire, angle en **radians** |
 | `path.travel_to(x, y, z)` | Déplacement sans extrusion |
 | `path.bridge_to(x, y, z, w, h, flow)` | Fil tendu dans le vide ; `flow` 0,8 à 0,9 tend le fil |
+| `path.wipe(longueur)` | Essuyage de fin de tracé : la buse revient sur `longueur` mm (1 à 4) en rétractant |
+| `path.pause(texte)` | Pause de l'imprimante (insérer un écrou, un aimant) ; texte affiché par l'écran |
 | `path.blob(volume, durée)` | Goutte à l'arrêt au point courant : `volume` mm³ en `durée` s (0,5 à 1 s pour 2 mm³) ; placer la buse avant (`travel_to`) |
 | `path.print_points(pts, w, h)`, `path.bridge_points(pts, w, h, flow)`, `path.travel_to(pts)` | Liste de points d'un coup / déplacement jusqu'à son premier point |
 | `path.set_speed(mm_s)`, `path.set_speed_factor(f)` | Vitesse des mouvements suivants |

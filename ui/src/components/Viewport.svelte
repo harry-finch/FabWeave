@@ -202,7 +202,8 @@
       const prints: number[] = [];
       const travels: number[] = [];
       const outside: number[] = [];
-      for (let i = 1; i < n; i++) (f.kinds[i] === 0 ? travels : f.outside[i] ? outside : prints).push(i - 1, i);
+      // Déplacements, essuyages (4) et pauses (5) en retrait.
+      for (let i = 1; i < n; i++) (f.kinds[i] === 0 || f.kinds[i] >= 4 ? travels : f.outside[i] ? outside : prints).push(i - 1, i);
       pg.setAttribute('position', pos);
       pg.setAttribute('color', new THREE.BufferAttribute(col, 3));
       pg.setIndex(prints);

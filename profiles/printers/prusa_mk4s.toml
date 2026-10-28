@@ -145,3 +145,8 @@ M593 X T2 F0 ; disable IS
 M593 Y T2 F0 ; disable IS
 M84 X Y E ; disable motors
 """
+# Pause (`pause_print_gcode` de PrusaSlicer), message à l'écran avant.
+pause = """
+M117 {pause_text}
+M601
+"""

@@ -4,8 +4,8 @@
 //!   (`nozzle_diameter`, `layer_height`, `first_layer_height`,
 //!   `nozzle_cone_angle`, `nozzle_cone_height`), `PI`, `TAU`.
 //! - API du parcours : `new_path()`, puis `print_to`, `print_polar`,
-//!   `travel_to`, `blob`, `set_speed`, `set_speed_factor`, `set_fan`,
-//!   `reset_fan`.
+//!   `travel_to`, `blob`, `wipe`, `pause`, `set_speed`,
+//!   `set_speed_factor`, `set_fan`, `reset_fan`.
 //! - Fonctions mathématiques réenregistrées depuis `libm` : même résultat en
 //!   natif et en WebAssembly. Entiers et flottants s'acceptent partout.
 //! - Limites : opérations, profondeur, tailles, nombre de points ; pas de
@@ -122,6 +122,9 @@ pub struct ScriptPath {
     limit: usize,
 }
 
+/// Essuyage le plus long (mm) et pauses au plus par parcours.
+const MAX_WIPE: f64 = 50.0;
+const MAX_PAUSES: usize = 50;
 /// Goutte la plus grosse (mm³, sphère de 12 mm) et la plus longue (s).
 const MAX_BLOB_VOLUME: f64 = 1000.0;
 const MAX_BLOB_DURATION: f64 = 60.0;
@@ -153,7 +156,7 @@ impl ScriptPath {
         if let Some(i) = xyz.iter().position(|v| !v.is_finite()) {
             return Err(fault("path.invalid_position", ["x", "y", "z"][i]));
         }
-        if kind != MoveKind::Travel {
+        if kind.deposits() {
             if !(w > 0.0 && w.is_finite()) {
                 return Err(fault("path.invalid_width", w.to_string()));
             }
@@ -174,6 +177,69 @@ impl ScriptPath {
             volume: 0.0,
             duration: 0.0,
         });
+        Ok(())
+    }
+
+    /// Essuyage : retour sur le dernier tracé imprimé sur `length` mm, à la
+    /// hauteur courante (la buse ne redescend pas dans la matière).
+    pub(crate) fn push_wipe(&mut self, length: f64) -> R<()> {
+        if !(length > 0.0 && length <= MAX_WIPE) {
+            return Err(fault("path.invalid_wipe", length.to_string()));
+        }
+        let pts = &self.path.points;
+        let Some(last) = pts.last().filter(|w| w.kind.deposits()) else {
+            return Err(fault("path.wipe_without_print", ""));
+        };
+        let z = last.z;
+        let mut back: Vec<[f64; 2]> = Vec::new();
+        let mut left = length;
+        let mut j = pts.len() - 1;
+        // Remonte les segments imprimés, du dernier vers les précédents.
+        while j > 0 && pts[j].kind.deposits() && left > 1e-9 {
+            let (a, b) = (&pts[j - 1], &pts[j]);
+            let d = (b.x - a.x).hypot(b.y - a.y);
+            if d >= left {
+                let t = left / d;
+                back.push([b.x + (a.x - b.x) * t, b.y + (a.y - b.y) * t]);
+                left = 0.0;
+            } else if d > 0.0 {
+                back.push([a.x, a.y]);
+                left -= d;
+            }
+            j -= 1;
+        }
+        for q in back {
+            self.push([q[0], q[1], z], 0.0, 0.0, MoveKind::Wipe)?;
+        }
+        Ok(())
+    }
+
+    /// Pause de l'imprimante au point courant.
+    pub(crate) fn push_pause(&mut self, text: Text) -> R<()> {
+        let Some(last) = self.path.points.last() else {
+            return Err(fault("path.pause_without_position", ""));
+        };
+        if self.path.pauses.len() >= MAX_PAUSES {
+            return Err(fault("path.too_many_pauses", MAX_PAUSES.to_string()));
+        }
+        let xyz = [last.x, last.y, last.z];
+        self.push(xyz, 0.0, 0.0, MoveKind::Pause)?;
+        // Repère dans la vue 3D (hors du quota des annotations du modèle).
+        let label = match &text {
+            Text::Plain(t) => Text::Plain(format!("Pause : {t}")),
+            Text::Localized(m) => Text::Localized(
+                m.iter()
+                    .map(|(k, v)| (k.clone(), format!("Pause : {v}")))
+                    .collect(),
+            ),
+        };
+        self.path.notes.push(Note {
+            x: xyz[0],
+            y: xyz[1],
+            z: xyz[2],
+            text: label,
+        });
+        self.path.pauses.push(text);
         Ok(())
     }
 
@@ -397,6 +463,19 @@ fn register_path(engine: &mut Engine, max_points: usize) {
             p.push_bridge(xyz, num(&w, "w")?, num(&h, "h")?, num(&flow, "flow")?)
         },
     );
+    // wipe(longueur) : essuyage sur le dernier tracé (mm).
+    engine.register_fn("wipe", |p: &mut ScriptPath, length: Dynamic| -> R<()> {
+        p.push_wipe(num(&length, "length")?)
+    });
+    // pause() / pause(texte) : l'imprimante s'arrête (insertion d'un objet,
+    // changement de filament) ; le texte s'affiche si l'écran le permet.
+    engine.register_fn("pause", |p: &mut ScriptPath| -> R<()> {
+        p.push_pause(Text::Plain("Pause".into()))
+    });
+    engine.register_fn("pause", |p: &mut ScriptPath, text: Dynamic| -> R<()> {
+        let t = text_of(&text)?;
+        p.push_pause(t)
+    });
     // blob(volume, durée) : goutte à l'arrêt au point courant (mm³, s).
     engine.register_fn(
         "blob",

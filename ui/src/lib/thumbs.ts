@@ -56,7 +56,7 @@ export function renderThumb(pts: Float32Array, size: number): string {
     ctx.strokeStyle = `rgb(${lo.map((c, j) => Math.round(c + (hi[j] - c) * t)).join(',')})`;
     ctx.beginPath();
     for (let i = 1; i < n; i++) {
-      if (pts[i * 4 + 3] === 0) continue; // déplacement : rien
+      if (pts[i * 4 + 3] === 0 || pts[i * 4 + 3] >= 4) continue; // déplacement, essuyage, pause : rien
       const zb = Math.min(BUCKETS - 1, Math.floor(((pts[i * 4 + 2] - z0) / Math.max(z1 - z0, 1e-6)) * BUCKETS));
       if (zb !== b) continue;
       if (pts[i * 4 + 3] === 3) {

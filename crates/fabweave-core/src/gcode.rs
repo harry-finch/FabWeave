@@ -85,6 +85,7 @@ pub fn sample_template_scope() -> Scope<'static> {
         "filament_name",
         "model_name",
         "bed_type",
+        "pause_text",
     ] {
         s.push_constant(name, String::new());
     }
@@ -146,6 +147,8 @@ fn scope(
     s.push_constant("filament_name", f.filament.name.get("fr").to_string());
     s.push_constant("model_name", model_name.to_string());
     s.push_constant("bed_type", p.bed.plate.clone());
+    // Texte de la pause en cours (`path.pause`), donné à chaque pause.
+    s.push_constant("pause_text", String::new());
     s.push_constant("nozzle_high_flow", p.nozzle.high_flow);
     s.push_constant("nozzle_abrasive", p.nozzle.abrasive);
     s.push_constant("filament_abrasive", f.filament.abrasive);
@@ -201,6 +204,30 @@ fn render(engine: &TemplateEngine, field: &str, t: &str, vars: &Scope) -> Result
                 .field(field.to_string())
                 .detail(format!("{} : {}", e.line, e.message))
         })
+}
+
+/// Texte affichable par l'écran de l'imprimante : lettres accentuées
+/// ramenées à leur base, autres caractères hors ASCII remplacés.
+fn ascii(s: &str) -> String {
+    s.chars()
+        .map(|c| match c {
+            'à' | 'â' | 'ä' => 'a',
+            'À' | 'Â' | 'Ä' => 'A',
+            'ç' => 'c',
+            'Ç' => 'C',
+            'é' | 'è' | 'ê' | 'ë' => 'e',
+            'É' | 'È' | 'Ê' | 'Ë' => 'E',
+            'î' | 'ï' => 'i',
+            'Î' | 'Ï' => 'I',
+            'ô' | 'ö' => 'o',
+            'Ô' | 'Ö' => 'O',
+            'ù' | 'û' | 'ü' => 'u',
+            'Ù' | 'Û' | 'Ü' => 'U',
+            '’' => '\'',
+            c if c.is_ascii() && !c.is_ascii_control() => c,
+            _ => '?',
+        })
+        .collect()
 }
 
 fn param_text(v: &ParamValue) -> String {
@@ -288,7 +315,7 @@ pub fn layer_starts(job: &Job) -> Vec<usize> {
     for (i, m) in job.plan.moves.iter().enumerate().skip(1) {
         let w = &job.path.points[i];
         restart |= job.path.starts.contains(&i);
-        if m.skipped || w.kind == MoveKind::Travel {
+        if m.skipped || !w.kind.deposits() {
             continue;
         }
         if restart {
@@ -409,6 +436,27 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         (Ok(s), Ok(e)) => (s, e),
         (s, e) => return Err([s.err(), e.err()].into_iter().flatten().collect()),
     };
+    // Pauses : gabarit du profil, rendu avec le texte de chacune.
+    let pts = &job.path.points;
+    let mut pauses = Vec::new();
+    let texts = &job.path.pauses;
+    let pause_count = pts.iter().filter(|w| w.kind == MoveKind::Pause).count();
+    if pause_count > 0 {
+        if p.gcode.pause.trim().is_empty() {
+            return Err(vec![Issue::error("gcode.pause_missing")
+                .field("gcode.pause")
+                .count(pause_count)]);
+        }
+        for k in 0..pause_count {
+            let text = texts
+                .get(k % texts.len().max(1))
+                .map_or(String::new(), |t| ascii(t.get("fr")));
+            let mut sc = vars.clone();
+            sc.push_constant("pause_text", text);
+            pauses.push(render(&engine, "gcode.pause", &p.gcode.pause, &sc).map_err(|e| vec![e])?);
+        }
+    }
+    let mut next_pause = pauses.into_iter();
 
     let mut g = String::with_capacity(plan.moves.len() * 36 + start.len() + end.len() + 2048);
     let s = &plan.stats;
@@ -522,7 +570,6 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
     let mut elapsed = 0.0;
 
     let off = plan.offset;
-    let pts = &job.path.points;
     let mut st = State {
         x: String::new(),
         y: String::new(),
@@ -586,10 +633,42 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         } else {
             progress.at(&mut g, elapsed, false);
         }
+        if w.kind == MoveKind::Pause {
+            // Filament rétracté avant que l'imprimante ne s'arrête ; le
+            // mouvement suivant le remet.
+            if !st.retracted && r.length > 0.0 {
+                st.g1(&mut g, [None; 3], Some(-r.length), Some(r.speed));
+                st.retracted = true;
+            }
+            if let Some(t) = next_pause.next() {
+                g.push_str(&t);
+            }
+            continue;
+        }
         if let Some(a) = accel.as_mut() {
-            a.set(&mut g, w.kind == MoveKind::Travel, m.first_layer);
+            a.set(
+                &mut g,
+                matches!(w.kind, MoveKind::Travel | MoveKind::Wipe),
+                m.first_layer,
+            );
         }
         elapsed += m.time;
+        if w.kind == MoveKind::Wipe {
+            // Essuyage : rétraction répartie sur la suite d'essuyages ; le
+            // filament est rétracté à la fin de la suite.
+            let e = (!st.retracted && m.e != 0.0).then_some(m.e);
+            st.g1(
+                &mut g,
+                [Some(b[0]), Some(b[1]), Some(b[2])],
+                e,
+                Some(m.speed),
+            );
+            if pts.get(i + 1).is_none_or(|n| n.kind != MoveKind::Wipe) && r.length > 0.0 {
+                st.retracted = true;
+            }
+            cur = b;
+            continue;
+        }
         if w.kind == MoveKind::Travel {
             if m.retract {
                 if !st.retracted && r.length > 0.0 {

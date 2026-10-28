@@ -53,7 +53,8 @@ pub struct Move {
     pub speed: f64,
     /// Vitesse demandée par le modèle (mm/s).
     pub requested: f64,
-    /// Filament poussé (mm), 0 pour un déplacement.
+    /// Filament poussé (mm), 0 pour un déplacement ; négatif pour un
+    /// essuyage (rétraction répartie sur le mouvement).
     pub e: f64,
     /// Débit volumétrique obtenu (mm³/s).
     pub flow: f64,
@@ -87,6 +88,8 @@ pub struct Stats {
     pub print_moves: usize,
     /// Gouttes (extrusion à l'arrêt).
     pub blobs: usize,
+    /// Pauses de l'imprimante (durée non comptée dans le temps estimé).
+    pub pauses: usize,
     pub travel_moves: usize,
     pub retractions: usize,
     pub skipped: usize,
@@ -253,7 +256,7 @@ pub fn plan_at(
     let min_print_z = pts
         .iter()
         .skip(1)
-        .filter(|p| p.kind != MoveKind::Travel)
+        .filter(|p| p.kind.deposits())
         .map(|p| p.z)
         .fold(f64::INFINITY, f64::min);
     let first_layer_top = min_print_z + printer.layers.first_layer_height;
@@ -267,7 +270,24 @@ pub fn plan_at(
     let mut moves = Vec::with_capacity(pts.len());
     let mut limited = LimitCounts::default();
     let (mut print_moves, mut travel_moves, mut retractions, mut skipped) = (0, 0, 0, 0);
-    let (mut blobs, mut slowed_blobs) = (0, 0);
+    let (mut blobs, mut slowed_blobs, mut pauses) = (0, 0, 0);
+    // Longueur de chaque suite d'essuyages, pour y répartir la rétraction.
+    let mut wipe_run = vec![0.0_f64; pts.len()];
+    let mut i = 1;
+    while i < pts.len() {
+        if pts[i].kind != MoveKind::Wipe {
+            i += 1;
+            continue;
+        }
+        let first = i;
+        let mut total = 0.0;
+        while i < pts.len() && pts[i].kind == MoveKind::Wipe {
+            let (a, b) = (&pts[i - 1], &pts[i]);
+            total += (b.x - a.x).hypot(b.y - a.y);
+            i += 1;
+        }
+        wipe_run[first..i].fill(total);
+    }
     let (mut print_length, mut travel_length, mut time, mut e_total) = (0.0, 0.0, 0.0, 0.0);
     let (mut max_flow, mut max_req_flow, mut max_speed) = (0.0_f64, 0.0_f64, 0.0_f64);
     let mut fl_bounds: Option<Bounds> = None;
@@ -313,6 +333,33 @@ pub fn plan_at(
             time: 0.0,
             outside: false,
         };
+        if b.kind == MoveKind::Pause {
+            // Pause : rien ne bouge, durée inconnue (non comptée).
+            pauses += 1;
+            moves.push(m);
+            continue;
+        }
+        if b.kind == MoveKind::Wipe && length >= MIN_SEGMENT {
+            // Essuyage : sur le dernier tracé, sans extruder ; la rétraction
+            // du filament est répartie sur toute la suite d'essuyages, et la
+            // vitesse limitée pour que le filament ne recule pas plus vite
+            // que la vitesse de rétraction.
+            let xy = dx.hypot(dy);
+            let run = wipe_run[i];
+            let mut v = lim.travel_speed;
+            if r.length > 0.0 && run > 0.0 {
+                v = v.min(r.speed * run / r.length);
+                m.e = -r.length * xy / run;
+            }
+            m.speed = v;
+            m.requested = v;
+            m.time = length / v;
+            travel_moves += 1;
+            travel_length += length;
+            time += m.time;
+            moves.push(m);
+            continue;
+        }
         if b.kind == MoveKind::Blob {
             // Goutte : `volume` en `duration`, débit plafonné par le filament
             // (la goutte dure alors plus longtemps), filament poussé à F1 au
@@ -471,6 +518,7 @@ pub fn plan_at(
         points: pts.len(),
         print_moves,
         blobs,
+        pauses,
         travel_moves,
         retractions,
         skipped,
@@ -563,7 +611,7 @@ fn excluded_zones(path: &Toolpath, offset: [f64; 3], zones: &[Zone], issues: &mu
         let hits = path
             .points
             .windows(2)
-            .filter(|w| w[1].kind != MoveKind::Travel)
+            .filter(|w| w[1].kind.deposits())
             .filter(|w| {
                 let a = [w[0].x + offset[0], w[0].y + offset[1]];
                 let b = [w[1].x + offset[0], w[1].y + offset[1]];
@@ -633,7 +681,13 @@ fn accelerated_times(
         [(b.x - a.x) / l, (b.y - a.y) / l, (b.z - a.z) / l]
     };
     // Arrêt complet : déplacement rétracté ou goutte.
-    let stops = |i: usize| moves[i].retract || pts[i].kind == MoveKind::Blob;
+    let stops = |i: usize| {
+        moves[i].retract
+            || matches!(
+                pts[i].kind,
+                MoveKind::Blob | MoveKind::Wipe | MoveKind::Pause
+            )
+    };
     let flows = |i: usize| i > 0 && !moves[i].skipped && !stops(i);
     // Vitesse de fin de chaque mouvement (= début du suivant fluide).
     let mut exit = vec![0.0_f64; n];
@@ -698,7 +752,10 @@ fn accelerated_times(
         if m.skipped {
             continue;
         }
-        times[i] = if pts[i].kind == MoveKind::Blob {
+        times[i] = if matches!(
+            pts[i].kind,
+            MoveKind::Blob | MoveKind::Wipe | MoveKind::Pause
+        ) {
             m.time
         } else if m.retract {
             // Déplacement à l'arrêt aux deux bouts, puis rétraction et saut.

@@ -82,3 +82,8 @@ TURN_OFF_HEATERS
 M107 ; ventilateur coupé
 M84 ; moteurs libérés
 """
+# Pause : macro `PAUSE` de Klipper (à définir dans printer.cfg, souvent fournie), message avant.
+pause = """
+M117 {pause_text}
+PAUSE
+"""

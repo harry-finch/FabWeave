@@ -115,6 +115,7 @@ export const PRINTER_GROUPS: Group[] = [
       { path: 'gcode.thumbnails', key: 'gcode.thumbnails', type: 'strlist' },
       { path: 'gcode.start', key: 'gcode.start', type: 'template' },
       { path: 'gcode.end', key: 'gcode.end', type: 'template' },
+      { path: 'gcode.pause', key: 'gcode.pause', type: 'template' },
     ],
   },
 ];

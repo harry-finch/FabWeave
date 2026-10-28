@@ -436,3 +436,101 @@ p",
     assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
     assert_eq!(ev.log[0], "0.0 true true true");
 }
+
+#[test]
+fn a_wipe_retracts_along_the_last_bead() {
+    let w = bench(
+        "",
+        "let p = new_path();
+p.travel_to(0, 0, 0.2);
+p.print_to(10, 0, 0.2, 0.45, 0.2);
+p.wipe(4);
+p.travel_to(10, 20, 0.2);
+p.print_to(0, 20, 0.2, 0.45, 0.2);
+p",
+    );
+    let ev = w.evaluate(&Map::new());
+    assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
+    let path = ev.path.as_ref().unwrap();
+    let wipe = &path.points[2];
+    assert_eq!(wipe.kind, MoveKind::Wipe);
+    assert!((wipe.x - 6.0).abs() < 1e-9 && wipe.y == 0.0 && wipe.z == 0.2);
+    let plan = ev.plan.as_ref().unwrap();
+    // PLA : 0,7 mm rétractés sur les 4 mm, filament à 35 mm/s au plus.
+    assert!((plan.moves[2].e + 0.7).abs() < 1e-9, "{}", plan.moves[2].e);
+    let v = (35.0 * 4.0 / 0.7_f64).min(plan.moves[3].speed);
+    assert!(
+        (plan.moves[2].speed - v).abs() < 1e-9,
+        "{}",
+        plan.moves[2].speed
+    );
+    let g = w.gcode(&ev).unwrap();
+    let body = &g[g.find("; --- FabWeave : parcours").unwrap()..];
+    let at = body
+        .lines()
+        .position(|l| l.starts_with("G1 X") && l.contains(" E-0.7 "))
+        .expect(body);
+    // Le déplacement suivant ne rétracte pas une seconde fois ; le filament
+    // revient avant d'imprimer.
+    let after: Vec<&str> = body.lines().skip(at + 1).collect();
+    let print = after
+        .iter()
+        .position(|l| l.contains(" E0.") && l.contains('X'))
+        .unwrap();
+    assert!(
+        !after[..print].iter().any(|l| l.contains("E-")),
+        "{after:?}"
+    );
+    assert!(
+        after[..print].iter().any(|l| l.contains("E0.7")),
+        "{after:?}"
+    );
+
+    for (body, code) in [
+        ("let p = new_path();\np.travel_to(0, 0, 0.2);\np.wipe(2);\np", "path.wipe_without_print"),
+        ("let p = new_path();\np.travel_to(0, 0, 0.2);\np.print_to(5, 0, 0.2, 0.4, 0.2);\np.wipe(0);\np", "path.invalid_wipe"),
+    ] {
+        let ev = eval(body);
+        assert!(ev.issues.iter().any(|i| i.code == code), "{body}: {:?}", ev.issues);
+    }
+}
+
+#[test]
+fn a_pause_stops_the_printer_with_its_message() {
+    let src = "let p = new_path();
+p.travel_to(-5, 0, 0.2);
+p.print_to(5, 0, 0.2, 0.45, 0.2);
+p.travel_to(5, 0, 0.4);
+p.pause(#{ fr: \"Insérer l'écrou\", en: \"Insert the nut\" });
+p.print_to(-5, 0, 0.4, 0.45, 0.2);
+p";
+    let w = bench("", src);
+    let ev = w.evaluate(&Map::new());
+    assert!(ev.issues.iter().all(|i| !i.is_error()), "{:?}", ev.issues);
+    let path = ev.path.as_ref().unwrap();
+    assert_eq!(path.points[3].kind, MoveKind::Pause);
+    assert!(path.notes.iter().any(|n| matches!(&n.text, fabweave_core::model::Text::Localized(m) if m["fr"] == "Pause : Insérer l'écrou")));
+    assert_eq!(ev.plan.as_ref().unwrap().stats.pauses, 1);
+    let g = w.gcode(&ev).unwrap();
+    // Texte à l'écran sans accents, filament rétracté avant l'arrêt.
+    let at = g.find("M117 Inserer l'ecrou\nM601\n").expect("pause Prusa");
+    assert!(
+        g[..at].trim_end().ends_with("E-0.7 F2100"),
+        "{}",
+        &g[at - 80..at]
+    );
+
+    // Copies pièce par pièce : une pause par pièce.
+    let mut w2 = bench("", src);
+    w2.set_setup(serde_json::from_value(json!({ "placement": { "copies": [2, 1] } })).unwrap())
+        .unwrap();
+    let g = w2.gcode(&w2.evaluate(&Map::new())).unwrap();
+    assert_eq!(g.matches("M601").count(), 2);
+
+    // Profil sans gabarit de pause : export refusé.
+    let mut w3 = bench("", src);
+    let mk4s = MK4S.replace("M117 {pause_text}\nM601\n", "");
+    w3.set_printer(&mk4s).unwrap();
+    let e = w3.gcode(&w3.evaluate(&Map::new())).unwrap_err();
+    assert_eq!(e[0].code, "gcode.pause_missing");
+}

@@ -836,3 +836,7 @@ M400
 M18 X Y Z
 
 """
+# Pause (`machine_pause_gcode` de Bambu Studio).
+pause = """
+M400 U1
+"""

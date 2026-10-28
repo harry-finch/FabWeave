@@ -225,7 +225,7 @@ const en: Shape<typeof fr> = {
       jerk: 'Jerk',
     },
     layers: { layer_height: 'Height', first_layer_height: '1st layer', by_nozzle: 'Layers per nozzle' },
-    gcode: { thumbnails: 'Thumbnails', start: 'Start template', end: 'End template' },
+    gcode: { thumbnails: 'Thumbnails', start: 'Start template', end: 'End template', pause: 'Pause template' },
     filament: {
       name: 'Name',
       type: 'Material',
@@ -269,7 +269,10 @@ const en: Shape<typeof fr> = {
       acceleration: 'Empty: no M204 and no accelerations in the time estimate.',
       jerk: 'Speed jump in a corner, for the time estimate; 8 mm/s if empty.',
     },
-    gcode: { thumbnails: '“WxH/PNG” or “WxH/QOI”, separated by commas.' },
+    gcode: {
+      thumbnails: '“WxH/PNG” or “WxH/QOI”, separated by commas.',
+      pause: 'Pause command (path.pause in a model): M601, M400 U1, PAUSE… Variable pause_text: the model message.',
+    },
     filament: {
       density: 'Density (g/cm³), for the filament mass.',
       bridge_flow: 'Multiplies the bridge flow requested by the model: below 1 the strand is pulled tighter. From 0 to 2.',
@@ -317,7 +320,7 @@ const en: Shape<typeof fr> = {
     printLength: 'Length',
     printLengthHint: 'Total printed path length (travel moves excluded).',
     time: 'Estimated time',
-    timeHint: 'Sum of lengths divided by the speeds reached, without accelerations: the real time is a little longer.',
+    timeHint: 'Moves at the speeds reached, with the profile accelerations; without the printer preparation or pauses.',
     filament: 'Filament',
     mass: 'Weight',
     maxFlow: 'Max flow',
@@ -325,6 +328,9 @@ const en: Shape<typeof fr> = {
     size: 'Size',
     height: 'Height',
     retractions: 'Retractions',
+    blobs: 'Blobs',
+    pauses: 'Pauses',
+    pausesHint: 'The printer stops and waits: the estimated time does not count the wait.',
   },
   issues: {
     section: 'Messages',
@@ -392,6 +398,10 @@ const en: Shape<typeof fr> = {
       duplicates_skipped: '{count} points identical to the previous one, skipped.',
       invalid_flow: 'Invalid bridge flow: 0 to 2 (1 = nominal flow).',
       too_many_notes: 'Too many notes (at most {detail}).',
+      invalid_wipe: 'Invalid wipe: length from 0 to 50 mm.',
+      wipe_without_print: 'Wipe without a printed line just before: nothing to wipe.',
+      pause_without_position: 'Pause without a position: move the nozzle before pause().',
+      too_many_pauses: 'Too many pauses (at most {detail}).',
       blob_without_position: 'Blob without a position: move the nozzle (travel_to, print_to…) before blob().',
       invalid_blob: 'Invalid blob ({detail}): volume from 0 to 1,000 mm³, duration from 0 to 60 s.',
     },
@@ -400,6 +410,9 @@ const en: Shape<typeof fr> = {
       invalid_value: 'Invalid value (positive expected).',
       index_out_of_range: 'Point index outside the list.',
       empty: 'Empty point list.',
+    },
+    gcode: {
+      pause_missing: 'The model pauses {count} times but the printer profile has no pause template.',
     },
     blob: {
       too_slow: '{count} blobs would feed the filament below {value} mm/min: they take longer than requested.',

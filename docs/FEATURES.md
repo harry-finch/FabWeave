@@ -36,7 +36,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-09 | Transformations natives : translation, rotation, miroir, répétition en Z, copie tournée, inversion de sens | v0.2 | fait |
 | API-10 | `pts.modulate_z(f)`, `pts.modulate_r(cx, cy, f)` : déformation par une fonction du script | v0.2 | fait |
 | API-11 | Subdivision (`pts.subdivide`, faite en v0.2) ; discrétisation adaptative (tolérance de corde) | v0.2 / v0.5 | en cours |
-| API-12 | Essuyage (*wipe*), pause (insertion d'objet, ruban de renfort) | v0.3 | prévu |
+| API-12 | Essuyage (`path.wipe`, rétraction répartie sur le retour), pause (`path.pause(texte)`, gabarit `pause` du profil, répétée par copie) : insertion d'objet, ruban de renfort | v0.3 | fait |
 | API-13 | Remplissage natif d'un contour fermé en lignes parallèles reliées en zigzag (`fill_lines`, contour quelconque, retrait au bord) : fonds pleins, grilles | v0.2 | fait |
 | API-14 | Remplissage en anneaux concentriques (`fill_rings`, décalage d'un contour vers l'intérieur, îlots, coutures alignées) | v0.3 | fait |
 | API-15 | Extrusion à l'arrêt (`path.blob(volume, durée)` : goutte sans mouvement, débit plafonné), pour CAT-12 | v0.3 | fait |

@@ -21,6 +21,19 @@ pub enum MoveKind {
     /// durée dans `volume` et `duration` ; `w` = `h` = diamètre de la sphère
     /// de même volume (aperçu).
     Blob = 3,
+    /// Essuyage : la buse revient sur le dernier tracé sans extruder, en
+    /// rétractant le filament pendant le mouvement (API-12).
+    Wipe = 4,
+    /// Pause de l'imprimante au point précédent (longueur nulle) : texte
+    /// dans `Toolpath::pauses`, dans l'ordre des pauses du parcours.
+    Pause = 5,
+}
+
+impl MoveKind {
+    /// Mouvement qui dépose de la matière (impression, pont, goutte).
+    pub fn deposits(self) -> bool {
+        matches!(self, MoveKind::Print | MoveKind::Bridge | MoveKind::Blob)
+    }
 }
 
 /// Vitesse demandée par le script.
@@ -93,6 +106,10 @@ pub struct Toolpath {
     /// (copies) ; vide pour une pièce seule. Le compteur de couches repart
     /// à chaque pièce.
     pub starts: Vec<usize>,
+    /// Texte de chaque pause (`MoveKind::Pause`), dans l'ordre d'une pièce :
+    /// la n-ième pause du parcours prend le texte `n % len` (les copies
+    /// répètent les points, pas les textes).
+    pub pauses: Vec<crate::model::Text>,
 }
 
 impl Toolpath {
@@ -118,7 +135,7 @@ impl Toolpath {
         self.points
             .iter()
             .skip(1)
-            .filter(|p| p.kind != MoveKind::Travel)
+            .filter(|p| p.kind.deposits())
             .count()
     }
 }

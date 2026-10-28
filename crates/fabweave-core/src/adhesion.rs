@@ -504,7 +504,7 @@ pub fn raft(
 pub fn first_layer_beads(path: &Toolpath, top: f64) -> Vec<Bead> {
     path.points
         .windows(2)
-        .filter(|w| w[1].kind != MoveKind::Travel && w[0].z < top && w[1].z < top)
+        .filter(|w| w[1].kind.deposits() && w[0].z < top && w[1].z < top)
         .map(|w| ([w[0].x, w[0].y], [w[1].x, w[1].y], w[1].w))
         .collect()
 }

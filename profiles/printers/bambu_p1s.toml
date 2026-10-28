@@ -399,3 +399,7 @@ M1002 set_gcode_claim_speed_level : 0
 
 M17 X0.8 Y0.8 Z0.5 ; lower motor current to 45% power
 """
+# Pause (`machine_pause_gcode` de Bambu Studio).
+pause = """
+M400 U1
+"""

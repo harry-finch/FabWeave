@@ -312,3 +312,18 @@ L'utilisateur demande de terminer la v0.3 pendant ses impressions. Fonctions enc
 **Vérification.** Tests : A1 et P1S lus comme profils v2 avec accélérations, gabarits rendus sans accolade restante, `printer_model` N2S et C12, purge `M620.1 E F374.174` en PLA, pièce dans les lignes de calibration de l'A1 refusée ; traduction des variables de purge (test du traducteur) ; catalogue entier en PLA sur les deux machines.
 
 **Non fait.** Aucun essai sur machine (le fablab n'a qu'une X1E) ; P1P, X1 Carbon et A1 mini non livrés (importables).
+
+## 2026-10-28 — v0.3, étape 9 : essuyage et pause
+
+Étape 8 validée par l'utilisateur.
+
+**Entrées.** `pause_print_gcode` de PrusaSlicer (`M601` pour les Prusa et Marlin 2), `machine_pause_gcode` de Bambu Studio (`M400 U1`), macro `PAUSE` de Klipper ; essuyage des trancheurs (retour sur le dernier tracé en rétractant).
+
+**Choix.**
+- Deux nouveaux mouvements, `Wipe` (4) et `Pause` (5), et `MoveKind::deposits()` (impression, pont, goutte) partout où le code supposait « pas un déplacement = de la matière » (empreinte de l'adhésion, première couche, couches, zones exclues, vignettes, vue 3D). Une pause est un point de longueur nulle, comme une goutte : les copies et l'adhésion la reportent sans indice à recaler ; son texte est rangé à part, dans l'ordre (`Toolpath::pauses`, la n-ième pause prend le texte `n % len`, les copies répétant les points).
+- **Essuyage** (`path.wipe(longueur)`, 0 à 50 mm) : retour sur les derniers segments imprimés, à la hauteur courante (la buse ne redescend pas dans la matière d'une spirale). Rétraction répartie sur la suite d'essuyages ; vitesse limitée pour que le filament recule au plus à la vitesse de rétraction ; le déplacement suivant ne rétracte pas une seconde fois, l'impression suivante remet le filament.
+- **Pause** (`path.pause()`, `path.pause(texte)`, 50 au plus) : nouveau gabarit `[gcode] pause` des profils, variable `pause_text` (texte sans accents pour l'écran) ; filament rétracté avant ; annotation « Pause : texte » dans la vue, hors du quota des annotations ; export refusé si le profil n'a pas de gabarit (`gcode.pause_missing`). L'import lit `pause_print_gcode` et `machine_pause_gcode`. Durée de l'attente non comptée ; nombre de pauses et de gouttes affiché dans les mesures. Infobulle de la durée corrigée (elle disait « sans les accélérations », comptées depuis l'étape 2).
+
+**Vérification.** Tests : essuyage de 4 mm au bout d'une ligne (point à 6 mm, même hauteur, 0,7 mm rétractés à 200 mm/s plafonnés par les déplacements, pas de seconde rétraction, filament remis avant d'imprimer), erreurs ; pause avec texte accentué (`M117 Inserer l'ecrou`, `M601`, rétraction avant), une par copie, profil sans gabarit refusé. G-code relu sur MK4S et X1E (`M400 U1`).
+
+**Non fait.** Essai sur machine ; essuyage automatique à chaque rétraction (réglage des trancheurs) : seulement à la demande du modèle.

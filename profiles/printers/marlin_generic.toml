@@ -79,3 +79,8 @@ M140 S0 ; plateau éteint
 M107 ; ventilateur coupé
 M84 X Y E ; moteurs libérés (Z tenu)
 """
+# Pause : `M601` (Marlin 2 avec PARK_HEAD_ON_PAUSE, comme PrusaSlicer), message à l'écran avant.
+pause = """
+M117 {pause_text}
+M601
+"""

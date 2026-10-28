@@ -56,7 +56,7 @@ pub fn render(path: &Toolpath, plan: &Plan, width: usize, height: usize) -> Vec<
         let zspan = (hi[2] - lo[2]).max(1e-6);
         for (seg, m) in pts.windows(2).zip(&plan.moves[1..]) {
             let (a, b) = (&seg[0], &seg[1]);
-            if b.kind == MoveKind::Travel || m.skipped {
+            if !b.kind.deposits() || m.skipped {
                 continue;
             }
             let (ua, va) = proj(a);

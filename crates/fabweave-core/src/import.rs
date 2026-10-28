@@ -1003,6 +1003,7 @@ fn printer(set: &Set, base: &PrinterProfile) -> (Imported, Vec<String>) {
     for (field, keys) in [
         ("gcode.start", ["start_gcode", "machine_start_gcode"]),
         ("gcode.end", ["end_gcode", "machine_end_gcode"]),
+        ("gcode.pause", ["pause_print_gcode", "machine_pause_gcode"]),
     ] {
         for k in keys {
             b.mark(k);
@@ -1019,10 +1020,10 @@ fn printer(set: &Set, base: &PrinterProfile) -> (Imported, Vec<String>) {
                 b.take(field, k, format!("{} lignes", text.lines().count()));
                 b.report.untranslated.extend(t.untranslated);
                 b.report.constants.extend(t.constants);
-                if field == "gcode.start" {
-                    p.gcode.start = t.text;
-                } else {
-                    p.gcode.end = t.text;
+                match field {
+                    "gcode.start" => p.gcode.start = t.text,
+                    "gcode.end" => p.gcode.end = t.text,
+                    _ => p.gcode.pause = t.text,
                 }
             }
             None => b.miss(field, Fallback::Base),

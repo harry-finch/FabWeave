@@ -223,7 +223,7 @@ const fr = {
       jerk: 'Jerk',
     },
     layers: { layer_height: 'Hauteur', first_layer_height: '1re couche', by_nozzle: 'Couches par buse' },
-    gcode: { thumbnails: 'Vignettes', start: 'Gabarit de démarrage', end: 'Gabarit de fin' },
+    gcode: { thumbnails: 'Vignettes', start: 'Gabarit de démarrage', end: 'Gabarit de fin', pause: 'Gabarit de pause' },
     filament: {
       name: 'Nom',
       type: 'Matière',
@@ -267,7 +267,10 @@ const fr = {
       acceleration: 'Vide : ni M204 ni accélérations dans le temps estimé.',
       jerk: 'Saut de vitesse dans un angle, pour le temps estimé ; 8 mm/s si vide.',
     },
-    gcode: { thumbnails: '« LxH/PNG » ou « LxH/QOI », séparées par des virgules.' },
+    gcode: {
+      thumbnails: '« LxH/PNG » ou « LxH/QOI », séparées par des virgules.',
+      pause: 'Commande de pause (path.pause dans un modèle) : M601, M400 U1, PAUSE… Variable pause_text : le message du modèle.',
+    },
     filament: {
       density: 'Masse volumique (g/cm³), pour la masse de filament.',
       bridge_flow: 'Multiplie le débit des ponts demandé par le modèle : au-dessous de 1, le fil se tend davantage. De 0 à 2.',
@@ -315,7 +318,7 @@ const fr = {
     printLength: 'Longueur',
     printLengthHint: 'Longueur totale du trajet imprimé (sans les déplacements).',
     time: 'Durée estimée',
-    timeHint: 'Somme des longueurs divisées par les vitesses obtenues, sans les accélérations : la durée réelle est un peu plus longue.',
+    timeHint: 'Mouvements aux vitesses obtenues, avec les accélérations du profil ; sans la préparation de l’imprimante ni les pauses.',
     filament: 'Filament',
     mass: 'Masse',
     maxFlow: 'Débit max',
@@ -323,6 +326,9 @@ const fr = {
     size: 'Encombrement',
     height: 'Hauteur',
     retractions: 'Rétractions',
+    blobs: 'Gouttes',
+    pauses: 'Pauses',
+    pausesHint: 'L’imprimante s’arrête et attend : la durée estimée ne compte pas l’attente.',
   },
   issues: {
     section: 'Messages',
@@ -390,6 +396,10 @@ const fr = {
       duplicates_skipped: '{count} points confondus avec le précédent, ignorés.',
       invalid_flow: 'Débit de pont invalide : de 0 à 2 (1 = débit nominal).',
       too_many_notes: 'Trop d’annotations (au plus {detail}).',
+      invalid_wipe: 'Essuyage invalide : longueur de 0 à 50 mm.',
+      wipe_without_print: 'Essuyage sans tracé imprimé juste avant : rien à essuyer.',
+      pause_without_position: 'Pause sans position : placer la buse avant pause().',
+      too_many_pauses: 'Trop de pauses (au plus {detail}).',
       blob_without_position: 'Goutte sans position : placer la buse (travel_to, print_to…) avant blob().',
       invalid_blob: 'Goutte invalide ({detail}) : volume de 0 à 1 000 mm³, durée de 0 à 60 s.',
     },
@@ -398,6 +408,9 @@ const fr = {
       invalid_value: 'Valeur invalide (positive attendue).',
       index_out_of_range: 'Indice de point hors de la liste.',
       empty: 'Liste de points vide.',
+    },
+    gcode: {
+      pause_missing: 'Le modèle fait {count} pauses mais le profil d’imprimante n’a pas de gabarit de pause.',
     },
     blob: {
       too_slow: '{count} gouttes pousseraient le filament sous {value} mm/min : elles durent plus longtemps que demandé.',

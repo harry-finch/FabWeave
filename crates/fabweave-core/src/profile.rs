@@ -227,6 +227,10 @@ pub struct Templates {
     pub thumbnails: Vec<String>,
     pub start: String,
     pub end: String,
+    /// Pause de l'impression (`path.pause`) : `M601` (Prusa, Marlin),
+    /// `M400 U1` (Bambu Lab), `PAUSE` (Klipper) ; variable `pause_text`.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub pause: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -602,7 +606,11 @@ pub fn check_printer(p: &PrinterProfile) -> Vec<Issue> {
     }
     let engine = TemplateEngine::new();
     let vars = crate::gcode::sample_template_scope();
-    for (field, t) in [("gcode.start", &p.gcode.start), ("gcode.end", &p.gcode.end)] {
+    for (field, t) in [
+        ("gcode.start", &p.gcode.start),
+        ("gcode.end", &p.gcode.end),
+        ("gcode.pause", &p.gcode.pause),
+    ] {
         if let Err(e) = engine.check(t, &vars) {
             out.push(
                 Issue::error("profile.template_error")

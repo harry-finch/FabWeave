@@ -362,7 +362,7 @@ pub fn arrange(path: &Toolpath, setup: &Setup, printer: &PrinterProfile) -> (Too
             .points
             .iter()
             .skip(1)
-            .filter(|w| w.kind != MoveKind::Travel)
+            .filter(|w| w.kind.deposits())
             .map(|w| w.z)
             .fold(f64::INFINITY, f64::min);
         if min_z.is_finite() {

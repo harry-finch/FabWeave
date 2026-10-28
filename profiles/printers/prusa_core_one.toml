@@ -156,3 +156,8 @@ G4 ; wait
 M572 S0 ; reset PA
 M84 X Y E ; disable motors
 """
+# Pause (`pause_print_gcode` de PrusaSlicer), message à l'écran avant.
+pause = """
+M117 {pause_text}
+M601
+"""

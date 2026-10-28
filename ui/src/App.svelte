@@ -321,6 +321,14 @@
           <dd class="tabular">{report ? num(report.points) : '—'}</dd>
           <dt>{t('metrics.retractions')}</dt>
           <dd class="tabular">{stats ? num(stats.retractions) : '—'}</dd>
+          {#if stats?.blobs}
+            <dt>{t('metrics.blobs')}</dt>
+            <dd class="tabular">{num(stats.blobs)}</dd>
+          {/if}
+          {#if stats?.pauses}
+            <dt><span use:tip={t('metrics.pausesHint')}>{t('metrics.pauses')}</span></dt>
+            <dd class="tabular">{num(stats.pauses)}</dd>
+          {/if}
         </dl>
       </Section>
       <Section id="issues" title={t('issues.section')}>

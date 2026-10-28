@@ -151,6 +151,9 @@ export interface Stats {
   print_moves: number;
   travel_moves: number;
   retractions: number;
+  /** Gouttes (extrusion à l'arrêt) et pauses de l'imprimante. */
+  blobs: number;
+  pauses: number;
   skipped: number;
   print_length: number;
   travel_length: number;
@@ -224,7 +227,7 @@ export interface Report {
 /** Parcours calculé, transféré par le worker. */
 export interface FrameData {
   positions: Float32Array;
-  /** 0 déplacement, 1 impression, 2 pont, 3 goutte. */
+  /** 0 déplacement, 1 impression, 2 pont, 3 goutte, 4 essuyage, 5 pause. */
   kinds: Uint8Array;
   speeds: Float32Array;
   /** Largeur du boudin (mm), diamètre d'une goutte, 0 pour un déplacement. */
