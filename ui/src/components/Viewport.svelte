@@ -21,10 +21,12 @@
   // Inspection (VIEW-09) : le segment le plus proche du pointeur (à 8 px,
   // le plus près de la caméra s'il y en a plusieurs) est surligné et ses
   // valeurs s'affichent dans une fiche à côté du pointeur.
+  // Export PNG (VIEW-10) : la vue telle qu'elle est (thème, avancement, coupe),
+  // sans les étiquettes, environ 3 000 px de large (8 192 au plus).
   import { onMount, untrack } from 'svelte';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-  import { CircleX, Cylinder, Focus, Gauge, MessageSquareText, Pause, Play, Route } from '@lucide/svelte';
+  import { CircleX, Cylinder, Focus, Gauge, ImageDown, MessageSquareText, Pause, Play, Route } from '@lucide/svelte';
   import { beadMaterial, beadMesh } from '../lib/beads';
   import { COLOR_MODES, MODE_UNIT, colorize, type ColorMode, type Legend } from '../lib/coloring';
   import { fmtDuration, fmtLength, lengthUnit, num, pct } from '../lib/format';
@@ -651,6 +653,36 @@
     }
   }
 
+  /** Image PNG de la vue, rendue à plus haute définition puis téléchargée. */
+  export async function exportPng() {
+    if (!renderer || !host) return;
+    const w = host.clientWidth;
+    const h = host.clientHeight;
+    const long = Math.max(w, h);
+    const ratio = Math.min(Math.max(3000 / long, 1), 8192 / long);
+    const before = renderer.getPixelRatio();
+    clearHover();
+    if (pending) cancelAnimationFrame(pending);
+    pending = 0;
+    renderer.setPixelRatio(ratio);
+    renderer.setSize(w, h, false);
+    renderer.render(scene, camera);
+    // Lu aussitôt après le rendu : le tampon n'est pas encore effacé.
+    const url = renderer.domElement.toDataURL('image/png');
+    renderer.setPixelRatio(before);
+    renderer.setSize(w, h, false);
+    render();
+    const blob = await (await fetch(url)).blob();
+    const name = `${fitKey.split('/').pop() || 'fabweave'}_vue.png`;
+    const link = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = link;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(link), 1000);
+    ui.toast(t('view.pngDone', { name }));
+  }
+
   export function refit() {
     userMoved = false;
     fit();
@@ -884,6 +916,7 @@
         }
       }}><Cylinder size={15} /></button
     >
+    <button class="btn quiet icon" type="button" aria-label={t('view.png')} use:tip={t('view.pngHint')} disabled={count < 2} onclick={exportPng}><ImageDown size={15} /></button>
     <button class="btn quiet icon" type="button" aria-label={t('view.fit')} use:tip={t('view.fit')} onclick={refit}><Focus size={15} /></button>
   </div>
 </div>

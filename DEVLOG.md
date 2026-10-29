@@ -451,3 +451,11 @@ Reprise de la feuille de route pendant l'impression de la lampe à coussins.
 - Surlignage : le segment en `--accent` (sélection), ligne et deux points, sans test de profondeur. Fiche en pastille d'infobulle à côté du pointeur, retournée près des bords : type et numéro du mouvement, boudin (largeur × hauteur, ⌀ d'une goutte), vitesse obtenue, demandée si elle a été plafonnée, débit, ventilateur, Z, heure dans l'impression ; raison du plafonnement (`Gauge`) ; hors du volume en rouge (`CircleX`). La fiche disparaît pendant un glissement, une lecture, un nouveau calcul.
 
 **Vérification.** `npm run check`, WebAssembly reconstruit ; navigateur : vase à ondulations, test de débit (mouvement plafonné par le débit), aucune erreur dans la console.
+
+## 2026-10-29 — v0.4, étape 5 : image de la vue
+
+**Choix** (VIEW-10). Bouton `ImageDown` de la barre d'outils de la vue : la scène est rendue à nouveau à un rapport de pixels qui donne ≈ 3 000 px sur le grand côté (8 192 au plus), lue aussitôt (`toDataURL`, avant que le tampon soit effacé, sans `preserveDrawingBuffer` qui ralentirait chaque image), puis la vue revient à sa taille. Telle qu'elle est (thème, coloration, avancement et buse, coupe), sans les étiquettes, la légende ni les barres (éléments HTML). Nom : `<modèle>_vue.png`, message de confirmation. Pas de fond transparent : les couleurs du parcours dépendent du thème, l'image doit rester lisible.
+
+**Vérification.** `npm run check` ; navigateur, téléchargement intercepté dans la page : 3 000 × 2 087 px, 2,9 Mo, lampe à coussins sans étiquettes.
+
+**Non fait.** Étape 6 (temps estimé comparé à PrusaSlicer) : elle demande de trancher les modèles du catalogue dans PrusaSlicer.

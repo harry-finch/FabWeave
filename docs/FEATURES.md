@@ -136,7 +136,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | VIEW-07 | Coloration : hauteur (dégradé neutre par défaut), ordre d'impression, type de mouvement, vitesse obtenue, débit, largeur, hauteur de couche, ventilateur ; rampe violette d'une seule teinte validée (contraste ≥ 2:1 au bout bas, deux thèmes) ; légende graduée ; choix mémorisé | v0.4 | fait |
 | VIEW-08 | Avancement : curseur au mouvement près (pourcentage et temps rapportés à la durée estimée, Z de la buse), durée de chaque mouvement estimée par le moteur, lecture en 30 s, buse simulée au point courant ; coupe en Z (plan de coupe, boudins compris) ; déplacements affichables, mémorisé | v0.4 | fait |
 | VIEW-09 | Inspection du segment survolé (à 8 px du pointeur, le plus près de la caméra) : surligné, fiche avec type et numéro du mouvement, boudin, vitesse obtenue et demandée, débit, ventilateur, Z, heure ; raison d'un plafonnement ; hors du volume signalé | v0.4 | fait |
-| VIEW-10 | Export PNG de la vue | v0.4 | prévu |
+| VIEW-10 | Export PNG de la vue telle qu'elle est (thème, avancement, coupe), sans les étiquettes, environ 3 000 px de large (8 192 au plus) | v0.4 | fait |
 
 ## Sécurité et qualité (SAFE)
 

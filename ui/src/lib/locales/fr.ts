@@ -510,6 +510,9 @@ const fr = {
     readout: '{pct} · {time} / {total} · Z {z}',
     cut: 'Coupe en Z',
     cutHint: 'Coupe en Z : masque ce qui est au-dessus de cette hauteur.',
+    png: 'Image de la vue',
+    pngHint: 'Enregistrer la vue en image PNG, telle qu’elle est (avancement, coupe, couleurs), sans les étiquettes.',
+    pngDone: 'Image enregistrée : {name}',
     inspect: {
       move: 'mouvement {n}',
       kind: { travel: 'Déplacement', print: 'Impression', bridge: 'Pont', blob: 'Goutte', wipe: 'Essuyage', pause: 'Pause' },

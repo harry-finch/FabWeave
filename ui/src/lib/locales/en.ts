@@ -512,6 +512,9 @@ const en: Shape<typeof fr> = {
     readout: '{pct} · {time} / {total} · Z {z}',
     cut: 'Z cut',
     cutHint: 'Z cut: hides everything above this height.',
+    png: 'View image',
+    pngHint: 'Save the view as a PNG image, as it is (progress, cut, colours), without the labels.',
+    pngDone: 'Image saved: {name}',
     inspect: {
       move: 'move {n}',
       kind: { travel: 'Travel', print: 'Print', bridge: 'Bridge', blob: 'Blob', wipe: 'Wipe', pause: 'Pause' },
