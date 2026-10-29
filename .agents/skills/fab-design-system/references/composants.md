@@ -113,6 +113,12 @@ Icône 11 px + texte `--fs-xs` 600, padding 1 × 5 px, rayon 3 px, couleur de se
 - **Onglets** : texte `--fs-md` 500 muted, 12 px d'écart, pleine hauteur de la barre ; actif : texte primary + **soulignement 2 px `--accent`** ; compteur à droite du nom : pastille `--neutral-tint`, rayon 8 px, `--fs-xs`, chiffres tabulaires, masquée à zéro.
 - Zoom : pourcentage tabulaire centré dans 48 px (100 % = taille réelle à l'écran, 96 px par pouce CSS).
 
+## Curseur (`input type="range"`)
+
+Curseur natif (FabSpeed, réglage du pas latéral ; FabWeave, avancement de l'impression) : `flex: 1; min-width: 0; accent-color: var(--accent)`, accompagné de sa valeur (champ ou lecture tabulaire). Clavier natif : flèches, Origine, Fin. Vertical (coupe en Z de FabWeave) : `writing-mode: vertical-lr; direction: rtl` (le bas = la valeur basse), dans un panneau de 44 px de large, valeur en haut, unité en bas, `--fs-xs`.
+
+**Barre de lecture** d'une vue (FabWeave, avancement) : panneau flottant en bas de la vue, pleine largeur à `--s2` des bords, fond `--bg-panel`, bord `--border`, rayon 4 px ; bouton lecture / pause (`Play` / `Pause` 15 px, `btn quiet icon`), curseur, lecture tabulaire `--fs-xs` secondary à droite (« 62 % · 3 h 12 min / 7 h 27 min · Z 48,2 mm »). La légende de la vue remonte au-dessus de la barre.
+
 ## Liste d'éléments (inspecteur)
 
 Lignes de 26 px, padding 0 4 px, rayon 4 px : icône du type, nom (secondary → primary au survol), valeur courte à droite en muted (`Ø 4,3 mm`). Sélection : `--bg-selected`. En dessous, boutons d'ajout `btn` avec icône (« + Trou de fixation », « ▢ Zone rectangulaire »).

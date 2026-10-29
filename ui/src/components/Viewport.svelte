@@ -13,13 +13,18 @@
   // lignes, au choix, mémorisé ; les déplacements restent des lignes.
   // Coloration au choix (VIEW-07, `lib/coloring.ts`), mémorisée, avec sa
   // légende en bas à gauche.
-  import { onMount } from 'svelte';
+  // Avancement (VIEW-08) : curseur au mouvement près en bas (pourcentage et
+  // temps rapportés à la durée estimée, Z de la buse), lecture, buse simulée
+  // au point courant ; coupe en Z à droite (plan de coupe, boudins compris) ;
+  // déplacements affichables, mémorisé. Le parcours se montre jusqu'au point
+  // courant par plages de dessin : rien n'est reconstruit en avançant.
+  import { onMount, untrack } from 'svelte';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-  import { Cylinder, Focus, MessageSquareText } from '@lucide/svelte';
-  import { beadMesh } from '../lib/beads';
+  import { Cylinder, Focus, MessageSquareText, Pause, Play, Route } from '@lucide/svelte';
+  import { beadMaterial, beadMesh } from '../lib/beads';
   import { COLOR_MODES, MODE_UNIT, colorize, type ColorMode, type Legend } from '../lib/coloring';
-  import { fmtLength, lengthUnit, num, pct } from '../lib/format';
+  import { fmtDuration, fmtLength, lengthUnit, num, pct } from '../lib/format';
   import { ui } from '../lib/ui.svelte';
   import { storageKey } from '../lib/app';
   import { text } from '../lib/text';
@@ -32,12 +37,10 @@
     frame,
     printer,
     fitKey,
-    showTravel = true,
   }: {
     frame: FrameData | null;
     printer: PrinterProfile | null;
     fitKey: string;
-    showTravel?: boolean;
   } = $props();
 
   let host: HTMLDivElement;
@@ -60,6 +63,14 @@
     }
   })());
   let legend = $state<Legend | null>(null);
+  const TRAVEL_KEY = storageKey('view.travel.v1');
+  let showTravel = $state((() => {
+    try {
+      return localStorage.getItem(TRAVEL_KEY) !== '0';
+    } catch {
+      return true;
+    }
+  })());
   const MODE_KEY = storageKey('view.volume.v1');
   let volume = $state((() => {
     try {
@@ -108,9 +119,44 @@
   const outsideMat = new THREE.LineBasicMaterial();
   const outsideLines = new THREE.LineSegments(new THREE.BufferGeometry(), outsideMat);
   scene.add(bed, printLines, travelLines, outsideLines);
+
+  // Avancement (VIEW-08) : point courant `last` (n − 1 : tout), temps cumulé
+  // jusqu'à chaque point, points d'arrivée de chaque famille dans l'ordre (pour
+  // les plages de dessin).
+  let count = $state(0);
+  let last = $state(0);
+  let cum = new Float64Array(0);
+  let printEnds = new Int32Array(0);
+  let travelEnds = new Int32Array(0);
+  let outsideEnds = new Int32Array(0);
+  let beadEnds: Int32Array[] = [];
+  let blobEnds = new Int32Array(0);
+  let playing = $state(false);
+  let playRaf = 0;
+  /** Durée d'une lecture complète (ms). */
+  const PLAY_MS = 30000;
+  // Coupe en Z : on garde z ≤ zCut (plan de normale −Z).
+  let zMin = $state(0);
+  let zMax = $state(0);
+  let zCut = $state(Infinity);
+  const cutPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 1e9);
+  for (const m of [printMat, travelMat, outsideMat, beadMaterial]) m.clippingPlanes = [cutPlane];
+
+  // Buse simulée : cône (pointe au point courant) et bloc de chauffe.
+  const nozzle = new THREE.Group();
+  const nozzleMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, depthWrite: false });
+  const nozzleEdge = new THREE.LineBasicMaterial();
+  {
+    const cone = new THREE.CylinderGeometry(3, 0.4, 5, 24).rotateX(Math.PI / 2).translate(0, 0, 2.5);
+    const block = new THREE.BoxGeometry(16, 16, 9).translate(3, 0, 5 + 4.5);
+    for (const g of [cone, block]) nozzle.add(new THREE.Mesh(g, nozzleMat), new THREE.LineSegments(new THREE.EdgesGeometry(g, 30), nozzleEdge));
+  }
+  nozzle.visible = false;
+  nozzle.renderOrder = 10;
+  scene.add(nozzle);
   // Gouttes : une sphère de diamètre 1 par goutte, mise à l'échelle.
   const blobGeom = new THREE.IcosahedronGeometry(0.5, 1);
-  const blobMat = new THREE.MeshBasicMaterial();
+  const blobMat = new THREE.MeshBasicMaterial({ clippingPlanes: [cutPlane] });
   let blobs: THREE.InstancedMesh | null = null;
   // Boudins en volume : imprimés, et hors du volume (surlignés).
   let beads: THREE.Mesh[] = [];
@@ -132,6 +178,8 @@
     'scale-5',
     'path-bridge',
     'path-blob',
+    'view-nozzle',
+    'view-nozzle-edge',
   ] as const;
   let colors: Record<(typeof TOKENS)[number], THREE.Color> = Object.fromEntries(TOKENS.map((k) => [k, new THREE.Color()])) as never;
 
@@ -145,6 +193,8 @@
     exclude.color = colors['view-bed-exclude'];
     travelMat.color = colors['path-travel'];
     outsideMat.color = colors['danger'];
+    nozzleMat.color = colors['view-nozzle'];
+    nozzleEdge.color = colors['view-nozzle-edge'];
   }
 
   function render() {
@@ -244,18 +294,27 @@
       const outside: number[] = [];
       // Déplacements, essuyages (4) et pauses (5) en retrait.
       for (let i = 1; i < n; i++) (f.kinds[i] === 0 || f.kinds[i] >= 4 ? travels : f.outside[i] ? outside : prints).push(i - 1, i);
+      const arrivals = (list: number[]) => Int32Array.from(list.filter((_, k) => k % 2 === 1));
+      travelEnds = arrivals(travels);
       if (volume) {
         // Segments imprimés (pas les gouttes, dessinées en sphères).
         const ends = (list: number[]) => list.filter((_, k) => k % 2 === 1).filter((i) => f.kinds[i] !== 3);
         const danger = colors['danger'];
+        const pe = ends(prints);
+        const oe = ends(outside);
+        beadEnds = [Int32Array.from(pe), Int32Array.from(oe)];
         beads.push(
-          beadMesh(f.positions, f.widths, f.heights, ends(prints), (i, c) => c.setRGB(col[i * 3], col[i * 3 + 1], col[i * 3 + 2])),
-          beadMesh(f.positions, f.widths, f.heights, ends(outside), (_, c) => c.copy(danger)),
+          beadMesh(f.positions, f.widths, f.heights, pe, (i, c) => c.setRGB(col[i * 3], col[i * 3 + 1], col[i * 3 + 2])),
+          beadMesh(f.positions, f.widths, f.heights, oe, (_, c) => c.copy(danger)),
         );
         scene.add(...beads);
         prints.length = 0;
         outside.length = 0;
+      } else {
+        beadEnds = [];
       }
+      printEnds = arrivals(prints);
+      outsideEnds = arrivals(outside);
       pg.setAttribute('position', pos);
       pg.setAttribute('color', new THREE.BufferAttribute(col, 3));
       pg.setIndex(prints);
@@ -269,7 +328,127 @@
     outsideLines.geometry = og;
     if (!f || n < 2) legend = null;
     buildBlobs(f, pg.getAttribute('color') as THREE.BufferAttribute | undefined);
+    applyProgress();
   }
+
+  /** Temps cumulé et hauteurs d'un nouveau calcul ; garde l'avancement et la
+   * coupe là où l'utilisateur les a mis (au bout : au nouveau bout). */
+  function measure(f: FrameData | null) {
+    stop();
+    const n = f ? f.kinds.length : 0;
+    const wasEnd = last >= count - 1;
+    const ratio = count > 1 ? last / (count - 1) : 1;
+    const wasTop = zCut >= zMax - 1e-6;
+    cum = new Float64Array(n);
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let i = 0; i < n; i++) {
+      const z = f!.positions[i * 3 + 2];
+      if (i > 0) {
+        const d = Math.hypot(f!.positions[i * 3] - f!.positions[i * 3 - 3], f!.positions[i * 3 + 1] - f!.positions[i * 3 - 2], z - f!.positions[i * 3 - 1]);
+        const v = f!.speeds[i];
+        cum[i] = cum[i - 1] + (v > 0 ? d / v : 0);
+      }
+      if (f!.kinds[i] !== 0) {
+        lo = Math.min(lo, z);
+        hi = Math.max(hi, z);
+      }
+    }
+    // Durées rapportées au temps estimé par le moteur (accélérations comprises).
+    const total = f?.report.stats?.time;
+    if (n > 1 && total && cum[n - 1] > 0) {
+      const k = total / cum[n - 1];
+      for (let i = 0; i < n; i++) cum[i] *= k;
+    }
+    count = n;
+    last = n > 0 ? (wasEnd ? n - 1 : Math.round(ratio * (n - 1))) : 0;
+    zMin = Number.isFinite(lo) ? lo : 0;
+    zMax = Number.isFinite(hi) ? hi : 0;
+    zCut = wasTop ? zMax : Math.min(Math.max(zCut, zMin), zMax);
+  }
+
+  /** Nombre de points d'arrivée ≤ k (liste croissante). */
+  function upto(ends: Int32Array, k: number): number {
+    let lo = 0;
+    let hi = ends.length;
+    while (lo < hi) {
+      const m = (lo + hi) >> 1;
+      if (ends[m] <= k) lo = m + 1;
+      else hi = m;
+    }
+    return lo;
+  }
+
+  /** Montre le parcours jusqu'au point `last`, place la buse, règle la coupe.
+   * Sans suivi : les effets qui l'appellent ne dépendent pas du curseur. */
+  function applyProgress() {
+    untrack(drawProgress);
+  }
+
+  function drawProgress() {
+    const k = last;
+    printLines.geometry.setDrawRange(0, 2 * upto(printEnds, k));
+    travelLines.geometry.setDrawRange(0, 2 * upto(travelEnds, k));
+    outsideLines.geometry.setDrawRange(0, 2 * upto(outsideEnds, k));
+    beads.forEach((b, j) => ((b.geometry as THREE.InstancedBufferGeometry).instanceCount = upto(beadEnds[j] ?? new Int32Array(0), k)));
+    if (blobs) blobs.count = upto(blobEnds, k);
+    const f = frame;
+    nozzle.visible = !!f && count > 1 && k < count - 1;
+    if (nozzle.visible && f) nozzle.position.set(f.positions[k * 3], f.positions[k * 3 + 1], f.positions[k * 3 + 2]);
+    cutPlane.constant = zCut >= zMax - 1e-6 ? 1e9 : zCut;
+    render();
+  }
+
+  function setLast(k: number) {
+    last = Math.max(0, Math.min(count - 1, Math.round(k)));
+    applyProgress();
+  }
+
+  function stop() {
+    playing = false;
+    if (playRaf) cancelAnimationFrame(playRaf);
+    playRaf = 0;
+  }
+
+  /** Lecture : la buse parcourt l'impression en PLAY_MS, à sa vitesse relative. */
+  function play() {
+    if (count < 2) return;
+    if (last >= count - 1) setLast(0);
+    playing = true;
+    const total = cum[count - 1] || 1;
+    const t0 = performance.now();
+    const from = cum[last];
+    const step = () => {
+      const t = from + ((performance.now() - t0) / PLAY_MS) * total;
+      // Premier point dont le temps cumulé atteint t.
+      let lo = last;
+      let hi = count - 1;
+      while (lo < hi) {
+        const m = (lo + hi) >> 1;
+        if (cum[m] < t) lo = m + 1;
+        else hi = m;
+      }
+      setLast(lo);
+      if (lo >= count - 1) stop();
+      else playRaf = requestAnimationFrame(step);
+    };
+    playRaf = requestAnimationFrame(step);
+  }
+
+  /** Avancement : « 62 % · 3 h 12 min / 7 h 27 min · Z 48,2 mm ». */
+  let readout = $derived.by(() => {
+    void i18n.locale;
+    void ui.units;
+    if (count < 2 || !frame) return '';
+    const total = cum[count - 1];
+    const z = frame.positions[last * 3 + 2];
+    return t('view.readout', {
+      pct: pct(total > 0 ? (100 * cum[last]) / total : 100),
+      time: fmtDuration(cum[last]),
+      total: fmtDuration(total),
+      z: `${fmtLength(z, ui.units, 1)} ${lengthUnit(ui.units)}`,
+    });
+  });
 
   function buildBlobs(f: FrameData | null, col?: THREE.BufferAttribute) {
     if (blobs) {
@@ -277,9 +456,11 @@
       blobs.dispose();
       blobs = null;
     }
+    blobEnds = new Int32Array(0);
     if (!f) return;
     const idx: number[] = [];
     for (let i = 1; i < f.kinds.length; i++) if (f.kinds[i] === 3) idx.push(i);
+    blobEnds = Int32Array.from(idx);
     if (!idx.length) return;
     blobs = new THREE.InstancedMesh(blobGeom, blobMat, idx.length);
     const m = new THREE.Matrix4();
@@ -351,6 +532,7 @@
   onMount(() => {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.localClippingEnabled = true;
     host.appendChild(renderer.domElement);
     controls = new OrbitControls(camera, renderer.domElement);
     controls.screenSpacePanning = true;
@@ -370,12 +552,19 @@
     });
     ro.observe(host);
     return () => {
+      stop();
       ro.disconnect();
       controls?.dispose();
       renderer?.dispose();
       renderer?.domElement.remove();
       renderer = null;
     };
+  });
+
+  // Nouveau calcul : temps et hauteurs (avant la construction du parcours).
+  $effect.pre(() => {
+    const f = frame;
+    untrack(() => measure(f));
   });
 
   $effect(() => {
@@ -447,6 +636,52 @@
       {/if}
     </div>
   {/if}
+  {#if count > 1}
+    <div class="timeline">
+      <button
+        class="btn quiet icon"
+        type="button"
+        aria-label={playing ? t('view.pause') : t('view.play')}
+        use:tip={playing ? t('view.pause') : t('view.play')}
+        onclick={() => (playing ? stop() : play())}
+        >{#if playing}<Pause size={15} />{:else}<Play size={15} />{/if}</button
+      >
+      <input
+        class="range"
+        type="range"
+        min="0"
+        max={count - 1}
+        step="1"
+        value={last}
+        aria-label={t('view.progress')}
+        use:tip={t('view.progressHint')}
+        oninput={(e) => {
+          stop();
+          setLast(Number(e.currentTarget.value));
+        }}
+      />
+      <span class="readout tabular">{readout}</span>
+    </div>
+    {#if zMax > zMin}
+      <div class="zcut" use:tip={t('view.cutHint')}>
+        <span class="zval tabular">{num(Math.min(zCut, zMax) / (ui.units === 'mm' ? 1 : 25.4), ui.units === 'mm' ? 1 : 2)}</span>
+        <input
+          class="range vertical"
+          type="range"
+          min={zMin}
+          max={zMax}
+          step="0.05"
+          value={Math.min(zCut, zMax)}
+          aria-label={t('view.cut')}
+          oninput={(e) => {
+            zCut = Number(e.currentTarget.value);
+            applyProgress();
+          }}
+        />
+        <span class="zunit">{lengthUnit(ui.units)}</span>
+      </div>
+    {/if}
+  {/if}
   <div class="tools">
     <button
       class="btn quiet icon"
@@ -464,6 +699,22 @@
         }
         render();
       }}><MessageSquareText size={15} /></button
+    >
+    <button
+      class="btn quiet icon"
+      class:on={showTravel}
+      type="button"
+      aria-pressed={showTravel}
+      aria-label={t('view.travel')}
+      use:tip={t('view.travel')}
+      onclick={() => {
+        showTravel = !showTravel;
+        try {
+          localStorage.setItem(TRAVEL_KEY, showTravel ? '1' : '0');
+        } catch {
+          /* ignoré */
+        }
+      }}><Route size={15} /></button
     >
     <button
       class="btn quiet icon"
@@ -533,7 +784,7 @@
   .legend {
     position: absolute;
     left: var(--s2);
-    bottom: var(--s2);
+    bottom: calc(var(--s2) * 2 + var(--control-h) + 6px);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -545,6 +796,65 @@
     color: var(--text-secondary);
     font-size: var(--fs-xs);
     pointer-events: none;
+  }
+
+  /* Avancement : barre en bas de la vue, sur toute la largeur. */
+  .timeline {
+    position: absolute;
+    left: var(--s2);
+    right: var(--s2);
+    bottom: var(--s2);
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding: 2px var(--s2) 2px 2px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .range {
+    flex: 1;
+    min-width: 0;
+    accent-color: var(--accent);
+  }
+
+  .readout {
+    flex: none;
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+    white-space: nowrap;
+  }
+
+  /* Coupe en Z : curseur vertical à droite, sous les outils. */
+  .zcut {
+    position: absolute;
+    right: var(--s2);
+    top: calc(var(--s2) * 2 + var(--control-h) + 6px);
+    bottom: calc(var(--s2) * 2 + var(--control-h) + 6px);
+    width: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+  }
+
+  .zcut .range.vertical {
+    flex: 1;
+    min-height: 0;
+    width: 20px;
+    writing-mode: vertical-lr;
+    direction: rtl;
+  }
+
+  .zunit {
+    color: var(--text-muted);
   }
 
   .bar {

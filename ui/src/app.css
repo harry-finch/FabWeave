@@ -82,6 +82,9 @@
   /* Coloration par type : pont, goutte (l'impression reste neutre). */
   --path-bridge: #d55181;
   --path-blob: #9085e9;
+  /* Buse simulée (VIEW-08) : outil neutre, translucide, arêtes sombres. */
+  --view-nozzle: #b9bdc3;
+  --view-nozzle-edge: #2a2d31;
 
   /* Fenêtres et infobulles. */
   --backdrop: rgb(0 0 0 / 0.5);
@@ -171,6 +174,8 @@
   --scale-5: #431f7e;
   --path-bridge: #c4386f;
   --path-blob: #6250d6;
+  --view-nozzle: #6b7078;
+  --view-nozzle-edge: #2a2d31;
 
   --segment-track: #e3e3e3;
   --track: #e0e0e0;

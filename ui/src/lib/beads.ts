@@ -22,6 +22,7 @@ attribute vec2 iSize;      // largeur, hauteur
 attribute vec3 iColor;
 varying vec3 vColor;
 varying vec3 vNormal;
+#include <clipping_planes_pars_vertex>
 
 void main() {
   vec3 d = iEnd - iStart;
@@ -42,15 +43,19 @@ void main() {
   vec3 p = base + offset - vec3(0.0, 0.0, 0.5 * h);
   vColor = iColor;
   vNormal = normalize(normalMatrix * normal);
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+  vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
+  gl_Position = projectionMatrix * mvPosition;
+  #include <clipping_planes_vertex>
 }
 `;
 
 const fragment = /* glsl */ `
 varying vec3 vColor;
 varying vec3 vNormal;
+#include <clipping_planes_pars_fragment>
 
 void main() {
+  #include <clipping_planes_fragment>
   vec3 n = normalize(vNormal);
   // Lumières dans le repère de la caméra : principale en haut à gauche,
   // secondaire en face ; ambiant pour que les faces cachées restent lisibles.
@@ -109,7 +114,8 @@ function baseGeometry(): THREE.InstancedBufferGeometry {
   return g;
 }
 
-export const beadMaterial = new THREE.ShaderMaterial({ vertexShader: vertex, fragmentShader: fragment, side: THREE.DoubleSide });
+// `clipping` : coupe en Z de la vue (VIEW-08), plans donnés par la vue.
+export const beadMaterial = new THREE.ShaderMaterial({ vertexShader: vertex, fragmentShader: fragment, side: THREE.DoubleSide, clipping: true });
 
 /** Boudins des segments `segments` (indices du point d'arrivée), couleur de chacun. */
 export function beadMesh(

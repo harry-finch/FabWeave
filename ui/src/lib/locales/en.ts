@@ -505,6 +505,13 @@ const en: Shape<typeof fr> = {
     notes: 'Model notes',
     travel: 'Travel moves',
     empty: 'No path to show.',
+    play: 'Play: the nozzle runs through the print',
+    pause: 'Pause',
+    progress: 'Print progress',
+    progressHint: 'Progress: the path is shown up to the nozzle. Arrow keys: one move at a time.',
+    readout: '{pct} · {time} / {total} · Z {z}',
+    cut: 'Z cut',
+    cutHint: 'Z cut: hides everything above this height.',
   },
   help: {
     title: 'Help',

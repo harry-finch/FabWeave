@@ -425,3 +425,20 @@ L'utilisateur lance la v0.4 pendant ses impressions de validation de la v0.3 (CO
 **Vérification.** Même relecture : 0,2 % de points à plus de 0,7 mm de la matière posée, aucun à la suite ; coupe du parcours (sommet à plat, dessus à 60°, descente dans chaque col, écart entre coussins) ; vue de dessus des chevrons sur un flanc et en porte-à-faux ; `fabweave check` aux bornes ; test : moins de 1 % de points sans appui, cône de 45° sur 3 mm accepté, 2,5 mm et 30° refusés ; navigateur : calcul en 2,2 s. Mes scripts de rendu se centraient mal (G-code de démarrage compté) : corrigé, la géométrie était juste.
 
 **Non fait.** Impression de la seconde version ; les porte-à-faux à 90° du bas de chaque coussin restent (inhérents à des coussins ronds), à juger à l'impression.
+
+## 2026-10-29 — v0.4, étape 3 : avancement, buse simulée, coupe en Z
+
+Reprise de la feuille de route pendant l'impression de la lampe à coussins.
+
+**Choix** (VIEW-08).
+- Barre de lecture en bas de la vue : bouton lecture / pause, curseur natif au mouvement près (flèches : un mouvement ; curseur de FabSpeed, `accent-color`), lecture « 62 % · 3 h 12 min / 7 h 27 min · Z 48,2 mm ». Le temps de chaque mouvement est longueur ÷ vitesse obtenue, rapporté au temps estimé par le moteur (accélérations comprises) ; pas de numéro de couche (sans sens pour une spirale ou du non planaire), la hauteur de la buse à la place. La légende remonte au-dessus de la barre.
+- Le parcours se montre jusqu'au point courant par plages de dessin (`setDrawRange` des lignes, `instanceCount` des boudins, `count` des gouttes), en cherchant par dichotomie dans la liste des points d'arrivée de chaque famille : rien n'est reconstruit en avançant. Les effets qui reconstruisent la scène lisent l'avancement sans le suivre (`untrack`) ; un nouveau calcul garde l'avancement en proportion, ou le bout s'il y était.
+- Lecture : la buse parcourt toute l'impression en 30 s, à sa vitesse relative (dichotomie sur le temps cumulé).
+- Buse simulée : cône et bloc de chauffe, neutres et translucides (jetons `--view-nozzle`, `--view-nozzle-edge`, deux thèmes), visibles tant qu'on n'est pas au bout.
+- Coupe en Z : curseur vertical à droite (`writing-mode: vertical-lr`), plan de coupe three.js (`localClippingEnabled`) sur les lignes, les gouttes et le shader des boudins (morceaux `clipping_planes` de three.js).
+- Déplacements affichables (bouton `Route` de la barre d'outils, mémorisé) : la propriété existait sans bouton.
+- Skill `fab-design-system` (copie du dépôt) : curseur, variante verticale et barre de lecture ajoutés aux composants, avancement et coupe à la vue 3D.
+
+**Vérification.** `npm run check` ; navigateur : lampe à coussins à 40 % (buse au point courant), coupe à 61,7 mm, lecture, thème clair, aucune erreur dans la console.
+
+**Non fait.** Annotations au-delà du point courant toujours affichées ; copie de la skill dans FabVents (source du lien de `~/.claude/skills`) non mise à jour.

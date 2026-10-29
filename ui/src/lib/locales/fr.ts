@@ -503,6 +503,13 @@ const fr = {
     notes: 'Annotations du modèle',
     travel: 'Déplacements',
     empty: 'Aucun parcours à afficher.',
+    play: 'Lecture : la buse parcourt l’impression',
+    pause: 'Pause',
+    progress: 'Avancement de l’impression',
+    progressHint: 'Avancement : le parcours se montre jusqu’à la buse. Flèches : un mouvement à la fois.',
+    readout: '{pct} · {time} / {total} · Z {z}',
+    cut: 'Coupe en Z',
+    cutHint: 'Coupe en Z : masque ce qui est au-dessus de cette hauteur.',
   },
   help: {
     title: 'Aide',
