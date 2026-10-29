@@ -241,6 +241,12 @@ export interface FrameData {
   fans: Uint8Array;
   /** 1 : mouvement imprimé hors du volume ou dans une zone exclue. */
   outside: Uint8Array;
+  /** Vitesse demandée par le modèle (mm/s) ; plafond qui l'a limitée (0 aucun,
+   * 1 première couche, 2 machine, 3 débit du filament, 4 axe Z) ; durée
+   * estimée du mouvement (s). */
+  requested: Float32Array;
+  limits: Uint8Array;
+  times: Float32Array;
   report: Report;
   /** Durée du calcul dans le worker (ms). */
   ms: number;

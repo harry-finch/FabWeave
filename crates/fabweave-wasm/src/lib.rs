@@ -129,6 +129,9 @@ pub struct Frame {
     flows: Vec<f32>,
     fans: Vec<u8>,
     outside: Vec<u8>,
+    requested: Vec<f32>,
+    limits: Vec<u8>,
+    times: Vec<f32>,
     report: String,
 }
 
@@ -177,6 +180,24 @@ impl Frame {
     /// zone exclue du plateau (surligné dans la vue), 0 sinon.
     pub fn take_outside(&mut self) -> Vec<u8> {
         std::mem::take(&mut self.outside)
+    }
+
+    /// Vitesse demandée par le modèle pour le mouvement qui arrive à chaque
+    /// point (mm/s).
+    pub fn take_requested(&mut self) -> Vec<f32> {
+        std::mem::take(&mut self.requested)
+    }
+
+    /// Plafond qui a limité la vitesse du mouvement : 0 aucun, 1 première
+    /// couche, 2 machine, 3 débit du filament, 4 axe Z.
+    pub fn take_limits(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.limits)
+    }
+
+    /// Durée estimée du mouvement qui arrive à chaque point (s), accélérations,
+    /// rétraction et saut compris.
+    pub fn take_times(&mut self) -> Vec<f32> {
+        std::mem::take(&mut self.times)
     }
 
     /// Mesures, messages et journal du script (JSON).
@@ -268,6 +289,11 @@ impl Engine {
         let ev = self.bench.evaluate(&values(values_json));
         let n = ev.path.as_ref().map_or(0, |p| p.points.len());
         let (mut flows, mut fans) = (Vec::with_capacity(n), Vec::with_capacity(n));
+        let (mut requested, mut limits, mut times) = (
+            Vec::with_capacity(n),
+            Vec::with_capacity(n),
+            Vec::with_capacity(n),
+        );
         let (mut positions, mut kinds, mut speeds, mut widths, mut heights, mut outside) = (
             Vec::with_capacity(n * 3),
             Vec::with_capacity(n),
@@ -291,6 +317,9 @@ impl Engine {
                 flows.push(m.flow as f32);
                 fans.push(m.fan);
                 outside.push(u8::from(m.outside));
+                requested.push(m.requested as f32);
+                limits.push(m.limit as u8);
+                times.push(m.time as f32);
             }
         }
         // Annotations dans le repère de la machine.
@@ -335,6 +364,9 @@ impl Engine {
             flows,
             fans,
             outside,
+            requested,
+            limits,
+            times,
             report,
         }
     }

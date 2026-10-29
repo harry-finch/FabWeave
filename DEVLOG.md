@@ -442,3 +442,12 @@ Reprise de la feuille de route pendant l'impression de la lampe à coussins.
 **Vérification.** `npm run check` ; navigateur : lampe à coussins à 40 % (buse au point courant), coupe à 61,7 mm, lecture, thème clair, aucune erreur dans la console.
 
 **Non fait.** Annotations au-delà du point courant toujours affichées ; copie de la skill dans FabVents (source du lien de `~/.claude/skills`) non mise à jour.
+
+## 2026-10-29 — v0.4, étape 4 : inspection du segment survolé
+
+**Choix** (VIEW-09).
+- Le moteur transmet en plus, pour chaque mouvement, la vitesse demandée, le plafond qui l'a limitée (code 0 à 4) et la durée estimée (`take_requested`, `take_limits`, `take_times`). L'avancement de l'étape 3 utilise désormais cette durée (accélérations et rétractions comprises) au lieu de longueur ÷ vitesse rapportée au total.
+- Choix à l'écran, sans lancer de rayons (three.js parcourt chaque segment d'une ligne, trop lent pour 200 000 segments à chaque mouvement de souris) : chaque point est projeté une fois (les segments se suivent), le segment visible le plus proche du pointeur à 8 px l'emporte, le plus près de la caméra s'il y en a plusieurs ; une recherche par image au plus. Seuls les segments montrés comptent (avancement, coupe en Z, déplacements masqués).
+- Surlignage : le segment en `--accent` (sélection), ligne et deux points, sans test de profondeur. Fiche en pastille d'infobulle à côté du pointeur, retournée près des bords : type et numéro du mouvement, boudin (largeur × hauteur, ⌀ d'une goutte), vitesse obtenue, demandée si elle a été plafonnée, débit, ventilateur, Z, heure dans l'impression ; raison du plafonnement (`Gauge`) ; hors du volume en rouge (`CircleX`). La fiche disparaît pendant un glissement, une lecture, un nouveau calcul.
+
+**Vérification.** `npm run check`, WebAssembly reconstruit ; navigateur : vase à ondulations, test de débit (mouvement plafonné par le débit), aucune erreur dans la console.

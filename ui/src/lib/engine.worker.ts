@@ -45,10 +45,13 @@ onmessage = async (ev: MessageEvent<Request>) => {
       const flows = f.take_flows();
       const fans = f.take_fans();
       const outside = f.take_outside();
+      const requested = f.take_requested();
+      const limits = f.take_limits();
+      const times = f.take_times();
       const report = JSON.parse(f.report());
       f.free();
       const ms = performance.now() - t0;
-      post({ kind: 'frame', id: req.id, frame: { positions, kinds, speeds, widths, heights, flows, fans, outside, report, ms } }, [
+      post({ kind: 'frame', id: req.id, frame: { positions, kinds, speeds, widths, heights, flows, fans, outside, requested, limits, times, report, ms } }, [
         positions.buffer as ArrayBuffer,
         kinds.buffer as ArrayBuffer,
         speeds.buffer as ArrayBuffer,
@@ -57,6 +60,9 @@ onmessage = async (ev: MessageEvent<Request>) => {
         flows.buffer as ArrayBuffer,
         fans.buffer as ArrayBuffer,
         outside.buffer as ArrayBuffer,
+        requested.buffer as ArrayBuffer,
+        limits.buffer as ArrayBuffer,
+        times.buffer as ArrayBuffer,
       ]);
     } else if (req.kind === 'load') {
       const fn = { model: e.load_model, printer: e.set_printer, filament: e.set_filament }[req.target];

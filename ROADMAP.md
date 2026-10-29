@@ -121,7 +121,7 @@ Commencée le 28/10/2026 pendant les impressions de validation de la v0.3.
 1. **Rendu en volume** (VIEW-06) : boudins à leur largeur et leur hauteur, éclairage simple, bascule volume / lignes mémorisée. *Fait le 28/10/2026 : 200 195 segments en 12,3 ms par image (M4).*
 2. **Coloration et légende** (VIEW-07). *Fait le 28/10/2026 : huit grandeurs, rampe violette validée dans les deux thèmes.*
 3. **Curseur de progression**, buse simulée, coupe en Z (VIEW-08). *Fait le 29/10/2026 : barre de lecture en bas de la vue, coupe en Z par plan de coupe à droite, déplacements affichables ; plages de dessin, rien de reconstruit en avançant.*
-4. **Inspection du segment survolé** (VIEW-09).
+4. **Inspection du segment survolé** (VIEW-09). *Fait le 29/10/2026 : choix à l'écran sans lancer de rayons, fiche à côté du pointeur ; le moteur transmet vitesse demandée, plafond et durée de chaque mouvement.*
 5. **Export PNG** de la vue (VIEW-10).
 6. **Temps estimé** comparé à PrusaSlicer sur le catalogue.
 7. ⏸ Validation de jalon.

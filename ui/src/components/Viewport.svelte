@@ -14,14 +14,17 @@
   // Coloration au choix (VIEW-07, `lib/coloring.ts`), mémorisée, avec sa
   // légende en bas à gauche.
   // Avancement (VIEW-08) : curseur au mouvement près en bas (pourcentage et
-  // temps rapportés à la durée estimée, Z de la buse), lecture, buse simulée
+  // temps estimés par le moteur, Z de la buse), lecture, buse simulée
   // au point courant ; coupe en Z à droite (plan de coupe, boudins compris) ;
   // déplacements affichables, mémorisé. Le parcours se montre jusqu'au point
   // courant par plages de dessin : rien n'est reconstruit en avançant.
+  // Inspection (VIEW-09) : le segment le plus proche du pointeur (à 8 px,
+  // le plus près de la caméra s'il y en a plusieurs) est surligné et ses
+  // valeurs s'affichent dans une fiche à côté du pointeur.
   import { onMount, untrack } from 'svelte';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-  import { Cylinder, Focus, MessageSquareText, Pause, Play, Route } from '@lucide/svelte';
+  import { CircleX, Cylinder, Focus, Gauge, MessageSquareText, Pause, Play, Route } from '@lucide/svelte';
   import { beadMaterial, beadMesh } from '../lib/beads';
   import { COLOR_MODES, MODE_UNIT, colorize, type ColorMode, type Legend } from '../lib/coloring';
   import { fmtDuration, fmtLength, lengthUnit, num, pct } from '../lib/format';
@@ -154,6 +157,22 @@
   nozzle.visible = false;
   nozzle.renderOrder = 10;
   scene.add(nozzle);
+
+  // Inspection : segment survolé, par-dessus tout (sans test de profondeur).
+  const hoverMat = new THREE.LineBasicMaterial({ depthTest: false, transparent: true });
+  const hoverDots = new THREE.PointsMaterial({ size: 6, sizeAttenuation: false, depthTest: false, transparent: true });
+  const hoverGeom = new THREE.BufferGeometry();
+  hoverGeom.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+  const hoverLine = new THREE.Line(hoverGeom, hoverMat);
+  const hoverEnds = new THREE.Points(hoverGeom, hoverDots);
+  hoverLine.renderOrder = hoverEnds.renderOrder = 11;
+  hoverLine.visible = hoverEnds.visible = false;
+  hoverLine.frustumCulled = hoverEnds.frustumCulled = false;
+  scene.add(hoverLine, hoverEnds);
+  let hover = $state<{ x: number; y: number; i: number } | null>(null);
+  let viewW = $state(0);
+  let viewH = $state(0);
+  let hoverRaf = 0;
   // Gouttes : une sphère de diamètre 1 par goutte, mise à l'échelle.
   const blobGeom = new THREE.IcosahedronGeometry(0.5, 1);
   const blobMat = new THREE.MeshBasicMaterial({ clippingPlanes: [cutPlane] });
@@ -180,6 +199,7 @@
     'path-blob',
     'view-nozzle',
     'view-nozzle-edge',
+    'accent',
   ] as const;
   let colors: Record<(typeof TOKENS)[number], THREE.Color> = Object.fromEntries(TOKENS.map((k) => [k, new THREE.Color()])) as never;
 
@@ -195,6 +215,8 @@
     outsideMat.color = colors['danger'];
     nozzleMat.color = colors['view-nozzle'];
     nozzleEdge.color = colors['view-nozzle-edge'];
+    hoverMat.color = colors['accent'];
+    hoverDots.color = colors['accent'];
   }
 
   function render() {
@@ -339,26 +361,18 @@
     const wasEnd = last >= count - 1;
     const ratio = count > 1 ? last / (count - 1) : 1;
     const wasTop = zCut >= zMax - 1e-6;
+    // Durée de chaque mouvement estimée par le moteur (accélérations,
+    // rétractions comprises) : le temps affiché est celui de l'imprimante.
     cum = new Float64Array(n);
     let lo = Infinity;
     let hi = -Infinity;
     for (let i = 0; i < n; i++) {
       const z = f!.positions[i * 3 + 2];
-      if (i > 0) {
-        const d = Math.hypot(f!.positions[i * 3] - f!.positions[i * 3 - 3], f!.positions[i * 3 + 1] - f!.positions[i * 3 - 2], z - f!.positions[i * 3 - 1]);
-        const v = f!.speeds[i];
-        cum[i] = cum[i - 1] + (v > 0 ? d / v : 0);
-      }
+      if (i > 0) cum[i] = cum[i - 1] + f!.times[i];
       if (f!.kinds[i] !== 0) {
         lo = Math.min(lo, z);
         hi = Math.max(hi, z);
       }
-    }
-    // Durées rapportées au temps estimé par le moteur (accélérations comprises).
-    const total = f?.report.stats?.time;
-    if (n > 1 && total && cum[n - 1] > 0) {
-      const k = total / cum[n - 1];
-      for (let i = 0; i < n; i++) cum[i] *= k;
     }
     count = n;
     last = n > 0 ? (wasEnd ? n - 1 : Math.round(ratio * (n - 1))) : 0;
@@ -386,6 +400,7 @@
   }
 
   function drawProgress() {
+    clearHover();
     const k = last;
     printLines.geometry.setDrawRange(0, 2 * upto(printEnds, k));
     travelLines.geometry.setDrawRange(0, 2 * upto(travelEnds, k));
@@ -434,6 +449,118 @@
     };
     playRaf = requestAnimationFrame(step);
   }
+
+  function clearHover() {
+    if (hoverRaf) cancelAnimationFrame(hoverRaf);
+    hoverRaf = 0;
+    if (hover) hover = null;
+    if (hoverLine.visible) {
+      hoverLine.visible = hoverEnds.visible = false;
+      render();
+    }
+  }
+
+  /** Segment imprimé ou déplacement visible le plus proche de (mx, my), en
+   * pixels de la vue ; -1 si aucun à moins de 8 px. Chaque point n'est
+   * projeté qu'une fois (les segments se suivent). */
+  function pick(mx: number, my: number): number {
+    const f = frame;
+    if (!f || count < 2 || !host) return -1;
+    const m = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).elements;
+    const w2 = host.clientWidth / 2;
+    const h2 = host.clientHeight / 2;
+    const cut = zCut >= zMax - 1e-6 ? Infinity : zCut;
+    const P = f.positions;
+    const R2 = 8 * 8;
+    let best = -1;
+    let bestDepth = Infinity;
+    let ax = 0;
+    let ay = 0;
+    let az = 0;
+    let aok = false;
+    for (let i = 0; i <= last; i++) {
+      const x = P[i * 3];
+      const y = P[i * 3 + 1];
+      const z = P[i * 3 + 2];
+      const cw = m[3] * x + m[7] * y + m[11] * z + m[15];
+      const ok = cw > 1e-6;
+      const sx = ok ? w2 + ((m[0] * x + m[4] * y + m[8] * z + m[12]) / cw) * w2 : 0;
+      const sy = ok ? h2 - ((m[1] * x + m[5] * y + m[9] * z + m[13]) / cw) * h2 : 0;
+      const sz = ok ? (m[2] * x + m[6] * y + m[10] * z + m[14]) / cw : 0;
+      const kind = f.kinds[i];
+      const shown = i > 0 && (kind === 0 || kind >= 4 ? showTravel : true) && (z <= cut || P[i * 3 - 1] <= cut);
+      if (shown && ok && aok) {
+        // Distance du pointeur au segment (a → b) à l'écran.
+        const dx = sx - ax;
+        const dy = sy - ay;
+        const l2 = dx * dx + dy * dy;
+        const t = l2 > 0 ? Math.max(0, Math.min(1, ((mx - ax) * dx + (my - ay) * dy) / l2)) : 0;
+        const ex = ax + t * dx - mx;
+        const ey = ay + t * dy - my;
+        if (ex * ex + ey * ey <= R2) {
+          const depth = az + t * (sz - az);
+          if (depth < bestDepth) {
+            bestDepth = depth;
+            best = i;
+          }
+        }
+      }
+      ax = sx;
+      ay = sy;
+      az = sz;
+      aok = ok;
+    }
+    return best;
+  }
+
+  function onHover(e: PointerEvent) {
+    if (e.buttons || playing) return clearHover();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const mx = e.clientX - r.left;
+    const my = e.clientY - r.top;
+    if (hoverRaf) cancelAnimationFrame(hoverRaf);
+    hoverRaf = requestAnimationFrame(() => {
+      hoverRaf = 0;
+      const i = pick(mx, my);
+      if (i < 1 || !frame) return clearHover();
+      hover = { x: mx, y: my, i };
+      const a = hoverGeom.getAttribute('position') as THREE.BufferAttribute;
+      a.copyArray(frame.positions.subarray((i - 1) * 3, i * 3 + 3));
+      a.needsUpdate = true;
+      hoverLine.visible = hoverEnds.visible = true;
+      render();
+    });
+  }
+
+  /** Fiche du segment survolé : lignes « libellé, valeur ». */
+  let card = $derived.by(() => {
+    void i18n.locale;
+    void ui.units;
+    const f = frame;
+    if (!hover || !f || hover.i >= f.kinds.length) return null;
+    const i = hover.i;
+    const kind = f.kinds[i];
+    const len = (v: number) => `${fmtLength(v, ui.units, 2)} ${lengthUnit(ui.units)}`;
+    const rows: [string, string][] = [];
+    if (kind !== 0 && kind < 4 && f.widths[i] > 0) {
+      rows.push([t('view.inspect.bead'), kind === 3 ? `⌀ ${len(f.widths[i])}` : `${fmtLength(f.widths[i], ui.units, 2)} × ${len(f.heights[i])}`]);
+    }
+    rows.push([t('view.inspect.speed'), `${num(f.speeds[i], 1)} mm/s`]);
+    const limit = f.limits[i];
+    if (limit > 0) rows.push([t('view.inspect.requested'), `${num(f.requested[i], 1)} mm/s`]);
+    if (kind !== 0 && kind < 4) rows.push([t('view.inspect.flow'), `${num(f.flows[i], 1)} mm³/s`]);
+    rows.push([t('view.inspect.fan'), pct(f.fans[i])]);
+    rows.push(['Z', len(f.positions[i * 3 + 2])]);
+    rows.push([t('view.inspect.at'), fmtDuration(cum[i])]);
+    const kinds = ['travel', 'print', 'bridge', 'blob', 'wipe', 'pause'] as const;
+    const limits = ['first_layer', 'machine', 'flow', 'z_axis'] as const;
+    return {
+      title: `${t(`view.inspect.kind.${kinds[kind] ?? 'print'}`)} · ${t('view.inspect.move', { n: num(i) })}`,
+      rows,
+      limit: limit > 0 && limit <= limits.length ? t(`view.inspect.limit.${limits[limit - 1]}`) : null,
+      outside: f.outside[i] === 1,
+    };
+  });
 
   /** Avancement : « 62 % · 3 h 12 min / 7 h 27 min · Z 48,2 mm ». */
   let readout = $derived.by(() => {
@@ -538,12 +665,19 @@
     controls.screenSpacePanning = true;
     controls.zoomToCursor = true;
     controls.addEventListener('change', render);
-    controls.addEventListener('start', () => (userMoved = true));
+    controls.addEventListener('start', () => {
+      userMoved = true;
+      clearHover();
+    });
+    renderer.domElement.addEventListener('pointermove', onHover);
+    renderer.domElement.addEventListener('pointerleave', clearHover);
     // Mesure du coût d'un rendu en développement (pas dans le build).
     if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__fabweaveView = { renderer, scene, camera, controls };
     const ro = new ResizeObserver(() => {
       const { clientWidth: w, clientHeight: h } = host;
       if (!w || !h) return;
+      viewW = w;
+      viewH = h;
       renderer!.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
@@ -553,6 +687,7 @@
     ro.observe(host);
     return () => {
       stop();
+      clearHover();
       ro.disconnect();
       controls?.dispose();
       renderer?.dispose();
@@ -633,6 +768,23 @@
         </div>
       {:else}
         <span class="item tabular"><span class="swatch {legend.mode === 'z' ? 'print' : 'scale'}"></span>{legendValue(legend.mode, legend.min)}</span>
+      {/if}
+    </div>
+  {/if}
+  {#if card && hover}
+    <div class="card" style:left="{hover.x + 14}px" style:top="{hover.y + 14}px" class:flip-x={hover.x > viewW - 240} class:flip-y={hover.y > viewH - 200}>
+      <div class="card-title">{card.title}</div>
+      <dl>
+        {#each card.rows as [k, v] (k)}
+          <dt>{k}</dt>
+          <dd class="tabular">{v}</dd>
+        {/each}
+      </dl>
+      {#if card.limit}
+        <div class="card-note"><Gauge size={12} />{card.limit}</div>
+      {/if}
+      {#if card.outside}
+        <div class="card-note danger"><CircleX size={12} />{t('view.inspect.outside')}</div>
       {/if}
     </div>
   {/if}
@@ -824,6 +976,62 @@
     color: var(--text-secondary);
     font-size: var(--fs-xs);
     white-space: nowrap;
+  }
+
+  /* Fiche du segment survolé : pastille d'infobulle, à côté du pointeur. */
+  .card {
+    position: absolute;
+    z-index: 2;
+    min-width: 190px;
+    padding: 6px 8px;
+    border-radius: var(--radius);
+    background: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    box-shadow: var(--tooltip-shadow);
+    font-size: var(--fs-xs);
+    pointer-events: none;
+  }
+
+  .card.flip-x {
+    transform: translateX(calc(-100% - 28px));
+  }
+
+  .card.flip-y {
+    translate: 0 calc(-100% - 28px);
+  }
+
+  .card-title {
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .card dl {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px var(--s2);
+    margin: 0;
+  }
+
+  .card dt {
+    opacity: 0.75;
+  }
+
+  .card dd {
+    margin: 0;
+    text-align: right;
+  }
+
+  .card-note {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    opacity: 0.85;
+  }
+
+  .card-note.danger {
+    color: var(--danger);
+    opacity: 1;
   }
 
   /* Coupe en Z : curseur vertical à droite, sous les outils. */

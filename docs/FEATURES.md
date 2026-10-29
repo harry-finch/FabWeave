@@ -134,8 +134,8 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | VIEW-05 | Vignettes du catalogue rendues par l'application (parcours aux valeurs par défaut, vue oblique, couleurs du thème ; échec du script marqué) | v0.2 | fait |
 | VIEW-06 | Rendu volumétrique W × H : une instance par segment, section en stade construite dans le shader, fonds plats, éclairage simple ; bascule volume / lignes mémorisée | v0.4 | fait |
 | VIEW-07 | Coloration : hauteur (dégradé neutre par défaut), ordre d'impression, type de mouvement, vitesse obtenue, débit, largeur, hauteur de couche, ventilateur ; rampe violette d'une seule teinte validée (contraste ≥ 2:1 au bout bas, deux thèmes) ; légende graduée ; choix mémorisé | v0.4 | fait |
-| VIEW-08 | Avancement : curseur au mouvement près (pourcentage et temps rapportés à la durée estimée, Z de la buse), lecture en 30 s, buse simulée au point courant ; coupe en Z (plan de coupe, boudins compris) ; déplacements affichables, mémorisé | v0.4 | fait |
-| VIEW-09 | Inspection du segment survolé | v0.4 | prévu |
+| VIEW-08 | Avancement : curseur au mouvement près (pourcentage et temps rapportés à la durée estimée, Z de la buse), durée de chaque mouvement estimée par le moteur, lecture en 30 s, buse simulée au point courant ; coupe en Z (plan de coupe, boudins compris) ; déplacements affichables, mémorisé | v0.4 | fait |
+| VIEW-09 | Inspection du segment survolé (à 8 px du pointeur, le plus près de la caméra) : surligné, fiche avec type et numéro du mouvement, boudin, vitesse obtenue et demandée, débit, ventilateur, Z, heure ; raison d'un plafonnement ; hors du volume signalé | v0.4 | fait |
 | VIEW-10 | Export PNG de la vue | v0.4 | prévu |
 
 ## Sécurité et qualité (SAFE)

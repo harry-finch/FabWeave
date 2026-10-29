@@ -512,6 +512,23 @@ const en: Shape<typeof fr> = {
     readout: '{pct} · {time} / {total} · Z {z}',
     cut: 'Z cut',
     cutHint: 'Z cut: hides everything above this height.',
+    inspect: {
+      move: 'move {n}',
+      kind: { travel: 'Travel', print: 'Print', bridge: 'Bridge', blob: 'Blob', wipe: 'Wipe', pause: 'Pause' },
+      bead: 'Bead',
+      speed: 'Speed',
+      requested: 'Requested',
+      flow: 'Flow',
+      fan: 'Fan',
+      at: 'At',
+      limit: {
+        first_layer: 'Capped: first layer',
+        machine: 'Capped: machine speed',
+        flow: 'Capped: filament max flow',
+        z_axis: 'Capped: Z axis speed',
+      },
+      outside: 'Outside the print volume',
+    },
   },
   help: {
     title: 'Help',

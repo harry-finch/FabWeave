@@ -510,6 +510,23 @@ const fr = {
     readout: '{pct} · {time} / {total} · Z {z}',
     cut: 'Coupe en Z',
     cutHint: 'Coupe en Z : masque ce qui est au-dessus de cette hauteur.',
+    inspect: {
+      move: 'mouvement {n}',
+      kind: { travel: 'Déplacement', print: 'Impression', bridge: 'Pont', blob: 'Goutte', wipe: 'Essuyage', pause: 'Pause' },
+      bead: 'Boudin',
+      speed: 'Vitesse',
+      requested: 'Demandée',
+      flow: 'Débit',
+      fan: 'Ventilateur',
+      at: 'À',
+      limit: {
+        first_layer: 'Plafonnée : première couche',
+        machine: 'Plafonnée : vitesse de la machine',
+        flow: 'Plafonnée : débit max du filament',
+        z_axis: 'Plafonnée : vitesse de l’axe Z',
+      },
+      outside: 'Hors du volume d’impression',
+    },
   },
   help: {
     title: 'Aide',
