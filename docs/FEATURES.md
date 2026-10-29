@@ -121,6 +121,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | CAT-24 | *Ajout* : photophore vermiculé (relief en vermicelles tiré d'un bruit, fond en anneaux) | Photo de l'utilisateur (28/10/2026) | Bruit 3D (API-17), paroi en spirale | v0.3 | fait |
 | CAT-26 | *Ajout* : photophore à vermicelles (paroi fine en spirale d'où la buse sort au hasard en petites boucles, qui retombent dans le vide) | Photo de l'utilisateur (28/10/2026), seconde lecture | Excursions aléatoires reproductibles, affaissement voulu | v0.3 | fait |
 | CAT-25 | *Ajout* : vase à écailles (polygone aux faces creusées, taille resserrée, écailles en quinconce) | Photo de l'utilisateur (28/10/2026) ; texture de FullControl « ripple texture » | Points à pas égal le long du contour, sortie selon la normale | v0.3 | fait |
+| CAT-27 | *Ajout* : lampe à coussins (coussins empilés imprimés à l'envers en une spirale le long de la surface ; chaque tour appuyé sur le précédent, couture qui remonte par-dessus en quinconce, bombée sur les flancs ; ajours facultatifs sur les flancs presque droits ; dessus en pente ; descente sous chaque coussin ; porte-à-faux ralentis ; dégagement du cône de la buse vérifié) | Vidéo de l'utilisateur (29/10/2026) | Méridien par arcs, spirale non planaire en descente, augmentations et diminutions de la couture, appui de chaque point vérifié | v0.4 | fait |
 
 ## Visualisation (VIEW)
 
@@ -173,6 +174,21 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | DESK-04 | Projet `.fabweave.json`, projet embarqué dans le G-code | v0.6 | prévu |
 | DESK-05 | Envoi à l'imprimante (PrusaLink, OctoPrint, Moonraker) | v0.6 | prévu |
 | DESK-06 | Serveur MCP (stdio) pour un agent IA | v0.6 | prévu |
+
+## Habiller un volume (FORM)
+
+Essai du 29/10/2026 sur la branche `essai/habillage` ; jalon v1.1 ([ROADMAP.md](../ROADMAP.md)).
+
+| Id | Fonction | Jalon | État |
+| --- | --- | --- | --- |
+| FORM-01 | Volume STL (binaire, texte) coupé en tranches ; un contour fermé par hauteur, sinon refus nommant la hauteur ; repère (u, z) aligné d'une tranche à l'autre, torsion comprise | v1.1 | en cours (essai) |
+| FORM-02 | Volume 3MF | v1.1 | prévu |
+| FORM-03 | Motif : `.weave` avec `[meta] motif = true` qui reçoit la forme (`form.at`, `normal`, `perimeter`, `contour`…) ; refusé sans forme | v1.1 | en cours (essai) |
+| FORM-04 | Formes paramétriques (révolution d'un profil, polygone extrudé et torsadé) habillées par les mêmes motifs | v1.1 | prévu |
+| FORM-05 | Spirale le long de la surface (porte-à-faux au-delà de 45°, descentes), dégagement du cône vérifié (SAFE-03) | v1.1 | prévu |
+| FORM-06 | Motifs : maille et ondulations (essai), écailles, gouttes, vermicelles, abat-jour ; angles vifs respectés | v1.1 | en cours (essai) |
+| FORM-07 | Interface : mode « Habiller un volume » (import, aperçu du volume, axe, motif) | v1.1 | prévu |
+| FORM-08 | Option `--form` de l'outil `fabweave` | v1.1 | en cours (essai) |
 
 ## Atelier de formes (PLAY)
 

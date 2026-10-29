@@ -180,3 +180,97 @@ fn ripple_vase_matches_the_fullcontrol_design() {
     assert_eq!(s.travel_moves, 0);
     assert_eq!(s.retractions, 0);
 }
+
+#[test]
+fn pillow_lamp_is_one_spiral_and_respects_the_nozzle_cone() {
+    let read = |p: &str| std::fs::read_to_string(root().join(p)).unwrap();
+    let core = read("profiles/printers/prusa_core_one.toml");
+    let with_cone = |angle: f64, height: f64| {
+        core.replacen(
+            "diameter = 0.4\n",
+            &format!("diameter = 0.4\ncone_angle = {angle}\ncone_height = {height}\n"),
+            1,
+        )
+    };
+    let mut w = bench(
+        "profiles/printers/prusa_core_one.toml",
+        "profiles/filaments/generic_pla.toml",
+    );
+    w.load_model(&read("models/vases/pillow_lamp.weave"))
+        .unwrap();
+    // Profil sans cône : la descente est signalée, pas refusée ; une seule
+    // spirale, du sommet posé sur le plateau jusqu'au bord.
+    let ev = w.evaluate(&Map::new());
+    assert!(ev.issues.iter().any(|i| i.code == "model.warning"));
+    let s = &ev.plan.as_ref().unwrap().stats;
+    assert_eq!(s.travel_moves, 0);
+    assert_eq!(s.retractions, 0);
+    // Rien dans le vide : chaque point (hors du plateau) est à moins d'un
+    // boudin de la matière posée au moins 3 mm de tracé plus tôt. La première
+    // version, aux tours qui ne se touchaient qu'aux nœuds, en laissait 63 %.
+    let pts: Vec<[f64; 3]> = ev
+        .path
+        .as_ref()
+        .unwrap()
+        .points
+        .iter()
+        .map(|p| [p.x, p.y, p.z])
+        .collect();
+    assert!(unsupported_share(&pts, 0.7, 3.0) < 0.01);
+    // Défaut : 2,5 mm de descente à 29°. Cône de 45° sur 3 mm : la buse
+    // passe ; sur 2,5 mm, ou à 30°, elle toucherait les tours déjà posés.
+    for (angle, height, passes) in [(45.0, 3.0, true), (45.0, 2.5, false), (30.0, 5.0, false)] {
+        w.set_printer(&with_cone(angle, height)).unwrap();
+        let ev = w.evaluate(&Map::new());
+        let refused = ev.issues.iter().any(|i| i.code == "model.failure");
+        assert_eq!(refused, !passes, "cône {angle}° / {height} mm");
+    }
+}
+
+/// Part des points (au-dessus du plateau) à plus de `reach` mm de toute
+/// matière posée au moins `recent` mm de tracé plus tôt.
+fn unsupported_share(pts: &[[f64; 3]], reach: f64, recent: f64) -> f64 {
+    use std::collections::HashMap;
+    let dist = |a: [f64; 3], b: [f64; 3]| {
+        ((a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)).sqrt()
+    };
+    let key = |p: [f64; 3]| {
+        [
+            p[0].floor() as i64,
+            p[1].floor() as i64,
+            p[2].floor() as i64,
+        ]
+    };
+    let z_bed = pts.iter().map(|p| p[2]).fold(f64::INFINITY, f64::min);
+    let mut cum = vec![0.0; pts.len()];
+    for i in 1..pts.len() {
+        cum[i] = cum[i - 1] + dist(pts[i], pts[i - 1]);
+    }
+    let mut grid: HashMap<[i64; 3], Vec<[f64; 3]>> = HashMap::new();
+    let (mut pending, mut air, mut counted) = (0, 0, 0);
+    for (i, &p) in pts.iter().enumerate() {
+        while pending < i && cum[i] - cum[pending] > recent {
+            grid.entry(key(pts[pending]))
+                .or_default()
+                .push(pts[pending]);
+            pending += 1;
+        }
+        if p[2] < z_bed + 0.15 {
+            continue;
+        }
+        counted += 1;
+        let k = key(p);
+        let near = (-1..=1).any(|dx| {
+            (-1..=1).any(|dy| {
+                (-1..=1).any(|dz| {
+                    grid.get(&[k[0] + dx, k[1] + dy, k[2] + dz])
+                        .is_some_and(|v| v.iter().any(|&q| dist(p, q) <= reach))
+                })
+            })
+        });
+        if !near {
+            air += 1;
+        }
+    }
+    air as f64 / counted.max(1) as f64
+}

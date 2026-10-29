@@ -155,6 +155,23 @@ Critères d'acceptation : cas de collision connus détectés (tests) ; aucun fau
 - Installeurs signés, version web statique, documentation utilisateur FR / EN (dont « écrire un modèle »), tests de bout en bout de l'interface.
 - Catalogue d'au moins 15 modèles, chacun **imprimé au fablab** avec ses réglages validés (fiche de validation, photo).
 
+## v1.1 — Habiller un volume (jalon 7)
+
+**But** : importer un volume 3D (STL, 3MF) et l'habiller d'un motif du catalogue (maille, ondulations, gouttes, abat-jour…) imprimé en une spirale continue, comme les modèles paramétriques. Formes visées : révolutions, polygones extrudés ou torsadés, formes organiques peu détaillées ; une seule paroi, jamais de tranchage.
+
+**Point de départ** : essai du 29/10/2026 sur la branche `essai/habillage` (DEVLOG ; format en section 8 de [WEAVE_FORMAT](docs/WEAVE_FORMAT.md)) : STL coupé en tranches, un contour fermé par hauteur, repère (u, z) aligné d'une tranche à l'autre par courbures puis distances (torsion suivie) ; motifs `.weave` avec `[meta] motif = true` qui reçoivent `form` ; maille et ondulations calculées sur quatre volumes d'essai (vase, hexagone, pentagone torsadé, forme organique) en ligne de commande.
+
+Étapes et points d'arrêt :
+
+1. **Décision** (ADR) : forme et motif dans le format `.weave` (motif = modèle qui reçoit une forme ; forme importée ou paramétrique), frontière avec le tranchage, version du format. ⏸ validation de l'ADR.
+2. **Formes** (FORM-01 à FORM-04) : lecture STL et 3MF dans le moteur (octets donnés par l'interface), tranches, refus nommant la hauteur fautive (anse, branche, îles, maillage ouvert) ; formes paramétriques (révolution d'un profil, polygone extrudé et torsadé) pour les mêmes motifs sans fichier.
+3. **Suivre la surface** (FORM-05) : spirale qui avance le long de la paroi et non en Z (porte-à-faux au-delà de 45°, descentes, comme la lampe à coussins), dégagement du cône de la buse vérifié par le garde-buse (SAFE-03).
+4. **Motifs** (FORM-06) : maille, ondulations, écailles, gouttes, vermicelles, abat-jour réécrits en motifs ; fond plein ou maillé, bord plein ; angles vifs respectés.
+5. **Interface** (FORM-07) : mode « Habiller un volume » : import par dépôt ou `⌘O`, aperçu du volume, choix de l'axe, motif et ses curseurs ; panneaux Machine, Plateau, Messages et Export inchangés.
+6. ⏸ Validation de jalon : un volume de chaque famille habillé et imprimé à l'atelier.
+
+Critères d'acceptation : chaque famille de forme lue et habillée par chaque motif sans message bloquant ; volume refusé avec la hauteur fautive quand il n'a pas un contour par hauteur ; volume de 200 000 triangles lu et tranché en moins d'une seconde dans le navigateur ; mêmes volume, motif, valeurs et profils → même G-code, octet pour octet ; une impression validée par famille.
+
 ## v2 — Atelier de formes (après la v1.0)
 
 L'espace pour jouer et prototyper de nouvelles formes, sur le même format `.weave` :
@@ -164,6 +181,6 @@ L'espace pour jouer et prototyper de nouvelles formes, sur le même format `.wea
 
 ## Hors périmètre
 
-- Découpage de modèles STL (c'est le métier de PrusaSlicer, Orca, Cura) et supports automatiques.
+- Découpage de modèles STL (c'est le métier de PrusaSlicer, Orca, Cura) et supports automatiques. Habiller la paroi d'un volume importé d'un motif (v1.1) n'en est pas : ni remplissage, ni couches pleines, ni pièces quelconques.
 - Comptes, nuage, place de marché.
 - Envoi réseau vers les Bambu Lab (MQTT, compte Bambu) et gestion de l'AMS (multi-couleurs).

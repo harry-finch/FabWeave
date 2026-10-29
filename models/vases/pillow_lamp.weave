@@ -1,0 +1,559 @@
+format = "fabweave.model"
+version = 1
+
+[meta]
+name = { fr = "Lampe à coussins", en = "Pillow lamp" }
+category = { fr = "Vases et luminaires", en = "Vases & lamps" }
+description = { fr = "Abat-jour de coussins empilés, imprimé à l'envers en une seule spirale le long de la surface, sans couture : le sommet à plat sur le plateau, le bord en dernier. Chaque tour s'appuie sur le précédent et la couture remonte par-dessus de place en place, en quinconce ; sur les flancs presque droits, la paroi peut s'ajourer en maille ; sous chaque coussin, la buse descend le long de la surface, le coussin semblant s'enfoncer dans celui du dessous. Prévu pour une ampoule LED.", en = "A lampshade of stacked pillows, printed upside down as one spiral along the surface, with no seam: top flat on the bed, rim last. Each turn rests on the previous one and the stitches climb over it here and there, staggered; on the near-vertical sides the wall can open into a mesh; under each pillow the nozzle goes downhill along the surface, so the pillow seems to sink into the one below. Meant for an LED bulb." }
+author = "FabWeave, d'après une vidéo de l'utilisateur"
+tags = ["lampe", "abat-jour", "maille", "non planaire", "descente", "spirale", "sans couture"]
+recommended_nozzle = [0.4, 0.5, 0.6]
+
+[params.pillows]
+type = "int"
+label = { fr = "Coussins", en = "Pillows" }
+help = { fr = "Nombre de coussins empilés.", en = "Number of stacked pillows." }
+default = 3
+min = 1
+max = 5
+
+[params.diameter]
+type = "float"
+label = { fr = "Diamètre", en = "Diameter" }
+unit = "mm"
+help = { fr = "Diamètre du coussin du bas, le plus large.", en = "Diameter of the bottom pillow, the widest." }
+default = 120
+min = 60
+max = 240
+step = 1
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+help = { fr = "Hauteur du coussin du bas ; les autres suivent la réduction.", en = "Height of the bottom pillow; the others follow the taper." }
+default = 40
+min = 20
+max = 100
+step = 1
+
+[params.taper]
+type = "float"
+label = { fr = "Réduction", en = "Taper" }
+unit = "%"
+help = { fr = "Taille de chaque coussin par rapport à celui du dessous.", en = "Size of each pillow compared with the one below." }
+default = 80
+min = 60
+max = 100
+step = 1
+
+[params.puff]
+type = "float"
+label = { fr = "Galbe", en = "Puff" }
+unit = "%"
+help = { fr = "Largeur de l'arrondi du bord d'un coussin, en part de sa demi-hauteur : plus, le coussin est bombé ; moins, son dessus est plat.", en = "Width of a pillow's rounded edge, as a share of its half height: more makes it puffier, less flattens its top." }
+default = 110
+min = 60
+max = 160
+step = 5
+
+[params.descent]
+type = "float"
+label = { fr = "Descente", en = "Downhill" }
+unit = "°"
+help = { fr = "Pente du dessous d'un coussin là où il s'enfonce dans celui du dessous : la buse y descend tour après tour. 0° : pas de descente. La buse doit pouvoir longer cette pente sans toucher les tours déjà posés.", en = "Slope of a pillow's underside where it sinks into the one below: the nozzle goes down there turn after turn. 0°: no downhill. The nozzle must follow this slope without touching the turns already printed." }
+default = 30
+min = 0
+max = 50
+step = 1
+
+[params.roof]
+type = "float"
+label = { fr = "Pente dessus", en = "Top slope" }
+unit = "°"
+help = { fr = "Pente du dessus de chaque coussin, qui monte vers le col. Imprimé à l'envers, un dessus plat est un porte-à-faux à 90° ; à 30°, il n'est plus qu'à 60°.", en = "Slope of each pillow's top, rising towards the neck. Printed upside down, a flat top is a 90° overhang; at 30° it is only 60°." }
+default = 30
+min = 0
+max = 45
+step = 1
+
+[params.relief]
+type = "float"
+label = { fr = "Relief", en = "Relief" }
+unit = "%"
+help = { fr = "Jusqu'où la couture remonte par-dessus le tour précédent, en part de la largeur du boudin. 0 : paroi lisse.", en = "How far the stitches climb over the previous turn, as a share of the bead width. 0: smooth wall." }
+default = 60
+min = 0
+max = 100
+step = 5
+
+[params.openwork]
+type = "float"
+label = { fr = "Ajours", en = "Openwork" }
+unit = "mm"
+help = { fr = "Sur les flancs presque droits seulement (moins de 25° de la verticale) : les tours ne se touchent plus qu'aux nœuds et laissent des jours de cette hauteur. En porte-à-faux, la paroi reste toujours pleine. 0 : pleine partout.", en = "On the near-vertical sides only (less than 25° from vertical): the turns only touch at the nodes, leaving gaps this tall. On overhangs the wall always stays solid. 0: solid everywhere." }
+default = 0
+min = 0
+max = 3
+step = 0.1
+
+[params.stitch]
+type = "float"
+label = { fr = "Maille", en = "Stitch" }
+unit = "mm"
+help = { fr = "Longueur d'une maille le long d'un tour : d'une remontée à la suivante.", en = "Length of one stitch along a turn: from one climb to the next." }
+default = 5.5
+min = 2
+max = 12
+step = 0.1
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+help = { fr = "Vitesse sur les flancs, ventilateur à fond dès que la buse quitte le plateau.", en = "Speed on the sides, full fan as soon as the nozzle leaves the bed." }
+default = 15
+min = 3
+max = 30
+step = 0.5
+
+[params.overhang_speed]
+type = "float"
+label = { fr = "Vit. porte-à-f.", en = "Overhang spd" }
+unit = "%"
+help = { fr = "Vitesse dans les porte-à-faux et les descentes (au-delà de 45° de la verticale), en part de la vitesse : lent, le boudin a le temps de figer contre le tour précédent.", en = "Speed in overhangs and downhill parts (beyond 45° from vertical), as a share of the speed: slow lets the bead set against the previous turn." }
+default = 40
+min = 20
+max = 100
+step = 5
+advanced = true
+
+[params.overlap]
+type = "float"
+label = { fr = "Recouvrement", en = "Overlap" }
+unit = "%"
+help = { fr = "Part de la largeur du boudin posée sur le tour précédent quand la surface est en porte-à-faux, à plat ou en descente.", en = "Share of the bead width resting on the previous turn where the surface overhangs, is flat or goes downhill." }
+default = 30
+min = 0
+max = 50
+step = 1
+advanced = true
+
+[params.solid_top]
+type = "float"
+label = { fr = "Sommet plein", en = "Solid top" }
+unit = "mm"
+help = { fr = "Rayon du disque lisse au centre du sommet, sur le plateau, avant que la couture ne commence.", en = "Radius of the smooth disc at the centre of the top, on the bed, before the stitches start." }
+default = 12
+min = 4
+max = 40
+step = 1
+advanced = true
+---
+// Le méridien (profil de la lampe, rayon r et hauteur z) est tracé à
+// l'endroit, du bord vers le sommet, par arcs : pour chaque coussin, le
+// dessous part du col en descendant de « Descente », l'arrondi monte au flanc,
+// puis au dessus, qui monte en pente douce (`roof`) jusqu'à une lèvre plus
+// raide sous le col suivant. Le
+// dessous du coussin suivant reste au-dessus de ce dessus (écart `gap`).
+// Il est ensuite retourné : on imprime du sommet (sur le plateau) au bord.
+//
+// La buse suit le méridien en spirale. Chaque tour s'appuie sur le précédent
+// sur toute sa longueur : il avance de l'épaisseur du boudin le long de la
+// surface (`d`, corde de la section largeur × hauteur dans cette direction,
+// avec le recouvrement). Rien n'est posé dans le vide : une première version
+// (tours qui ne se touchaient qu'aux nœuds) imprimait les deux tiers de ses
+// points en l'air dès le premier porte-à-faux.
+// La couture : une demi-onde sur deux, la buse remonte vers le tour précédent
+// (`relief`) et par-dessus (une hauteur de couche), jamais à l'opposé, là où
+// la paroi est en porte-à-faux ; sur un flanc droit, remonter vers le tour
+// précédent, c'est descendre dedans : la couture y bombe vers l'extérieur,
+// à cheval sur le bord du tour précédent. Sur
+// les flancs presque droits (`k` = 0), les tours peuvent s'écarter (`openwork`)
+// et ne se toucher qu'aux nœuds, comme une maille : c'est un pont court entre
+// deux nœuds posés l'un sur l'autre. Un tour compte un nombre impair de
+// demi-ondes : deux tours voisins sont en opposition. Quand le rayon change,
+// une paire de demi-ondes se dédouble ou deux paires se fondent, en un seul
+// endroit, comme les augmentations d'un tricot.
+
+let w = printer.nozzle_diameter * 1.2;
+let h = printer.layer_height;
+let fh = printer.first_layer_height;
+let wo = w * (1 - params.overlap / 100.0);
+let n = params.pillows;
+let delta = rad(params.descent);
+let beta = rad(params.roof);                      // pente des dessus
+let gam = max(delta, beta) + rad(20);             // pente de la lèvre sous le col
+let gap = 2 * w;                                  // écart sous un coussin
+let hole = 2.0;                                   // trou au centre du sommet
+let lambda = params.stitch / 2;                   // demi-onde visée (mm)
+let relief = params.relief / 100.0 * w;
+let open = params.openwork;
+let npw = 5;                                      // points par demi-onde
+let kc = 1.6;                                     // nœuds aplatis : tanh(kc·cos)
+let tkc = tanh(kc);
+
+// ---- Méridien à l'endroit : segments [type, …] -------------------------------
+// 0 : arc d'ellipse (A horizontal, B vertical) de la tangente t0 à t1, sens
+//     trigonométrique ; 1 : droite d'angle t et de longueur L ;
+// 2 : arc de cercle de rayon rho, de la tangente t0 à t1 (sens horaire si t1 < t0).
+let big_r = [];
+let big_h = [];
+for i in 0..n {
+    big_r.push(params.diameter / 2 * pow(params.taper / 100.0, i));
+    big_h.push(params.height * pow(params.taper / 100.0, i));
+}
+// Angle paramétrique de l'ellipse où la tangente vaut t.
+let psi_s = atan2(-cos(-delta), sin(-delta) * params.puff / 100.0);    // A/B = galbe
+let segs = [];
+let r_start = 0.0;
+for i in 0..n {
+    let b = big_h[i] / 2;
+    let a = b * params.puff / 100.0;
+    let t0 = if i == 0 { 0.0 } else { -delta };
+    if i == 0 { r_start = big_r[0] - a; }
+    if i < n - 1 {
+        let b1 = big_h[i + 1] / 2;
+        let a1 = b1 * params.puff / 100.0;
+        let drop = b1 * (1 + sin(psi_s));         // chute du dessous suivant sous son col
+        let rho = (drop + gap) / (cos(beta) - cos(gam));
+        let r_col = big_r[i + 1] - a1 * (1 - cos(psi_s));
+        // Fin de l'arrondi, là où la tangente monte de `roof` vers l'intérieur.
+        let pe = atan2(cos(beta) / a, sin(beta) / b);
+        let span = (big_r[i] - a + a * cos(pe)) + rho * (sin(beta) - sin(gam)) - r_col;
+        if span < 0 {
+            fail(#{ fr: `Le coussin ${i + 2} déborde de celui du dessous : réduire la descente ou le galbe, ou augmenter la réduction.`, en: `Pillow ${i + 2} overhangs the one below: reduce the downhill or the puff, or raise the taper.` });
+        }
+        segs.push([0, t0, PI - beta, a, b]);
+        segs.push([1, PI - beta, span / cos(beta)]);
+        segs.push([2, PI - beta, PI - gam, rho]);
+        segs.push([3]);                           // col
+    } else {
+        segs.push([0, t0, PI, a, b]);
+        let flat = (big_r[i] - a) - hole;
+        if flat < params.solid_top - hole {
+            fail(#{ fr: "Sommet trop petit pour le disque plein : réduire « Sommet plein » ou le galbe.", en: "Top too small for the solid disc: reduce \"Solid top\" or the puff." });
+        }
+        segs.push([1, PI, flat]);
+    }
+}
+
+let ur = [r_start];
+let uz = [0.0];
+let cr = r_start;
+let cz = 0.0;
+let creases = [];
+for sg in segs {
+    if sg[0] == 3 {
+        creases.push(ur.len() - 1);
+        continue;
+    }
+    if sg[0] == 0 {
+        let a = sg[3];
+        let b = sg[4];
+        let p0 = atan2(-cos(sg[1]) / a, sin(sg[1]) / b);
+        let p1 = atan2(-cos(sg[2]) / a, sin(sg[2]) / b);
+        if p1 <= p0 { p1 += TAU; }
+        let k = max(2.0, ceiling(max(a, b) * (p1 - p0) / 0.5)).to_int();
+        let x0 = cr - a * cos(p0);
+        let y0 = cz - b * sin(p0);
+        for j in 1..=k {
+            let p = p0 + (p1 - p0) * j / k.to_float();
+            ur.push(x0 + a * cos(p));
+            uz.push(y0 + b * sin(p));
+        }
+    } else if sg[0] == 1 {
+        let k = max(1.0, ceiling(sg[2] / 0.5)).to_int();
+        for j in 1..=k {
+            ur.push(cr + sg[2] * j / k.to_float() * cos(sg[1]));
+            uz.push(cz + sg[2] * j / k.to_float() * sin(sg[1]));
+        }
+    } else {
+        let len = abs(sg[2] - sg[1]) * sg[3];
+        let k = max(2.0, ceiling(len / 0.5)).to_int();
+        let x = cr;
+        let y = cz;
+        for j in 0..k {
+            let t = sg[1] + (sg[2] - sg[1]) * (j + 0.5) / k;
+            x += len / k * cos(t);
+            y += len / k * sin(t);
+            ur.push(x);
+            uz.push(y);
+        }
+    }
+    cr = ur[-1];
+    cz = uz[-1];
+}
+
+// Les coussins ne se traversent pas : autour de chaque col, aucun segment du
+// dessous du coussin suivant ne coupe la lèvre ni le dessus du précédent
+// (40 mm de profil de part et d'autre).
+for jc in creases {
+    let i0 = max(1, jc - 80);
+    let j1 = min(ur.len() - 1, jc + 80);
+    for i in i0..jc {
+        let ax = ur[i - 1];
+        let ay = uz[i - 1];
+        let bx = ur[i];
+        let by = uz[i];
+        for j in jc + 2..=j1 {
+            let cx2 = ur[j - 1];
+            let cy2 = uz[j - 1];
+            let dx2 = ur[j];
+            let dy2 = uz[j];
+            let den = (bx - ax) * (dy2 - cy2) - (by - ay) * (dx2 - cx2);
+            if abs(den) < 1e-12 { continue; }
+            let t = ((cx2 - ax) * (dy2 - cy2) - (cy2 - ay) * (dx2 - cx2)) / den;
+            let u = ((cx2 - ax) * (by - ay) - (cy2 - ay) * (bx - ax)) / den;
+            if t > 0 && t < 1 && u > 0 && u < 1 {
+                fail(#{ fr: "Deux coussins se traversent sous un col : réduire la descente ou la pente des dessus, ou augmenter le galbe.", en: "Two pillows cross under a neck: reduce the downhill or the top slope, or raise the puff." });
+            }
+        }
+    }
+}
+
+// ---- Retourné, dans l'ordre d'impression : sommet sur le plateau --------------
+let z_top = cz;
+let m = ur.len();
+let mr = [];
+let mz = [];
+let ms = [0.0];
+for j in 0..m {
+    mr.push(ur[m - 1 - j]);
+    mz.push(fh + z_top - uz[m - 1 - j]);
+    if j > 0 { ms.push(ms[j - 1] + hypot(mr[j] - mr[j - 1], mz[j] - mz[j - 1])); }
+}
+let s_end = ms[m - 1];
+let s_solid = params.solid_top - hole;            // disque plein, à plat
+
+// Par point du méridien : épaisseur du boudin le long de la surface (`md`) et
+// porte-à-faux (`mk` : 0 jusqu'à 25° de la verticale, 1 au-delà de 45° ; à plat
+// et en descente aussi).
+let md = [];
+let mk = [];
+for j in 0..m {
+    let j0 = min(j, m - 2);
+    let tr = mr[j0 + 1] - mr[j0];
+    let tz = mz[j0 + 1] - mz[j0];
+    let tl = hypot(tr, tz);
+    let ex = tr / tl / (wo / 2);
+    let ey = tz / tl / (h / 2);
+    md.push(2 / sqrt(ex * ex + ey * ey));
+    let k = clamp((deg(acos(clamp(tz / tl, -1.0, 1.0))) - 25) / 20, 0.0, 1.0);
+    mk.push(k * k * (3 - 2 * k));
+}
+
+// Descentes et dégagement de la buse : matière déjà posée (rayon r_i, hauteur
+// z_i) au-dessus du cône de la buse en (r_j, z_j) ? Vérifié de place en place,
+// avec la hauteur d'un boudin de marge (la maille écarte la buse du méridien).
+let cone_a = printer.nozzle_cone_angle;
+let cone_h = printer.nozzle_cone_height;
+let tan_c = if cone_a > 0 { tan(rad(cone_a)) } else { 1.0 };
+let worst = -1000.0;
+let max_drop = 0.0;
+let run = 0.0;
+let max_slope = 0.0;
+let ids = [];
+let next_s = 0.0;
+for j in 0..m {
+    // Tous les ~1 mm, plus chaque creux et chaque bosse du profil.
+    let ext = j > 0 && j < m - 1 && (mz[j] - mz[j - 1]) * (mz[j + 1] - mz[j]) <= 0;
+    if ms[j] >= next_s || ext { ids.push(j); next_s = ms[j] + 1.0; }
+    if j > 0 {
+        let dz = mz[j] - mz[j - 1];
+        if dz < 0 {
+            run += -dz;
+            max_drop = max(max_drop, run);
+            max_slope = max(max_slope, asin(min(1.0, -dz / (ms[j] - ms[j - 1]))));
+        } else {
+            run = 0.0;
+        }
+    }
+}
+if cone_a > 0 && cone_h > 0 {
+    for q in 1..ids.len() {
+        let j = ids[q];
+        for p in 0..q {
+            let i = ids[p];
+            if ms[j] - ms[i] < 2 * w { break; }     // tours précédents seulement
+            worst = max(worst, mz[i] + h - mz[j] - min(abs(mr[i] - mr[j]) * tan_c, cone_h));
+        }
+    }
+    if worst > 0 {
+        fail(#{ fr: `La buse toucherait les tours déjà posés (${round(worst * 10) / 10} mm de trop pour son cône) : réduire la descente.`, en: `The nozzle would hit the turns already printed (${round(worst * 10) / 10} mm too much for its cone): reduce the downhill.` });
+    }
+} else if max_drop > 0.05 {
+    warn(#{ fr: `Descente de ${round(max_drop * 10) / 10} mm à ${round(deg(max_slope)).to_int()}° : le profil n'indique pas le cône de la buse, vérifier qu'elle passe.`, en: `Downhill of ${round(max_drop * 10) / 10} mm at ${round(deg(max_slope)).to_int()}°: the profile gives no nozzle cone, check that it clears.` });
+}
+
+// Porte-à-faux le plus fort hors du plateau (degrés depuis la verticale) et
+// longueur de méridien au-delà de 70° : inhérent à des coussins ronds.
+let worst_oh = 0.0;
+let steep_len = 0.0;
+for j in 1..m {
+    if mz[j] < fh + 2 * h { continue; }
+    let a = deg(acos(clamp((mz[j] - mz[j - 1]) / (ms[j] - ms[j - 1]), -1.0, 1.0)));
+    worst_oh = max(worst_oh, a);
+    if a > 70 { steep_len += ms[j] - ms[j - 1]; }
+}
+if worst_oh > 70 {
+    warn(#{ fr: `Porte-à-faux jusqu'à ${round(worst_oh).to_int()}° de la verticale sur ${round(steep_len).to_int()} mm de profil : lent, ventilateur à fond ; essayer d'abord le défi porte-à-faux plus avec le même filament.`, en: `Overhangs up to ${round(worst_oh).to_int()}° from vertical over ${round(steep_len).to_int()} mm of profile: slow, full fan; try the overhang challenge plus with the same filament first.` });
+}
+
+// Nombre de points estimé (≈ 10 % sous le nombre réel ; au-delà de 200 000
+// points environ, le script dépasse la limite d'opérations du bac à sable).
+let est = 0.0;
+for j in 1..m {
+    let ajour = open * (1 - mk[j]) > 0.01 && ms[j] >= s_solid;
+    let st = if ajour { md[j] + open * (1 - mk[j]) } else { md[j] };
+    est += (ms[j] - ms[j - 1]) / st * TAU * max(mr[j], hole) / lambda * if ajour { npw } else { 2 };
+}
+if est > 175000 {
+    fail(#{ fr: `Environ ${round(est / 1000).to_int()} 000 points : augmenter la maille, utiliser une buse plus grosse, ou réduire la lampe.`, en: `About ${round(est / 1000).to_int()},000 points: raise the stitch, use a larger nozzle, or make the lamp smaller.` });
+}
+
+// ---- Spirale cousue -------------------------------------------------------------
+let path = new_path();
+let widths = [];                                  // demi-ondes du tour (radians)
+let hw = max(3.0, 2 * floor((TAU * hole / lambda) / 2) + 1).to_int();
+for k in 0..hw { widths.push(TAU / hw); }
+let parity = 0;                                   // parité de la première demi-onde du tour
+let s = 0.0;
+let jm = 0;                                       // indice courant dans le méridien
+let ao_prev = 0.0;                                // ajours, remontée, levée du tour précédent
+let ac_prev = 0.0;
+let lift_prev = 0.0;
+let fan_on = false;
+let v_now = 0.0;
+let ramp = 3.0;
+let done = false;
+let r_prev = 0.0;
+let z_mid = fh + h / 2;
+// Points d'une demi-onde (u, forme) : 5 quand les tours s'écartent (ajours) ;
+// sinon 2, le pied de la remontée au milieu et le bout (sommet de la remontée
+// ou repos) : la remontée est un chevron, la buse suit le tour en ligne
+// droite entre deux remontées.
+let cu = [];
+let cc = [];
+for q in 1..=npw {
+    let u = q / npw.to_float();
+    cu.push(u);
+    cc.push(tanh(kc * cos(PI * u)) / tkc);
+}
+let ua = [0.5, 1.0];
+let ca = [0.0, -1.0];
+path.travel_to(mr[0], 0, mz[0]);
+path.note(#{ fr: "Départ : centre du sommet, à l'envers", en: "Start: centre of the top, upside down" });
+
+while !done {
+    // Tour : épaisseur du boudin et porte-à-faux là où il commence.
+    while jm < m - 2 && ms[jm + 1] < s { jm += 1; }
+    let d = md[jm];
+    let k = mk[jm];
+    let g = clamp(min(s - s_solid, s_end - s) / ramp, 0.0, 1.0);
+    g = g * g * (3 - 2 * g);
+    let ao = g * (1 - k) * open / 2;              // ajours (flancs droits)
+    let ac = g * relief;                          // remontée vers le tour précédent
+    let lift = g * k * h;                         // par-dessus, en porte-à-faux
+    let st = d + 2 * ao;
+    let r_here = max(mr[jm], hole);
+    // Normale sortante de la paroi dans le plan du méridien (bombé des flancs).
+    let tr = mr[jm + 1] - mr[jm];
+    let tz = mz[jm + 1] - mz[jm];
+    let tl = hypot(tr, tz);
+    let nr = tz / tl * (1 - k);
+    let nz = -tr / tl * (1 - k);
+    if fan_on {
+        let v = params.speed * (1 - k * (1 - params.overhang_speed / 100.0));
+        if abs(v - v_now) > 0.3 {
+            path.set_speed(v);
+            v_now = v;
+        }
+    }
+
+    // Augmenter (une paire → deux paires) quand le rayon croît, diminuer (deux
+    // paires → une) quand il décroît : jamais les deux dans un tour (pas
+    // d'oscillation), au plus 8 changements par tour.
+    let target = lambda / r_here;
+    let grow = r_here >= r_prev;
+    r_prev = r_here;
+    for it in 0..8 {
+        let nw = widths.len();
+        if grow {
+            let bi = 0;
+            let bs = 0.0;
+            for q in 0..nw - 1 {
+                let x = widths[q] + widths[q + 1];
+                if x > bs { bs = x; bi = q; }
+            }
+            if bs <= 2.8 * target { break; }
+            widths[bi] = bs / 4;
+            widths[bi + 1] = bs / 4;
+            widths.insert(bi + 1, bs / 4);
+            widths.insert(bi + 1, bs / 4);
+        } else {
+            if nw < 7 { break; }
+            let si = 0;
+            let ss = 1000.0;
+            for q in 0..nw - 3 {
+                let x = widths[q] + widths[q + 1] + widths[q + 2] + widths[q + 3];
+                if x < ss { ss = x; si = q; }
+            }
+            if ss >= 2.4 * target { break; }
+            widths[si] = ss / 2;
+            widths[si + 1] = ss / 2;
+            widths.remove(si + 2);
+            widths.remove(si + 2);
+        }
+    }
+
+    // Décalage le long du méridien, vers le tour précédent : ajours de part et
+    // d'autre (c), remontée d'un seul côté (c > 0) et levée ; chaque amplitude
+    // passe de celle du tour précédent à la sienne le long du tour (pas de saut).
+    let th0 = 0.0;
+    let sign = if parity == 0 { 1.0 } else { -1.0 };
+    let ks = st / TAU;
+    let kao = (ao - ao_prev) / TAU;
+    let kac = (ac - ac_prev) / TAU;
+    let kl = (lift - lift_prev) / TAU;
+    let full = ao > 0 || ao_prev > 0;
+    for hk in 0..widths.len() {
+        let wk = widths[hk];
+        let us = if full { cu } else { ua };
+        let cs = if full { cc } else { ca };
+        for q in 0..us.len() {
+            let th = th0 + wk * us[q];
+            let sp = s + ks * th;
+            if sp > s_end { done = true; break; }
+            let c = sign * cs[q];
+            let up = max(c, 0.0);
+            let bump = (ac_prev + kac * th) * up;
+            let se = sp - (ao_prev + kao * th) * c - bump * k;
+            while jm < m - 2 && ms[jm + 1] < se { jm += 1; }
+            while jm > 0 && ms[jm] > se { jm -= 1; }
+            let f = clamp((se - ms[jm]) / (ms[jm + 1] - ms[jm]), 0.0, 1.0);
+            let r = mr[jm] + (mr[jm + 1] - mr[jm]) * f + nr * bump;
+            let z = mz[jm] + (mz[jm + 1] - mz[jm]) * f + nz * bump + (lift_prev + kl * th) * up;
+            path.print_to(r * cos(th), r * sin(th), z, w, if z < z_mid { fh } else { h });
+        }
+        if done { break; }
+        th0 += wk;
+        sign = -sign;
+        if !fan_on && mz[jm] > fh + h {
+            path.set_fan(100);
+            path.set_speed(params.speed);
+            v_now = params.speed;
+            fan_on = true;
+        }
+    }
+    if !done {
+        s += st;
+        ao_prev = ao;
+        ac_prev = ac;
+        lift_prev = lift;
+        parity = (parity + widths.len()) % 2;
+    }
+}
+path.note(#{ fr: "Bord : fin de la spirale", en: "Rim: end of the spiral" });
+
+path

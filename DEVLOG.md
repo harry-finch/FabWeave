@@ -389,3 +389,39 @@ L'utilisateur lance la v0.4 pendant ses impressions de validation de la v0.3 (CO
 **Vérification.** Navigateur : test de débit coloré par vitesse (les étages au-delà de 15 mm³/s ont la même teinte : le plafond du PLA se voit), tamis en type de mouvement (ponts), débit en thème clair ; `npm run check`.
 
 **Non fait.** Raison d'un plafonnement par segment (étape 4, inspection).
+
+## 2026-10-29 — Lampe à coussins, d'après une vidéo
+
+**Demande.** Une vidéo de l'utilisateur : abat-jour de trois coussins empilés, une seule extrusion sans couture ; chaque tour de la spirale est posé « juste en dessous » du précédent, et le motif de couture remonte de temps en temps par-dessus la paroi pour les relier ; l'impression descend peu à peu, « tant que la buse a la place ». Gros plans : maillons ovales en quinconce. Sommet en tourbillon percé d'un petit trou, intérieur du sommet lisse : la lampe s'imprime à l'envers, sommet sur le plateau.
+
+**Choix** (CAT-27).
+- Méridien construit par arcs, à l'endroit puis retourné : pour chaque coussin, dessous qui part du col en descendant de « Descente », arrondi elliptique (« Galbe »), dessus plat, lèvre qui remonte vers le col suivant. Le dessous du coussin suivant reste 2 boudins au-dessus de ce dessus ; aucune forme ne se recoupe. Des tubes elliptiques empilés (premiers essais) se recoupaient ou ne descendaient presque pas.
+- Spirale le long du méridien, `Pas` par tour mesuré le long de la surface. Maille : décalage le long du méridien d'une demi-onde à l'autre (nœuds aplatis, `tanh`), nombre impair de demi-ondes par tour pour que deux tours voisins soient en opposition et se touchent aux nœuds (écart = épaisseur du boudin dans la direction de la surface, corde de l'ellipse largeur × hauteur). Quand le rayon change, une paire de demi-ondes se dédouble ou deux paires se fondent en un seul endroit, comme les augmentations d'un tricot ; augmentations seulement quand le rayon croît, diminutions quand il décroît, 8 au plus par tour (le premier jet pouvait osciller sans fin).
+- Disque plein au centre du sommet, sur le plateau ; maille qui naît sur 3 pas et s'efface sur le bord (bord plein). Ventilateur à fond et vitesse des mailles dès que la buse quitte le plateau.
+- Dégagement : si le profil donne le cône de la buse, refus (`fail`) quand un tour déjà posé dépasse le cône (points du méridien tous les ~1 mm plus chaque creux et bosse, tours précédents seulement, un boudin de marge) ; sinon avertissement avec la chute et la pente. Défaut : 3,1 mm à 29°.
+- Points estimés avant le calcul ; au-delà de 230 000 (≈ 260 000 réels font dépasser les 50 millions d'opérations), refus expliqué.
+
+**Vérification.** `fabweave check` aux bornes (refus expliqués : sommet trop petit, trop de points ; trop haut) ; 134 000 points, 1 h 54, 7,6 g, 150 × 150 × 124 mm. G-code relu par un script : aucune portée sans contact entre deux tours au-delà de 8 mm (les plus longues, 6 à 7 mm, sur le plateau ou aux augmentations) ; coupe du parcours conforme au méridien. Test : une seule spirale, cône de 45° sur 3,5 mm accepté, 45° sur 3 mm et 30° refusés. Navigateur : calcul en 0,6 s, vignette, avertissement.
+
+**Non fait.** Impression ; mesure du cône des buses du fablab (le modèle vérifierait alors le dégagement lui-même).
+
+## 2026-10-29 — Jalon v1.1 « Habiller un volume » inscrit
+
+À la demande de l'utilisateur : importer un volume 3D (révolutions, polygones extrudés ou torsadés, formes organiques peu détaillées) et l'habiller d'un motif du catalogue. Essai sur la branche `essai/habillage` (moteur, motifs, volumes d'essai, détail dans le journal de la branche) ; jalon v1.1 après la v1.0 dans la feuille de route, fonctions FORM-01 à FORM-08.
+
+## 2026-10-29 — Lampe à coussins, seconde version : rien dans le vide
+
+**Retour de l'utilisateur.** Impression d'essai ratée : « ça imprime dans l'air », malgré une vitesse réduite, d'autres réglages et un radeau.
+
+**Analyse.** Script de relecture du G-code : distance de chaque point à la matière déjà posée (plus de 3 mm de tracé plus tôt). Première version : **63 % des points à plus de 0,7 mm de toute matière**, 31 % dès les 10 premiers millimètres, une portée de 75 mm sans appui. Faute de conception, pas de réglage : la maille ouverte (tours qui ne se touchent qu'aux nœuds) fait des ponts entre deux nœuds ; sur un flanc droit, ils reposent sur les nœuds du dessous, mais en porte-à-faux (le bol qui quitte le plateau, les dessus des coussins, les descentes) le fil n'a rien dessous. La vérification de la première version ne regardait que le contact aux nœuds, pas l'appui du reste.
+
+**Choix.**
+- Chaque tour s'appuie sur le précédent sur toute sa longueur : il avance de l'épaisseur du boudin le long de la surface (recouvrement porté à 30 %). C'est ce que dit la vidéo : chaque tour juste sous le précédent, la couture qui remonte par-dessus de temps en temps.
+- Couture en relief, d'un seul côté : une demi-onde sur deux, la buse remonte vers le tour précédent et par-dessus (une hauteur de couche) en porte-à-faux ; sur un flanc droit, remonter vers le tour précédent serait descendre dedans : la couture y bombe vers l'extérieur, à cheval sur son bord. Passage progressif de 25° à 45° de la verticale. « Ajours » (maille ouverte) facultatif, sur les flancs presque droits seulement, 0 par défaut.
+- Dessus des coussins en pente vers le col (« Pente dessus », 30°) : imprimés à l'envers, ils passent de 90° à 60° de porte-à-faux ; profil au-delà de 70° : 94 → 40 mm. Contrôle que deux coussins ne se traversent pas sous un col (segments croisés, 40 mm de part et d'autre).
+- Porte-à-faux ralentis (50 % de la vitesse au-delà de 45°) ; avertissement donnant le porte-à-faux le plus fort et sa longueur.
+- Paroi pleine : bien plus de tours. Deux points par demi-onde là où la paroi est pleine (la couture devient un chevron) ; valeurs par défaut ramenées à Ø 120 × 40 mm par coussin (170 000 points, 7 h 27, 24 g ; plafond des points estimés abaissé à 175 000, la limite d'opérations tombant vers 200 000 points réels). Pour une grande lampe : buse de 0,6.
+
+**Vérification.** Même relecture : 0,2 % de points à plus de 0,7 mm de la matière posée, aucun à la suite ; coupe du parcours (sommet à plat, dessus à 60°, descente dans chaque col, écart entre coussins) ; vue de dessus des chevrons sur un flanc et en porte-à-faux ; `fabweave check` aux bornes ; test : moins de 1 % de points sans appui, cône de 45° sur 3 mm accepté, 2,5 mm et 30° refusés ; navigateur : calcul en 2,2 s. Mes scripts de rendu se centraient mal (G-code de démarrage compté) : corrigé, la géométrie était juste.
+
+**Non fait.** Impression de la seconde version ; les porte-à-faux à 90° du bas de chaque coussin restent (inhérents à des coussins ronds), à juger à l'impression.
