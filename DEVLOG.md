@@ -484,3 +484,7 @@ Reprise de la feuille de route pendant l'impression de la lampe à coussins.
 
 **Non fait.** 500 mouvements/s est une valeur prudente non mesurée sur les machines. Comparaison des temps toujours en attente.
 
+## 2026-10-30 — Envoi à l'imprimante et serveur MCP reportés
+
+**Choix de l'utilisateur.** DESK-05 et DESK-06 sortent de la v0.6 et passent après la v1.0, sans jalon fixé. La v0.6 garde l'application de bureau, les projets et la CLI complète.
+

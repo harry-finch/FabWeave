@@ -156,8 +156,9 @@ Critères d'acceptation : cas de collision connus détectés (tests) ; aucun fau
 
 - Application **Tauri 2** (macOS, Windows, Linux) : **dossier de modèles surveillé** (un `.weave` déposé ou modifié apparaît aussitôt), fenêtres natives, fichiers récents.
 - **Projet** `.fabweave.json` (modèle embarqué, valeurs, profils) ; projet embarqué en commentaire dans le G-code (glisser un G-code FabWeave le rouvre).
-- **Envoi à l'imprimante** (optionnel) : PrusaLink, OctoPrint, Moonraker.
-- **CLI complète** et **serveur MCP** (stdio) : un agent IA crée, vérifie, prévisualise (PNG) et exporte un modèle.
+- **CLI complète**.
+
+Reportés après la v1.0 le 30/10/2026 : envoi à l'imprimante et serveur MCP.
 
 ## v1.0 — Publication
 
@@ -180,6 +181,11 @@ Critères d'acceptation : cas de collision connus détectés (tests) ; aucun fau
 6. ⏸ Validation de jalon : un volume de chaque famille habillé et imprimé à l'atelier.
 
 Critères d'acceptation : chaque famille de forme lue et habillée par chaque motif sans message bloquant ; volume refusé avec la hauteur fautive quand il n'a pas un contour par hauteur ; volume de 200 000 triangles lu et tranché en moins d'une seconde dans le navigateur ; mêmes volume, motif, valeurs et profils → même G-code, octet pour octet ; une impression validée par famille.
+
+## Après la v1.0, sans jalon fixé
+
+- **Envoi à l'imprimante** (DESK-05, optionnel) : PrusaLink, OctoPrint, Moonraker.
+- **Serveur MCP** (DESK-06, stdio) : un agent IA crée, vérifie, prévisualise (PNG) et exporte un modèle.
 
 ## v2 — Atelier de formes (après la v1.0)
 

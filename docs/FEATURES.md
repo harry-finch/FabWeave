@@ -172,8 +172,8 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | DESK-02 | Rechargement à chaud de `models/` et `profiles/` en développement (fichier modifié ou ajouté, même dans un nouveau dossier) | v0.2 | fait |
 | DESK-03 | Application Tauri, dossier de modèles surveillé | v0.6 | prévu |
 | DESK-04 | Projet `.fabweave.json`, projet embarqué dans le G-code | v0.6 | prévu |
-| DESK-05 | Envoi à l'imprimante (PrusaLink, OctoPrint, Moonraker) | v0.6 | prévu |
-| DESK-06 | Serveur MCP (stdio) pour un agent IA | v0.6 | prévu |
+| DESK-05 | Envoi à l'imprimante (PrusaLink, OctoPrint, Moonraker) | après v1.0 | prévu |
+| DESK-06 | Serveur MCP (stdio) pour un agent IA | après v1.0 | prévu |
 
 ## Habiller un volume (FORM)
 
