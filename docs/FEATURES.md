@@ -35,7 +35,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-08 | Listes de points natives : `line`, `arc`, `circle`, `polygon`, `rectangle`, `zigzag`, `sine`, `spiral`, `helix` | v0.2 | fait |
 | API-09 | Transformations natives : translation, rotation, miroir, répétition en Z, copie tournée, inversion de sens | v0.2 | fait |
 | API-10 | `pts.modulate_z(f)`, `pts.modulate_r(cx, cy, f)` : déformation par une fonction du script | v0.2 | fait |
-| API-11 | Subdivision (`pts.subdivide`, faite en v0.2) ; discrétisation adaptative (tolérance de corde) | v0.2 / v0.5 | en cours |
+| API-11 | Subdivision (`pts.subdivide`, v0.2) ; tolérance de corde et fusion des points alignés (`pts.simplify`, v0.5) | v0.2 / v0.5 | fait |
 | API-12 | Essuyage (`path.wipe`, rétraction répartie sur le retour), pause (`path.pause(texte)`, gabarit `pause` du profil, répétée par copie) : insertion d'objet, ruban de renfort | v0.3 | fait |
 | API-13 | Remplissage natif d'un contour fermé en lignes parallèles reliées en zigzag (`fill_lines`, contour quelconque, retrait au bord) : fonds pleins, grilles | v0.2 | fait |
 | API-14 | Remplissage en anneaux concentriques (`fill_rings`, décalage d'un contour vers l'intérieur, îlots, coutures alignées) | v0.3 | fait |
@@ -145,8 +145,8 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | SAFE-01 | Export refusé si le script échoue ou si la pièce sort du volume | v0.1 | fait |
 | SAFE-02 | Plafonds du profil jamais dépassés (débit, Z, températures) | v0.1 | fait |
 | SAFE-03 | Garde-buse : carte de hauteur, bout de la buse, cône et tête ; heurts surlignés, comptés, export refusé ; frôlements signalés (ADR-0008, proposée) | v0.5 | fait |
-| SAFE-04 | Segments trop courts / trop nombreux par seconde (planificateur) | v0.5 | prévu |
-| SAFE-05 | Porte-à-faux, ponts trop longs, largeur incohérente avec la buse | v0.5 | prévu |
+| SAFE-04 | Segments trop courts / trop nombreux par seconde (planificateur), signalés | v0.5 | fait |
+| SAFE-05 | Porte-à-faux, ponts trop longs, largeur et hauteur incohérentes avec la buse, première couche trop fine ou décollée, signalés | v0.5 | fait |
 | SAFE-06 | Avertissement si la buse montée diffère de la buse recommandée par le modèle | v0.3 | fait |
 
 ## Interface et fichiers (UI)

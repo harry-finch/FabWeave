@@ -199,6 +199,7 @@ Les fonctions ci-dessous calculent leurs points **en Rust** : ≈ 70 fois plus v
 | `pts.repeat_z(n, dz)` | Couches empilées. |
 | `pts.polar_copies(n, cx, cy)` | Copies tournées de 2π / n. |
 | `pts.subdivide(max_length)` | Points ajoutés pour qu'aucun segment ne dépasse `max_length`. |
+| `pts.simplify(tolerance)` | Points retirés tant que le tracé reste à moins de `tolerance` mm de l'original (tolérance de corde, Douglas–Peucker) : points alignés fusionnés, courbes discrétisées selon leur courbure. Les deux bouts sont gardés. |
 | `pts.modulate_z(\|t, x, y, z\| dz)` | Z += la fonction (t de 0 à 1 le long de la liste). Appelle le script à chaque point : vitesse d'une boucle de script. |
 | `pts.modulate_r(cx, cy, \|t, angle, z\| dr)` | Rayon autour de (cx, cy) += la fonction. Même coût. |
 | `pts.slice(from, to)` | Points d'indice `from` ≤ i < `to` ; indice négatif compté depuis la fin. `b.slice(1, b.len())` retire le premier point, confondu avec le dernier de `a`, avant `a + b`. |
@@ -313,6 +314,13 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `guard.nozzle_rub` | avertissement | La buse frôle la matière (entre une et trois hauteurs de boudin au-dessus de ce qu'elle laisse passer). |
 | `guard.head_collision` | erreur | Matière plus haute que `clearance_height` au-dessus de la pointe, dans `clearance_radius`. |
 | `guard.cone_unknown` | info | Le parcours redescend près de la matière et le profil ne donne pas `cone_angle` et `cone_height` : seul le bout de la buse est vérifié. |
+| `quality.short_segments` | info | Segments imprimés de moins de 0,05 mm (nombre). |
+| `quality.segment_rate` | avertissement | Plus de 500 mouvements par seconde, sur une seconde au moins (`value` : pic). |
+| `quality.width_narrow`, `quality.width_wide` | avertissement | Largeur sous 0,5 ou au-dessus de 2,5 diamètres de buse (nombre de mouvements). |
+| `quality.height_tall` | avertissement | Hauteur au-dessus du diamètre de buse. |
+| `quality.first_layer_thin`, `quality.first_layer_gap` | avertissement | Première couche sous la moitié de la hauteur du profil ; premier boudin à plus d'une demi-hauteur au-dessus du plateau. |
+| `quality.long_bridge` | avertissement | Pont de plus de 50 mm en ligne droite depuis son appui (`value` : le plus long). |
+| `quality.overhang` | avertissement | Boudin à plus de 60° de la verticale sur 5 mm et 0,1 % du tracé au moins (`count` : mm de tracé). `bridge_to` n'en est pas. |
 | `path.duplicates_skipped` | info (avertissement au-delà d'un point sur dix) | Points confondus avec le précédent, ignorés. |
 | `speed.limited_first_layer`, `speed.limited_machine`, `speed.limited_flow`, `speed.limited_z` | info | Vitesse plafonnée (nombre de segments, valeur du plafond) ; `speed.limited_flow` compte aussi les gouttes allongées. |
 | `blob.too_slow` | avertissement | Gouttes qui pousseraient le filament sous `F1` (1 mm/min) : elles durent plus longtemps que demandé (nombre de gouttes). |

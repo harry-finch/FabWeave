@@ -416,6 +416,17 @@ const fr = {
     gcode: {
       pause_missing: 'Le modèle fait {count} pauses mais le profil d’imprimante n’a pas de gabarit de pause.',
     },
+    quality: {
+      short_segments: '{count} segments de moins de {value} mm : quelques pas de moteur, à fusionner (simplify) si la surface accroche.',
+      segment_rate: 'Jusqu’à {value} mouvements par seconde sur {count} mouvements : la buse peut bégayer. Réduire les points (simplify) ou la vitesse.',
+      width_narrow: 'Boudin trop étroit pour la buse de {value} mm sur {count} mouvements : il risque de ne pas tenir.',
+      width_wide: 'Boudin trop large pour la buse de {value} mm sur {count} mouvements : il risque de ne pas s’étaler.',
+      height_tall: 'Boudin plus haut que la buse de {value} mm sur {count} mouvements : il adhérera mal.',
+      first_layer_thin: 'Première couche sous {value} mm sur {count} mouvements : la buse peut racler le plateau.',
+      first_layer_gap: 'Le premier boudin est à {value} mm au-dessus du plateau : il risque de ne pas coller.',
+      long_bridge: '{count} ponts au-delà de 50 mm (jusqu’à {value} mm) : à essayer avec ce filament.',
+      overhang: 'Porte-à-faux de plus de {value}° sur {count} mm de tracé : à ralentir, ou à essayer d’abord avec ce filament.',
+    },
     guard: {
       nozzle_collision: 'La buse heurte la matière déjà posée sur {count} mouvements ({value} mm de trop) : export refusé.',
       nozzle_rub: 'La buse frôle la matière déjà posée sur {count} mouvements ({value} mm de trop) : surface marquée possible.',

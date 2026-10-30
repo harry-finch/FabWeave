@@ -608,3 +608,21 @@ p";
         );
     }
 }
+
+#[test]
+fn simplify_keeps_the_shape_within_the_chord_tolerance() {
+    let ev = eval(
+        "let p = new_path();
+let aligned = line(0, 0, 0.2, 10, 0, 0.2, 100).simplify(0.01);
+if aligned.len() != 2 { fail(`droite : ${aligned.len()}`); }
+let c = circle(0, 0, 0.2, 20, 0, 720);
+let s = c.simplify(0.02);
+if s.len() >= 200 || s.len() < 10 { fail(`cercle : ${s.len()}`); }
+let e = s.point(-1);
+if abs(e[0] - 20) > 1e-9 || abs(e[1]) > 1e-9 { fail(\"bout perdu\"); }
+p.travel_to(20, 0, 0.2);
+p.print_points(s, 0.45, 0.2);
+p",
+    );
+    assert!(!ev.issues.iter().any(|i| i.is_error()), "{:?}", ev.issues);
+}

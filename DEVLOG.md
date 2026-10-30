@@ -474,3 +474,13 @@ Reprise de la feuille de route pendant l'impression de la lampe à coussins.
 
 **Non fait.** Frôlements non surlignés dans la vue (comptés seulement). Cône absent des profils livrés, à mesurer : aucune valeur inventée.
 
+## 2026-10-30 — v0.5, étapes 2 et 3 : qualité des segments, contrôles du parcours
+
+**Choix** (SAFE-04, SAFE-05, API-11). `quality.rs` ne modifie rien et ne bloque rien : des messages comptés. La fusion n'est pas appliquée d'office, elle changerait le G-code de tout le catalogue et le tracé voulu par le modèle : `pts.simplify(tolérance)` est un choix du modèle (Douglas–Peucker). Seuils en constantes, règles d'atelier, sans champ de profil pour l'instant : segment court 0,05 mm, 500 mouvements/s sur 1 s, porte-à-faux 60°, pont 50 mm, largeur 0,5 à 2,5 buses, hauteur 1 buse, première couche.
+
+**Calibrage sur le catalogue.** Porte-à-faux : seuil relatif ajouté (0,1 % du tracé), 19 mm sur le vase à ondulations étaient du bruit. Ponts : portée en ligne droite depuis l'appui, la somme donnait 1 271 mm sur le défi des picots. Hauteur : 1 buse et non 0,8, des modèles de FullControl vont à 1.
+
+**Messages restants aux valeurs par défaut** (MK4S, PLA) : porte-à-faux sur le panier tressé, les photophores et la lampe à coussins, vrais et voulus par ces modèles ; largeur sur l'abat-jour ; hauteur sur le défi des picots ; segments courts en info. À juger à la validation.
+
+**Non fait.** 500 mouvements/s est une valeur prudente non mesurée sur les machines. Comparaison des temps toujours en attente.
+

@@ -209,6 +209,7 @@ impl Workbench {
             if let Some(pl) = &mut pl {
                 ev.issues
                     .extend(crate::guard::check(&path, pl, &printer, &filament));
+                ev.issues.extend(crate::quality::check(&path, pl, &printer));
             }
             ev.plan = pl;
             ev.path = Some(path);

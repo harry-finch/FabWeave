@@ -418,6 +418,17 @@ const en: Shape<typeof fr> = {
     gcode: {
       pause_missing: 'The model pauses {count} times but the printer profile has no pause template.',
     },
+    quality: {
+      short_segments: '{count} segments under {value} mm: a few motor steps, merge them (simplify) if the surface catches.',
+      segment_rate: 'Up to {value} moves per second over {count} moves: the nozzle may stutter. Reduce the points (simplify) or the speed.',
+      width_narrow: 'Bead too narrow for the {value} mm nozzle on {count} moves: it may not hold.',
+      width_wide: 'Bead too wide for the {value} mm nozzle on {count} moves: it may not spread.',
+      height_tall: 'Bead taller than the {value} mm nozzle on {count} moves: it will bond poorly.',
+      first_layer_thin: 'First layer under {value} mm on {count} moves: the nozzle may scrape the bed.',
+      first_layer_gap: 'The first bead is {value} mm above the bed: it may not stick.',
+      long_bridge: '{count} bridges over 50 mm (up to {value} mm): try them with this filament.',
+      overhang: 'Overhang over {value}° on {count} mm of path: slow down, or try it with this filament first.',
+    },
     guard: {
       nozzle_collision: 'The nozzle hits material already printed on {count} moves ({value} mm too much): export refused.',
       nozzle_rub: 'The nozzle rubs on material already printed on {count} moves ({value} mm too much): the surface may be marked.',

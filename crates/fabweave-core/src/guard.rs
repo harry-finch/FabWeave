@@ -47,7 +47,7 @@ const MIN_MARGIN: f64 = 0.05;
 const RUB_MARGINS: f64 = 2.0;
 
 /// Carte des hauteurs : 0 = plateau, donc rien à heurter.
-struct HeightMap {
+pub(crate) struct HeightMap {
     origin: [f64; 2],
     cell: f64,
     size: [usize; 2],
@@ -58,7 +58,7 @@ struct HeightMap {
 }
 
 impl HeightMap {
-    fn new(min: [f64; 2], max: [f64; 2]) -> Self {
+    pub(crate) fn new(min: [f64; 2], max: [f64; 2]) -> Self {
         let span = (max[0] - min[0]).max(max[1] - min[1]);
         let cell = MIN_CELL.max(span / MAX_CELLS);
         let n = |lo: f64, hi: f64| ((hi - lo) / cell).ceil() as usize + 1;
@@ -72,6 +72,27 @@ impl HeightMap {
             tiles_size,
             tiles: vec![0.0; tiles_size[0] * tiles_size[1]],
             top: 0.0,
+        }
+    }
+
+    pub(crate) fn cell(&self) -> f64 {
+        self.cell
+    }
+
+    /// Verse dans la carte le boudin qui arrive en `q` depuis `p`.
+    pub(crate) fn stamp_segment(&mut self, p: &WayPoint, q: &WayPoint) {
+        if !q.kind.deposits() {
+            return;
+        }
+        let len = (q.x - p.x).hypot(q.y - p.y);
+        let steps = (len / self.cell).ceil().max(1.0) as usize;
+        for s in 0..=steps {
+            let t = s as f64 / steps as f64;
+            self.stamp(
+                p.x + (q.x - p.x) * t,
+                p.y + (q.y - p.y) * t,
+                p.z + (q.z - p.z) * t,
+            );
         }
     }
 
@@ -90,7 +111,7 @@ impl HeightMap {
 
     /// Appelle `f(distance, hauteur)` pour chaque maille plus haute que
     /// `above`, à moins de `reach` de (x, y).
-    fn scan(&self, x: f64, y: f64, reach: f64, above: f64, mut f: impl FnMut(f64, f64)) {
+    pub(crate) fn scan(&self, x: f64, y: f64, reach: f64, above: f64, mut f: impl FnMut(f64, f64)) {
         let (fx, fy) = (
             (x - self.origin[0]) / self.cell,
             (y - self.origin[1]) / self.cell,
@@ -270,20 +291,8 @@ pub fn check(
         // la sépare de tout ce qui précède.
         let keep = if b.kind.deposits() { 2.0 * b.w } else { 0.0 };
         while pending + 1 < i && (!b.kind.deposits() || run[i - 1] - run[pending + 1] > keep) {
-            let (p, q) = (&pts[pending], &pts[pending + 1]);
+            map.stamp_segment(&pts[pending], &pts[pending + 1]);
             pending += 1;
-            if q.kind.deposits() {
-                let len = (q.x - p.x).hypot(q.y - p.y);
-                let steps = (len / map.cell).ceil().max(1.0) as usize;
-                for s in 0..=steps {
-                    let t = s as f64 / steps as f64;
-                    map.stamp(
-                        p.x + (q.x - p.x) * t,
-                        p.y + (q.y - p.y) * t,
-                        p.z + (q.z - p.z) * t,
-                    );
-                }
-            }
         }
 
         let (shoulder, margin, from, to) = match b.kind {

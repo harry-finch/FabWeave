@@ -17,6 +17,53 @@ use crate::script::{fault, num, ScriptPath, R};
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Points(pub Vec<[f64; 3]>);
 
+/// Distance du point `p` au segment `a`–`b`.
+fn to_chord(p: [f64; 3], a: [f64; 3], b: [f64; 3]) -> f64 {
+    let d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    let v = [p[0] - a[0], p[1] - a[1], p[2] - a[2]];
+    let dd = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+    let t = if dd > 0.0 {
+        ((v[0] * d[0] + v[1] * d[1] + v[2] * d[2]) / dd).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    (v[0] - d[0] * t)
+        .hypot(v[1] - d[1] * t)
+        .hypot(v[2] - d[2] * t)
+}
+
+/// Douglas–Peucker, sans récursion : une forme fermée garde son départ et son
+/// arrivée confondus, et le point le plus éloigné de cette corde nulle.
+fn simplify(pts: &[[f64; 3]], tolerance: f64) -> Vec<[f64; 3]> {
+    if pts.len() < 3 {
+        return pts.to_vec();
+    }
+    let mut keep = vec![false; pts.len()];
+    keep[0] = true;
+    keep[pts.len() - 1] = true;
+    let mut stack = vec![(0, pts.len() - 1)];
+    while let Some((a, b)) = stack.pop() {
+        let (mut far, mut at) = (tolerance, None);
+        for (i, p) in pts.iter().enumerate().take(b).skip(a + 1) {
+            let d = to_chord(*p, pts[a], pts[b]);
+            if d > far {
+                far = d;
+                at = Some(i);
+            }
+        }
+        if let Some(i) = at {
+            keep[i] = true;
+            stack.push((a, i));
+            stack.push((i, b));
+        }
+    }
+    pts.iter()
+        .zip(&keep)
+        .filter(|(_, k)| **k)
+        .map(|(p, _)| *p)
+        .collect()
+}
+
 /// Nombre entier positif passé à une fonction (segments, côtés, copies).
 fn count(v: &Dynamic, what: &str, min: i64) -> R<usize> {
     let n = num(v, what)?;
@@ -468,6 +515,12 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
             out.push(*q)?;
         }
         Ok(out.done())
+    });
+    // simplify(tolerance) : points retirés tant que le tracé reste à moins de
+    // `tolerance` de l'original (corde) ; les deux bouts sont gardés.
+    engine.register_fn("simplify", move |p: &mut Points, t: D| -> R<Points> {
+        let t = positive(&t, "tolerance")?;
+        Ok(Points(simplify(&p.0, t)))
     });
     // modulate_z(f) : z += f(t, x, y, z), t de 0 à 1 le long de la liste.
     engine.register_fn(
