@@ -418,6 +418,12 @@ const en: Shape<typeof fr> = {
     gcode: {
       pause_missing: 'The model pauses {count} times but the printer profile has no pause template.',
     },
+    guard: {
+      nozzle_collision: 'The nozzle hits material already printed on {count} moves ({value} mm too much): export refused.',
+      nozzle_rub: 'The nozzle rubs on material already printed on {count} moves ({value} mm too much): the surface may be marked.',
+      head_collision: 'The head touches the part at {count} positions ({value} mm above the free space): export refused.',
+      cone_unknown: 'The path comes back down near printed material and the profile gives no nozzle cone: only the nozzle tip is checked.',
+    },
     blob: {
       too_slow: '{count} blobs would feed the filament below {value} mm/min: they take longer than requested.',
     },
@@ -531,6 +537,7 @@ const en: Shape<typeof fr> = {
         z_axis: 'Capped: Z axis speed',
       },
       outside: 'Outside the print volume',
+      collision: 'The nozzle or head touches material already printed',
     },
   },
   help: {

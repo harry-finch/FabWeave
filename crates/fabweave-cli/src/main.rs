@@ -185,6 +185,12 @@ fn hint(code: &str) -> &'static str {
             "largeur et hauteur du boudin doivent être positives"
         }
         "model.failure" => "le modèle refuse ces valeurs (fail)",
+        "guard.nozzle_collision" => {
+            "la buse heurte la matière déjà posée : revoir l'ordre ou la pente du parcours"
+        }
+        "guard.nozzle_rub" => "la buse frôle la matière déjà posée : surface marquée possible",
+        "guard.head_collision" => "la tête touche la pièce : imprimer le plus haut en dernier",
+        "guard.cone_unknown" => "cône de la buse absent du profil : seul le bout est vérifié",
         "model.warning" => "avertissement du modèle (warn)",
         "speed.limited_flow" => "vitesse réduite par le débit max du filament (normal)",
         "speed.limited_first_layer" => "première couche ralentie (normal)",
@@ -395,6 +401,8 @@ fn run() -> Result<bool, String> {
                                         | "path.too_high"
                                         | "path.excluded_zone"
                                         | "model.failure"
+                                        | "guard.nozzle_collision"
+                                        | "guard.head_collision"
                                 ))
                     })
                     .collect();

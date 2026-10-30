@@ -204,8 +204,12 @@ impl Workbench {
                     Some([x.unwrap_or(c[0]), y.unwrap_or(c[1])])
                 }
             };
-            let (pl, issues) = plan_at(&path, &printer, &filament, target);
+            let (mut pl, issues) = plan_at(&path, &printer, &filament, target);
             ev.issues.extend(issues);
+            if let Some(pl) = &mut pl {
+                ev.issues
+                    .extend(crate::guard::check(&path, pl, &printer, &filament));
+            }
             ev.plan = pl;
             ev.path = Some(path);
         }

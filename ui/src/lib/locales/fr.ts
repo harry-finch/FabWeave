@@ -416,6 +416,12 @@ const fr = {
     gcode: {
       pause_missing: 'Le modèle fait {count} pauses mais le profil d’imprimante n’a pas de gabarit de pause.',
     },
+    guard: {
+      nozzle_collision: 'La buse heurte la matière déjà posée sur {count} mouvements ({value} mm de trop) : export refusé.',
+      nozzle_rub: 'La buse frôle la matière déjà posée sur {count} mouvements ({value} mm de trop) : surface marquée possible.',
+      head_collision: 'La tête touche la pièce sur {count} positions ({value} mm au-dessus de l’espace libre) : export refusé.',
+      cone_unknown: 'Le parcours redescend près de la matière et le profil n’indique pas le cône de la buse : seul le bout de la buse est vérifié.',
+    },
     blob: {
       too_slow: '{count} gouttes pousseraient le filament sous {value} mm/min : elles durent plus longtemps que demandé.',
     },
@@ -529,6 +535,7 @@ const fr = {
         z_axis: 'Plafonnée : vitesse de l’axe Z',
       },
       outside: 'Hors du volume d’impression',
+      collision: 'La buse ou la tête touche la matière déjà posée',
     },
   },
   help: {

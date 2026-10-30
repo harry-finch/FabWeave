@@ -316,8 +316,9 @@
       const prints: number[] = [];
       const travels: number[] = [];
       const outside: number[] = [];
-      // Déplacements, essuyages (4) et pauses (5) en retrait.
-      for (let i = 1; i < n; i++) (f.kinds[i] === 0 || f.kinds[i] >= 4 ? travels : f.outside[i] ? outside : prints).push(i - 1, i);
+      // Hors du volume ou collision en rouge, déplacement compris ; déplacements,
+      // essuyages (4) et pauses (5) en retrait.
+      for (let i = 1; i < n; i++) (f.outside[i] ? outside : f.kinds[i] === 0 || f.kinds[i] >= 4 ? travels : prints).push(i - 1, i);
       const arrivals = (list: number[]) => Int32Array.from(list.filter((_, k) => k % 2 === 1));
       travelEnds = arrivals(travels);
       if (volume) {
@@ -325,7 +326,7 @@
         const ends = (list: number[]) => list.filter((_, k) => k % 2 === 1).filter((i) => f.kinds[i] !== 3);
         const danger = colors['danger'];
         const pe = ends(prints);
-        const oe = ends(outside);
+        const oe = ends(outside).filter((i) => f.widths[i] > 0);
         beadEnds = [Int32Array.from(pe), Int32Array.from(oe)];
         beads.push(
           beadMesh(f.positions, f.widths, f.heights, pe, (i, c) => c.setRGB(col[i * 3], col[i * 3 + 1], col[i * 3 + 2])),
@@ -333,7 +334,10 @@
         );
         scene.add(...beads);
         prints.length = 0;
+        // Reste en ligne : ce qui n'a pas de boudin (déplacement en collision).
+        const bare = outside.filter((_, k) => f.widths[outside[k - k % 2 + 1]] === 0);
         outside.length = 0;
+        outside.push(...bare);
       } else {
         beadEnds = [];
       }
@@ -561,6 +565,7 @@
       rows,
       limit: limit > 0 && limit <= limits.length ? t(`view.inspect.limit.${limits[limit - 1]}`) : null,
       outside: f.outside[i] === 1,
+      collision: f.outside[i] === 2,
     };
   });
 
@@ -817,6 +822,9 @@
       {/if}
       {#if card.outside}
         <div class="card-note danger"><CircleX size={12} />{t('view.inspect.outside')}</div>
+      {/if}
+      {#if card.collision}
+        <div class="card-note danger"><CircleX size={12} />{t('view.inspect.collision')}</div>
       {/if}
     </div>
   {/if}

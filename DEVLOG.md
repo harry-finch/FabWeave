@@ -459,3 +459,18 @@ Reprise de la feuille de route pendant l'impression de la lampe à coussins.
 **Vérification.** `npm run check` ; navigateur, téléchargement intercepté dans la page : 3 000 × 2 087 px, 2,9 Mo, lampe à coussins sans étiquettes.
 
 **Non fait.** Étape 6 (temps estimé comparé à PrusaSlicer) : elle demande de trancher les modèles du catalogue dans PrusaSlicer.
+
+## 2026-10-30 — v0.4 validée ; v0.5, étape 1 : garde-buse
+
+**Jalon.** L'utilisateur valide la v0.4. Le tableau des temps PrusaSlicer n'a pas été rempli : le critère de ± 5 % reste non vérifié et noté comme tel.
+
+**Choix** (SAFE-03, ADR-0008, proposée). Carte des hauteurs de la matière le long du parcours préparé (`guard.rs`) : bout de la buse, cône si le profil le donne, tête dans son rayon, déplacements à leur vraie hauteur. Le dépôt des deux dernières largeurs de boudin n'entre dans la carte qu'une fois la buse passée. Un parcours dont Z ne redescend jamais n'est pas examiné. Au-delà d'une marge d'une hauteur de boudin : frôlement (avertissement, compté) jusqu'à deux marges d'excès, heurt ensuite (erreur, mouvements surlignés, export refusé). Le code `outside` transmis à la vue vaut 2 pour une collision ; un déplacement en collision se dessine en ligne rouge.
+
+**Calibrage.** Une première version élargissait le méplat de tout le demi-boudin et bloquait la lampe à coussins, en cours d'impression chez l'utilisateur : la buse y passe à 0,5 mm du tour précédent, jusqu'à 0,47 mm plus haut, sous les cols. Le méplat ne compte plus que le dessus plat du boudin voisin, et ce contact léger devient un avertissement (3 317 mouvements, 0,28 mm). Seuils à confirmer par des impressions.
+
+**Mesures.** Lampe à coussins, 170 000 points : 55 ms sur 600 ms de calcul en natif.
+
+**Résultats sur le catalogue.** Aucun heurt aux valeurs par défaut, sept imprimantes. Aux bornes : lampe (descente de 50°, ajours de 3 mm), porte-savon (bord de 40 mm, heurt et tête), entretoise (trou de 3 mm). `fabweave check` tolère ces refus aux bornes, comme `model.failure`.
+
+**Non fait.** Frôlements non surlignés dans la vue (comptés seulement). Cône absent des profils livrés, à mesurer : aucune valeur inventée.
+

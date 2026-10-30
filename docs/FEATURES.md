@@ -144,7 +144,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | --- | --- | --- | --- |
 | SAFE-01 | Export refusé si le script échoue ou si la pièce sort du volume | v0.1 | fait |
 | SAFE-02 | Plafonds du profil jamais dépassés (débit, Z, températures) | v0.1 | fait |
-| SAFE-03 | Garde-buse : carte de hauteur, collisions du cône surlignées | v0.5 | prévu |
+| SAFE-03 | Garde-buse : carte de hauteur, bout de la buse, cône et tête ; heurts surlignés, comptés, export refusé ; frôlements signalés (ADR-0008, proposée) | v0.5 | fait |
 | SAFE-04 | Segments trop courts / trop nombreux par seconde (planificateur) | v0.5 | prévu |
 | SAFE-05 | Porte-à-faux, ponts trop longs, largeur incohérente avec la buse | v0.5 | prévu |
 | SAFE-06 | Avertissement si la buse montée diffère de la buse recommandée par le modèle | v0.3 | fait |

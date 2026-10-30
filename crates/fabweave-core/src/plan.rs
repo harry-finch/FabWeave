@@ -72,6 +72,8 @@ pub struct Move {
     pub time: f64,
     /// Mouvement imprimé hors du volume d'impression ou dans une zone exclue.
     pub outside: bool,
+    /// La buse ou la tête y touche la matière déjà posée (garde-buse).
+    pub collision: bool,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
@@ -314,6 +316,7 @@ pub fn plan_at(
         first_layer: pts[0].z < first_layer_top,
         time: 0.0,
         outside: false,
+        collision: false,
     });
 
     for i in 1..pts.len() {
@@ -334,6 +337,7 @@ pub fn plan_at(
             first_layer,
             time: 0.0,
             outside: false,
+            collision: false,
         };
         if b.kind == MoveKind::Pause {
             // Pause : rien ne bouge, durée inconnue (non comptée).

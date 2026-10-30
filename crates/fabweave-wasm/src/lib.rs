@@ -177,7 +177,8 @@ impl Frame {
     }
 
     /// 1 pour un mouvement imprimé hors du volume d'impression ou dans une
-    /// zone exclue du plateau (surligné dans la vue), 0 sinon.
+    /// zone exclue du plateau, 2 pour une collision de la buse ou de la tête
+    /// avec la matière (surlignés dans la vue), 0 sinon.
     pub fn take_outside(&mut self) -> Vec<u8> {
         std::mem::take(&mut self.outside)
     }
@@ -316,7 +317,11 @@ impl Engine {
                 heights.push(if p.kind.deposits() { p.h as f32 } else { 0.0 });
                 flows.push(m.flow as f32);
                 fans.push(m.fan);
-                outside.push(u8::from(m.outside));
+                outside.push(if m.outside {
+                    1
+                } else {
+                    2 * u8::from(m.collision)
+                });
                 requested.push(m.requested as f32);
                 limits.push(m.limit as u8);
                 times.push(m.time as f32);

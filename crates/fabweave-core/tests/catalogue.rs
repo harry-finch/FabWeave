@@ -137,12 +137,17 @@ fn every_model_survives_its_parameter_bounds() {
                 values.insert(id.clone(), v.clone());
                 let ev = w.evaluate(&values);
                 // Les seules erreurs admises aux bornes : pièce trop grande pour
-                // le plateau, ou refus expliqué du modèle (`fail`).
+                // le plateau, refus expliqué du modèle (`fail`), collision vue
+                // par le garde-buse.
                 for i in ev.issues.iter().filter(|i| i.is_error()) {
                     assert!(
                         matches!(
                             i.code,
-                            "path.out_of_bed" | "path.too_high" | "model.failure"
+                            "path.out_of_bed"
+                                | "path.too_high"
+                                | "model.failure"
+                                | "guard.nozzle_collision"
+                                | "guard.head_collision"
                         ),
                         "{} {id} = {v}: {i:?}",
                         file.display()
@@ -224,6 +229,14 @@ fn pillow_lamp_is_one_spiral_and_respects_the_nozzle_cone() {
         let ev = w.evaluate(&Map::new());
         let refused = ev.issues.iter().any(|i| i.code == "model.failure");
         assert_eq!(refused, !passes, "cône {angle}° / {height} mm");
+        // Le garde-buse ne contredit pas le modèle : au pire, elle frôle.
+        if passes {
+            assert!(
+                !ev.issues.iter().any(|i| i.is_error()),
+                "cône {angle}° / {height} mm: {:?}",
+                ev.issues
+            );
+        }
     }
 }
 

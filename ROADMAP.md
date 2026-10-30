@@ -112,7 +112,7 @@ Critères d'acceptation :
 
 Critères d'acceptation : G-code de chaque profil livré relu (démarrage, fin, unités, températures) ; ⏸ une impression validée par machine du fablab.
 
-## v0.4 — Visualisation et analyse (jalon 4) · *en cours*
+## v0.4 — Visualisation et analyse (jalon 4) · *validée* (30/10/2026)
 
 Commencée le 28/10/2026 pendant les impressions de validation de la v0.3.
 
@@ -123,8 +123,8 @@ Commencée le 28/10/2026 pendant les impressions de validation de la v0.3.
 3. **Curseur de progression**, buse simulée, coupe en Z (VIEW-08). *Fait le 29/10/2026 : barre de lecture en bas de la vue, coupe en Z par plan de coupe à droite, déplacements affichables ; plages de dessin, rien de reconstruit en avançant.*
 4. **Inspection du segment survolé** (VIEW-09). *Fait le 29/10/2026 : choix à l'écran sans lancer de rayons, fiche à côté du pointeur ; le moteur transmet vitesse demandée, plafond et durée de chaque mouvement.*
 5. **Export PNG** de la vue (VIEW-10). *Fait le 29/10/2026 : vue rendue à plus haute définition (≈ 3 000 px), sans les étiquettes.*
-6. **Temps estimé** comparé à PrusaSlicer sur le catalogue.
-7. ⏸ Validation de jalon.
+6. **Temps estimé** comparé à PrusaSlicer sur le catalogue. *Préparé le 29/10/2026 (`.tmp/essais-v0.4/`), comparaison non relevée : critère de ± 5 % non vérifié, reste ouvert.*
+7. ⏸ Validation de jalon. *Validée par l'utilisateur le 30/10/2026.*
 
 - **Rendu volumétrique** : boudins à section oblongue W × H, éclairage simple ; mode lignes pour les très grands parcours.
 - **Coloration** au choix : type de mouvement (impression, pont, déplacement), vitesse obtenue, débit volumétrique, largeur W, hauteur H, ventilateur, Z, ordre d'impression ; légende graduée.
@@ -135,7 +135,16 @@ Commencée le 28/10/2026 pendant les impressions de validation de la v0.3.
 
 Critères d'acceptation : 200 000 segments affichés en volumétrique à 60 images/s sur un ordinateur d'atelier ; temps estimé à ± 5 % de PrusaSlicer sur le catalogue.
 
-## v0.5 — Sécurité et qualité du parcours (jalon 5)
+## v0.5 — Sécurité et qualité du parcours (jalon 5) · *en cours*
+
+Commencée le 30/10/2026.
+
+Étapes et points d'arrêt :
+
+1. **Garde-buse** (SAFE-03, ADR-0008). *Fait le 30/10/2026 : bout, cône et tête ; heurt bloquant, frôlement signalé ; aucun heurt sur le catalogue aux valeurs par défaut, sans cône dans les profils livrés tant qu'il n'est pas mesuré.*
+2. **Qualité des segments** (SAFE-04, API-11) : tolérance de corde, fusion des points alignés, segments trop courts, saturation du planificateur.
+3. **Contrôles du parcours** (SAFE-05) : porte-à-faux, ponts trop longs, largeur incohérente avec la buse, première couche.
+4. ⏸ Validation de jalon, dont la gravité retenue dans l'ADR-0008.
 
 - **Garde-buse** : carte de hauteur de la matière déposée, détection des collisions du cône de la buse et du carter en non planaire ; segments fautifs surlignés, comptés, export bloqué (ADR à venir sur la gravité).
 - **Discrétisation adaptative** (tolérance de corde) dans l'API haut niveau ; fusion des points alignés ; longueur minimale de segment et nombre de segments par seconde maximal (saturation du planificateur, « bégaiement »), signalés.

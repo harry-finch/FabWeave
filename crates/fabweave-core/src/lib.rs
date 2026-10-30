@@ -12,6 +12,7 @@ pub mod adhesion;
 pub mod fill;
 pub mod format;
 pub mod gcode;
+pub mod guard;
 pub mod image;
 pub mod import;
 pub mod issue;
