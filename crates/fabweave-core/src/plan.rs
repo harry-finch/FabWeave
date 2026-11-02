@@ -302,6 +302,12 @@ pub fn plan_at(
         retract + 2.0 * hop / lim.max_z_speed
     };
 
+    // Sauts en Z au-dessus du volume (déplacement initial compris).
+    let mut hop_over = f64::NEG_INFINITY;
+    let first_hop = pts[0].z + r.z_hop.max(0.2);
+    if first_hop > max_height {
+        hop_over = first_hop;
+    }
     // Déplacement initial vers le premier point (toujours avec rétraction).
     moves.push(Move {
         length: 0.0,
@@ -315,7 +321,7 @@ pub fn plan_at(
         skipped: false,
         first_layer: pts[0].z < first_layer_top,
         time: 0.0,
-        outside: false,
+        outside: first_hop > max_height,
         collision: false,
     });
 
@@ -421,6 +427,12 @@ pub fn plan_at(
             let xy = dx.hypot(dy);
             let (len, _, hop) = retraction_at(i);
             m.retract = xy >= r.min_travel && (len > 0.0 || hop > 0.0);
+            // Le saut monte au-dessus des deux bouts (comme le G-code).
+            let top = a.z.max(b.z) + if m.retract { hop } else { 0.0 };
+            if top > max_height {
+                m.outside = true;
+                hop_over = hop_over.max(top);
+            }
             m.speed = lim.travel_speed;
             m.requested = lim.travel_speed;
             travel_moves += 1;
@@ -538,6 +550,15 @@ pub fn plan_at(
         limited,
     };
 
+    temperatures(path, &moves, printer, filament, &mut issues);
+    if hop_over > max_height {
+        issues.push(
+            Issue::error("path.hop_too_high")
+                .field("printer.bed")
+                .value(hop_over),
+        );
+    }
+
     if print_moves + blobs == 0 {
         // Tous les points imprimés étaient confondus (division entière dans le
         // script, pas trop petit…).
@@ -600,6 +621,52 @@ pub fn plan_at(
         }),
         issues,
     )
+}
+
+/// Consignes de buse et de plateau sous les plafonds de l'imprimante :
+/// chaque température du filament (gabarits compris), plus le décalage
+/// d'essai des modèles d'étalonnage.
+fn temperatures(
+    path: &Toolpath,
+    moves: &[Move],
+    printer: &PrinterProfile,
+    filament: &FilamentProfile,
+    issues: &mut Vec<Issue>,
+) {
+    let t = &filament.temperature;
+    let [nozzle_cap, bed_cap] = printer.limits.max_temperatures();
+    let mut nozzle = [t.first_layer, t.nozzle, t.probe, t.idle.unwrap_or(0.0)]
+        .into_iter()
+        .fold(f64::NEG_INFINITY, f64::max);
+    for (p, m) in path.points.iter().zip(moves) {
+        if p.kind.deposits() {
+            let base = if m.first_layer {
+                t.first_layer
+            } else {
+                t.nozzle
+            };
+            nozzle = nozzle.max(base + p.temp_offset);
+        }
+    }
+    let bed = t.bed.max(t.bed_first_layer);
+    if nozzle > nozzle_cap {
+        issues.push(
+            Issue::error("temperature.nozzle_above_machine")
+                .field("printer.limits.max_nozzle_temperature")
+                .value(nozzle),
+        );
+    }
+    if bed > bed_cap {
+        issues.push(
+            Issue::error("temperature.bed_above_machine")
+                .field("printer.limits.max_bed_temperature")
+                .value(bed),
+        );
+    }
+    let l = &printer.limits;
+    if l.max_nozzle_temperature.is_none() || l.max_bed_temperature.is_none() {
+        issues.push(Issue::info("temperature.limit_unknown").field("printer.limits"));
+    }
 }
 
 /// Erreur `path.excluded_zone` pour chaque zone du plateau traversée par un

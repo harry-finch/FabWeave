@@ -185,6 +185,8 @@ fn hint(code: &str) -> &'static str {
             "largeur et hauteur du boudin doivent être positives"
         }
         "model.failure" => "le modèle refuse ces valeurs (fail)",
+        "path.hop_too_high" => "un saut en Z dépasserait la hauteur d'impression",
+        "temperature.limit_unknown" => "plafonds de température génériques (absents du profil)",
         "guard.nozzle_collision" => {
             "la buse heurte la matière déjà posée : revoir l'ordre ou la pente du parcours"
         }
@@ -401,6 +403,7 @@ fn run() -> Result<bool, String> {
                                         | "path.too_high"
                                         | "path.excluded_zone"
                                         | "model.failure"
+                                        | "path.hop_too_high"
                                         | "guard.nozzle_collision"
                                         | "guard.head_collision"
                                 ))

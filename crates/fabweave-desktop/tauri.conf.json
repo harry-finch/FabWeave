@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "FabWeave",
+  "version": "0.9.0-beta.1",
+  "identifier": "fr.fablab.fabweave",
+  "build": {
+    "beforeBuildCommand": "npm --prefix ../ui run build",
+    "frontendDist": "../../ui/dist"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Utility",
+    "copyright": "© 2026 Stéphane Muller — GPL-3.0-or-later",
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "../../LICENSE",
+    "shortDescription": "G-code direct à partir de modèles paramétriques",
+    "longDescription": "FabWeave produit du G-code direct à partir d'un catalogue de modèles paramétriques, pour les makers et les fablabs : curseurs, aperçu 3D en direct, profils d'imprimante et de filament. Rust et Svelte, GPL-3.0-or-later.",
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "11.0"
+    }
+  }
+}

@@ -221,6 +221,8 @@ const fr = {
       travel_acceleration: 'Accél. dépl.',
       first_layer_acceleration: 'Accél. 1re couche',
       jerk: 'Jerk',
+      max_nozzle_temperature: 'Buse max',
+      max_bed_temperature: 'Plateau max',
     },
     layers: { layer_height: 'Hauteur', first_layer_height: '1re couche', by_nozzle: 'Couches par buse' },
     gcode: { thumbnails: 'Vignettes', start: 'Gabarit de démarrage', end: 'Gabarit de fin', pause: 'Gabarit de pause' },
@@ -266,6 +268,8 @@ const fr = {
     limits: {
       acceleration: 'Vide : ni M204 ni accélérations dans le temps estimé.',
       jerk: 'Saut de vitesse dans un angle, pour le temps estimé ; 8 mm/s si vide.',
+      max_nozzle_temperature: 'Consigne la plus haute de la buse (fiche du fabricant) ; vide : 300 °C, signalé.',
+      max_bed_temperature: 'Consigne la plus haute du plateau (fiche du fabricant) ; vide : 120 °C, signalé.',
     },
     gcode: {
       thumbnails: '« LxH/PNG » ou « LxH/QOI », séparées par des virgules.',
@@ -340,6 +344,7 @@ const fr = {
       wrong_format: 'Ce fichier n’est pas un modèle FabWeave.',
       unsupported_version: 'Version de format {value} non prise en charge par ce moteur.',
       invalid_nozzle: 'Diamètre de buse recommandé invalide.',
+      control_character: 'Le nom du modèle contient un retour à la ligne ou un caractère de contrôle : il deviendrait une commande dans le G-code.',
       not_loaded: 'Aucun modèle chargé.',
       warning: 'Avertissement du modèle.',
       failure: 'Le modèle refuse ces valeurs.',
@@ -394,6 +399,7 @@ const fr = {
       out_of_bed: 'La pièce dépasse du plateau de {value} mm.',
       below_bed: 'Le parcours descend sous le plateau (Z = {value} mm).',
       too_high: 'La pièce dépasse la hauteur d’impression (Z = {value} mm).',
+      hop_too_high: 'Un saut en Z monterait à {value} mm, au-dessus de la hauteur d’impression.',
       excluded_zone: 'La pièce passe dans une zone exclue du plateau : {name}.',
       duplicates_skipped: '{count} points confondus avec le précédent, ignorés.',
       invalid_flow: 'Débit de pont invalide : de 0 à 2 (1 = débit nominal).',
@@ -415,6 +421,12 @@ const fr = {
     },
     gcode: {
       pause_missing: 'Le modèle fait {count} pauses mais le profil d’imprimante n’a pas de gabarit de pause.',
+      out_of_volume: 'Le G-code monterait à Z = {value} mm, au-dessus de la hauteur d’impression : export refusé.',
+    },
+    temperature: {
+      nozzle_above_machine: 'Consigne de buse de {value} °C au-dessus du plafond de l’imprimante ({field}).',
+      bed_above_machine: 'Consigne de plateau de {value} °C au-dessus du plafond de l’imprimante ({field}).',
+      limit_unknown: 'Le profil d’imprimante n’indique pas ses températures maximales : plafonds génériques de 300 °C (buse) et 120 °C (plateau).',
     },
     quality: {
       short_segments: '{count} segments de moins de {value} mm : quelques pas de moteur, à fusionner (simplify) si la surface accroche.',
@@ -473,6 +485,8 @@ const fr = {
       invalid_zone: 'Zone exclue {field} invalide : chaque minimum doit être inférieur au maximum.',
       invalid_thumbnail: 'Vignette « {detail} » invalide : « LxH/PNG » ou « LxH/QOI », 1 024 px au plus.',
       template_error: 'Gabarit {field} invalide.',
+      template_temperature: 'Gabarit {field} : consigne de {value} °C au-dessus du plafond de l’imprimante.',
+      control_character: '{field} contient un retour à la ligne ou un caractère de contrôle : il deviendrait une commande dans le G-code.',
       review_pending: 'Profil importé : gabarits à relire avant d’exporter (Machine, menu ⋯, Modifier…).',
       invalid_review: 'Champ à relire inconnu : « {detail} ».',
       not_found: 'Profil introuvable (supprimé ?) : choisissez-en un autre.',

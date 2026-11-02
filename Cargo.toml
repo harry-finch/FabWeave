@@ -1,9 +1,10 @@
 [workspace]
 resolver = "3"
 members = ["crates/fabweave-core", "crates/fabweave-wasm", "crates/fabweave-cli"]
+exclude = ["crates/fabweave-desktop"]
 
 [workspace.package]
-version = "0.1.0-dev"
+version = "0.9.0-beta.1"
 edition = "2021"
 rust-version = "1.88"
 authors = ["Stéphane Muller"]

@@ -223,6 +223,8 @@ const en: Shape<typeof fr> = {
       travel_acceleration: 'Travel accel.',
       first_layer_acceleration: '1st layer accel.',
       jerk: 'Jerk',
+      max_nozzle_temperature: 'Max nozzle',
+      max_bed_temperature: 'Max bed',
     },
     layers: { layer_height: 'Height', first_layer_height: '1st layer', by_nozzle: 'Layers per nozzle' },
     gcode: { thumbnails: 'Thumbnails', start: 'Start template', end: 'End template', pause: 'Pause template' },
@@ -268,6 +270,8 @@ const en: Shape<typeof fr> = {
     limits: {
       acceleration: 'Empty: no M204 and no accelerations in the time estimate.',
       jerk: 'Speed jump in a corner, for the time estimate; 8 mm/s if empty.',
+      max_nozzle_temperature: 'Highest nozzle setpoint (manufacturer’s spec); empty: 300 °C, reported.',
+      max_bed_temperature: 'Highest bed setpoint (manufacturer’s spec); empty: 120 °C, reported.',
     },
     gcode: {
       thumbnails: '“WxH/PNG” or “WxH/QOI”, separated by commas.',
@@ -342,6 +346,7 @@ const en: Shape<typeof fr> = {
       wrong_format: 'This file is not a FabWeave model.',
       unsupported_version: 'Format version {value} is not supported by this engine.',
       invalid_nozzle: 'Invalid recommended nozzle diameter.',
+      control_character: 'The model name contains a line break or a control character: it would become a command in the G-code.',
       not_loaded: 'No model loaded.',
       warning: 'Model warning.',
       failure: 'The model rejects these values.',
@@ -396,6 +401,7 @@ const en: Shape<typeof fr> = {
       out_of_bed: 'The part overhangs the bed by {value} mm.',
       below_bed: 'The path goes below the bed (Z = {value} mm).',
       too_high: 'The part exceeds the print height (Z = {value} mm).',
+      hop_too_high: 'A Z hop would rise to {value} mm, above the print height.',
       excluded_zone: 'The part runs through an excluded bed zone: {name}.',
       duplicates_skipped: '{count} points identical to the previous one, skipped.',
       invalid_flow: 'Invalid bridge flow: 0 to 2 (1 = nominal flow).',
@@ -417,6 +423,12 @@ const en: Shape<typeof fr> = {
     },
     gcode: {
       pause_missing: 'The model pauses {count} times but the printer profile has no pause template.',
+      out_of_volume: 'The G-code would rise to Z = {value} mm, above the print height: export refused.',
+    },
+    temperature: {
+      nozzle_above_machine: 'Nozzle setpoint of {value} °C above the printer’s limit ({field}).',
+      bed_above_machine: 'Bed setpoint of {value} °C above the printer’s limit ({field}).',
+      limit_unknown: 'The printer profile gives no maximum temperatures: generic limits of 300 °C (nozzle) and 120 °C (bed).',
     },
     quality: {
       short_segments: '{count} segments under {value} mm: a few motor steps, merge them (simplify) if the surface catches.',
@@ -475,6 +487,8 @@ const en: Shape<typeof fr> = {
       invalid_zone: 'Invalid excluded zone {field}: each minimum must be below the maximum.',
       invalid_thumbnail: 'Invalid thumbnail “{detail}”: “WxH/PNG” or “WxH/QOI”, 1,024 px at most.',
       template_error: 'Invalid {field} template.',
+      template_temperature: '{field} template: setpoint of {value} °C above the printer’s limit.',
+      control_character: '{field} contains a line break or a control character: it would become a command in the G-code.',
       review_pending: 'Imported profile: templates to read before exporting (Machine, ⋯ menu, Edit…).',
       invalid_review: 'Unknown field to review: “{detail}”.',
       not_found: 'Profile not found (deleted?): choose another one.',

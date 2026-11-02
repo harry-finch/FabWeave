@@ -279,7 +279,7 @@ Mesurée sur Apple M4 (voir [ADR-0002](adr/0002-format-weave-toml-et-rhai.md)) :
 1. Contrôle les valeurs des paramètres, exécute le script.
 2. Prépare le parcours selon les choix de l'utilisateur (section 6, « Préparation ») : rotation, copies, bordure ou radeau. Place le centre de l'encombrement au point choisi (centre du plateau par défaut) ; refuse une pièce qui dépasse le plateau, descend sous Z = 0, dépasse la hauteur d'impression ou passe dans une zone exclue du plateau (purge, pinces).
 3. Pour chaque mouvement : extrusion relative `E` = section × longueur 3D × multiplicateur de débit ÷ section du filament (goutte : volume × multiplicateur ÷ section du filament, en la durée demandée, plafonnée par le débit max) ; vitesse = demande du script, plafonnée (première couche, machine, débit volumétrique, axe Z) ; ventilateur (première couche, filament, script, ponts) ; durée avec les accélérations du profil (trapèze de vitesse, passage des angles limité par le *jerk*).
-4. Écrit le G-code : vignettes du profil, gabarit de démarrage, `M83`, accélérations, mouvements (seuls les axes qui changent) avec progression `M73 P R` et changements de couche dans le dialecte du profil, consignes de température après la première couche, gabarit de fin, métadonnées (temps estimé, filament) lues par les imprimantes Prusa.
+4. Écrit le G-code : vignettes du profil, gabarit de démarrage, `G90` et `M83` (réécrits après chaque pause, avec chaque axe et l'avance), accélérations, mouvements (seuls les axes qui changent) avec progression `M73 P R` et changements de couche dans le dialecte du profil, consignes de température après la première couche, gabarit de fin, métadonnées (temps estimé, filament) lues par les imprimantes Prusa.
 
 ## 5. Messages du moteur
 
@@ -302,6 +302,11 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `model.calibration_only` | erreur | Réglage d'essai dans un modèle qui n'est pas d'étalonnage. |
 | `model.calibration` | avertissement | Modèle d'étalonnage : il change la température ou la rétraction du profil. |
 | `path.invalid_temperature_offset`, `path.invalid_retraction` | erreur | Réglage d'essai hors bornes (±30 °C ; rétraction 0–8 mm, 5–100 mm/s ; saut 0–2 mm). |
+| `model.control_character` | erreur | Le nom du modèle contient un retour à la ligne ou un caractère de contrôle : recopié dans le G-code, il y ouvrirait une commande. Un choix d'un paramètre `choice` aussi (`param.invalid_options`). |
+| `path.hop_too_high` | erreur | Un saut en Z (déplacement initial, déplacement avec rétraction) monterait au-dessus de `max_height` (`value` : Z atteint). Le saut n'est jamais réduit. |
+| `gcode.out_of_volume` | erreur | Dernier contrôle de l'émetteur : un Z écrit dépasse `max_height` (ne devrait jamais arriver après les contrôles du plan). |
+| `temperature.nozzle_above_machine`, `temperature.bed_above_machine` | erreur | Consigne du filament (première couche, suivantes, palpage, attente, décalage d'essai compris) au-dessus de `limits.max_nozzle_temperature` ou `max_bed_temperature` (`value` : consigne). |
+| `temperature.limit_unknown` | info | Le profil d'imprimante ne donne pas ses plafonds : 300 °C pour la buse, 120 °C pour le plateau. |
 | `gcode.pause_missing` | erreur | Le modèle fait des pauses mais le profil d'imprimante n'a pas de gabarit `pause` (export refusé). |
 | `points.invalid_count`, `points.invalid_value`, `points.index_out_of_range`, `points.empty` | erreur | Argument invalide d'une fonction de points (nombre de segments, rayon…). |
 | `model.warning` | avertissement | `warn()` du modèle (son texte, sa ligne). |
@@ -330,6 +335,8 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `setup.invalid`, `setup.out_of_range`, `setup.too_many_copies`, `setup.high_flow_unavailable`, `setup.abrasive_unavailable` | erreur | Préparation refusée (valeur hors domaine, buse non proposée par l'imprimante). |
 | `copies.too_close`, `copies.too_tall`, `copies.clearance_unknown` | erreur | Copies pièce par pièce impossibles : écart sous le rayon de dégagement de la tête, pièce plus haute que l'espace libre sous le portique, dégagement absent du profil. |
 | `adhesion.skipped` | avertissement | Bordure ou radeau non ajouté (empreinte de la première couche introuvable). |
+| `profile.control_character` | erreur | Nom, `model`, `plate` ou `type` d'un profil avec un retour à la ligne ou un caractère de contrôle. |
+| `profile.template_temperature` | erreur | Un gabarit rendu écrit une consigne au-dessus des plafonds de l'imprimante (`M104`, `M109`, `M140`, `M190` en `S` ou `R`, `SET_HEATER_TEMPERATURE`), à l'export. |
 | `profile.review_pending` | erreur | Imprimante importée d'un trancheur dont les gabarits n'ont pas été relus (`[printer] review`) : le parcours se montre, le G-code n'est pas exporté. |
 | `import.no_profile`, `import.process_profile`, `import.invalid_json` | erreur | Import : aucun profil d'imprimante ni de filament dans le fichier ; réglages d'impression (sans équivalent) ; JSON illisible (ligne, colonne). |
 
@@ -344,7 +351,7 @@ Deux fichiers TOML, lus strictement comme l'en-tête des modèles : `profiles/pr
 | `[printer]` | `id`, `name` (texte, ou table par langue `{ fr = "…", en = "…" }`), `model` (annoncé au firmware : `M862.3` des Prusa, `printer_model_id` du paquet Bambu, `C13` pour la X1E), `firmware` (`prusa`, `marlin`, `klipper`, `bambu` ; tout autre nom est refusé), `source`, `review` (facultatif : `["gcode.start", "gcode.end"]`, gabarits à relire, posé par l'import ; tant qu'il en reste, `profile.review_pending` bloque l'export) |
 | `[bed]` | `size = [x, y]` (diamètre deux fois pour un plateau rond), `shape` (`"rectangle"` par défaut, ou `"circle"`), `max_height`, `origin = "corner"` ou `"center"`, `plate` (facultatif : type de plaque, variable `bed_type` ; Bambu Lab : `"Textured PEI Plate"`, `"Cool Plate"`, `"Engineering Plate"`, `"High Temp Plate"`), `exclude` (facultatif : zones interdites à la pièce, `{ name = { fr, en }, min = [x, y], max = [x, y] }` en repère machine ; dessinées hachurées sur le plateau ; erreur `path.excluded_zone` si un mouvement imprimé y passe) |
 | `[nozzle]` | `diameter`, `high_flow`, `abrasive` (buse livrée) ; `choices` (diamètres proposés par le sélecteur de buse), `high_flow_available`, `abrasive_available` (l'imprimante accepte ces buses) ; `clearance_radius`, `clearance_height` (dégagement de la tête pour les copies pièce par pièce : rayon autour de la buse, hauteur libre sous le portique ; `extruder_clearance_*` des trancheurs) ; `cone_angle` et `cone_height` (cône de dégagement, pente maximale en degrés de 0 à 90 exclus, hauteur en mm ; transmis au script et vérifiés par le garde-buse) ; tous facultatifs |
-| `[limits]` | `max_print_speed`, `travel_speed`, `max_z_speed` (mm/s) ; facultatifs : `acceleration` (impression, mm/s²), `travel_acceleration` et `first_layer_acceleration` (sinon `acceleration`, qu'ils exigent), `jerk` (saut de vitesse dans un angle, mm/s, 8 par défaut ; pour l'estimation seulement) |
+| `[limits]` | `max_print_speed`, `travel_speed`, `max_z_speed` (mm/s) ; facultatifs : `acceleration` (impression, mm/s²), `travel_acceleration` et `first_layer_acceleration` (sinon `acceleration`, qu'ils exigent), `jerk` (saut de vitesse dans un angle, mm/s, 8 par défaut ; pour l'estimation seulement), `max_nozzle_temperature` et `max_bed_temperature` (consignes les plus hautes, °C, fiche du fabricant ; sans elles 300 et 120 °C, `temperature.limit_unknown`) |
 | `[layers]` | `layer_height`, `first_layer_height` (transmis au script) ; `by_nozzle = [{ diameter, layer_height, first_layer_height? }, …]` : hauteurs pour les autres buses |
 | `[gcode]` | `start`, `end` : gabarits (ci-dessous) ; `pause` (facultatif) : commande de pause pour `path.pause` (`M601`, `M400 U1`, `PAUSE`), importée de `pause_print_gcode` / `machine_pause_gcode` ; `thumbnails` (facultatif) : vignettes du parcours intégrées au G-code, `["16x16/QOI", "380x285/PNG"]` comme le réglage de PrusaSlicer (PNG ou QOI, 1 024 px de côté au plus ; `profile.invalid_thumbnail` sinon) |
 
@@ -402,7 +409,7 @@ Variables : `printer_model`, `printer_name`, `filament_type`, `filament_name`, `
 
 ### Dialectes
 
-Ce que le moteur écrit lui-même, selon `firmware` (le reste vient des gabarits) :
+Ce que le moteur écrit lui-même, selon `firmware` (le reste vient des gabarits) ; pour tous, `G90` et `M83` juste avant le parcours et après chaque pause, quoi que fassent les gabarits, et des textes (noms, choix) toujours sur une seule ligne :
 
 | | Prusa | Marlin | Klipper | Bambu Lab |
 | --- | --- | --- | --- | --- |

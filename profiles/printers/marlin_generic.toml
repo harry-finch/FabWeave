@@ -35,6 +35,9 @@ clearance_height = 25.0
 max_print_speed = 150.0
 travel_speed = 150.0
 max_z_speed = 5.0
+# Consignes les plus hautes (prudent pour une machine inconnue).
+max_nozzle_temperature = 260.0
+max_bed_temperature = 100.0
 acceleration = 500.0
 travel_acceleration = 1000.0
 first_layer_acceleration = 500.0

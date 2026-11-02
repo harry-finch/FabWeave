@@ -141,12 +141,12 @@ fn scope(
     [layers, time]: [f64; 2],
 ) -> Scope<'static> {
     let mut s = Scope::new();
-    s.push_constant("printer_model", p.printer.model.clone());
-    s.push_constant("printer_name", p.printer.name.get("fr").to_string());
-    s.push_constant("filament_type", f.filament.material.clone());
-    s.push_constant("filament_name", f.filament.name.get("fr").to_string());
-    s.push_constant("model_name", model_name.to_string());
-    s.push_constant("bed_type", p.bed.plate.clone());
+    s.push_constant("printer_model", one_line(&p.printer.model));
+    s.push_constant("printer_name", one_line(p.printer.name.get("fr")));
+    s.push_constant("filament_type", one_line(&f.filament.material));
+    s.push_constant("filament_name", one_line(f.filament.name.get("fr")));
+    s.push_constant("model_name", one_line(model_name));
+    s.push_constant("bed_type", one_line(&p.bed.plate));
     // Texte de la pause en cours (`path.pause`), donné à chaque pause.
     s.push_constant("pause_text", String::new());
     s.push_constant("nozzle_high_flow", p.nozzle.high_flow);
@@ -190,6 +190,55 @@ fn scope(
     s
 }
 
+/// Plus haute consigne de buse et de plateau écrite en clair dans un gabarit
+/// rendu (`M104`, `M109`, `M140`, `M190`, `S` ou `R` ; Klipper
+/// `SET_HEATER_TEMPERATURE`).
+fn template_temperatures(text: &str) -> [f64; 2] {
+    let mut out = [f64::NEG_INFINITY; 2];
+    for line in text.lines() {
+        let code = line.split(';').next().unwrap_or_default();
+        let mut words = code.split_whitespace();
+        let Some(cmd) = words.next() else { continue };
+        let cmd = cmd.to_ascii_uppercase();
+        let (slot, value) = match cmd.as_str() {
+            "M104" | "M109" | "M140" | "M190" => {
+                let slot = usize::from(matches!(cmd.as_str(), "M140" | "M190"));
+                let v = words
+                    .filter(|w| w.starts_with(['S', 's', 'R', 'r']))
+                    .filter_map(|w| w[1..].parse::<f64>().ok())
+                    .fold(f64::NEG_INFINITY, f64::max);
+                (slot, v)
+            }
+            "SET_HEATER_TEMPERATURE" => {
+                let up = code.to_ascii_uppercase();
+                let slot = usize::from(up.contains("HEATER=HEATER_BED"));
+                let v = up
+                    .split_whitespace()
+                    .filter_map(|w| w.strip_prefix("TARGET="))
+                    .filter_map(|v| v.parse::<f64>().ok())
+                    .fold(f64::NEG_INFINITY, f64::max);
+                (slot, v)
+            }
+            _ => continue,
+        };
+        out[slot] = out[slot].max(value);
+    }
+    out
+}
+
+/// Gabarit rendu dont une consigne dépasse les plafonds de l'imprimante.
+fn check_template_temperatures(field: &str, text: &str, p: &PrinterProfile) -> Result<(), Issue> {
+    let caps = p.limits.max_temperatures();
+    for (v, cap) in template_temperatures(text).into_iter().zip(caps) {
+        if v > cap {
+            return Err(Issue::error("profile.template_temperature")
+                .field(field.to_string())
+                .value(v));
+        }
+    }
+    Ok(())
+}
+
 fn render(engine: &TemplateEngine, field: &str, t: &str, vars: &Scope) -> Result<String, Issue> {
     engine
         .render(t, vars)
@@ -230,12 +279,22 @@ fn ascii(s: &str) -> String {
         .collect()
 }
 
+/// Texte du modèle ou des profils recopié dans le G-code (commentaire ou
+/// variable de gabarit) : jamais plus d'une ligne. Les caractères de contrôle
+/// sont refusés à la lecture (`model.control_character`,
+/// `profile.control_character`) ; ceci garantit qu'aucun ne passe.
+fn one_line(s: &str) -> String {
+    s.chars()
+        .map(|c| if c.is_control() { ' ' } else { c })
+        .collect()
+}
+
 fn param_text(v: &ParamValue) -> String {
     match v {
         ParamValue::Float(f) => num(*f, 4),
         ParamValue::Int(i) => i.to_string(),
         ParamValue::Bool(b) => b.to_string(),
-        ParamValue::Choice(s) => s.clone(),
+        ParamValue::Choice(s) => one_line(s),
     }
 }
 
@@ -248,6 +307,8 @@ struct State {
     fan: Option<u8>,
     /// Filament retiré (mm), à remettre avant d'imprimer ; 0 : détendu.
     retracted: f64,
+    /// Z le plus haut écrit par le parcours (sauts compris).
+    max_z: f64,
 }
 
 impl State {
@@ -266,6 +327,9 @@ impl State {
                     cmd.push_str([" X", " Y", " Z"][i]);
                     cmd.push_str(&s);
                     *last = s;
+                    if i == 2 {
+                        self.max_z = self.max_z.max(*v);
+                    }
                 }
             }
         }
@@ -273,18 +337,17 @@ impl State {
             cmd.push_str(" E");
             cmd.push_str(&num(e, 5));
         }
+        if cmd.len() == 2 {
+            // Rien ne bouge : la vitesse n'est pas écrite, et reste à écrire
+            // au prochain mouvement.
+            return;
+        }
         if let Some(v) = speed {
             let f = (v * 60.0).round() as i64;
             if f != self.f {
                 cmd.push_str(&format!(" F{f}"));
                 self.f = f;
             }
-        }
-        if cmd.len() > 2
-            && !(cmd.contains('X') || cmd.contains('Y') || cmd.contains('Z') || cmd.contains('E'))
-        {
-            // Seule la vitesse change : rien à écrire.
-            return;
         }
         if cmd.len() > 2 {
             g.push_str(&cmd);
@@ -428,11 +491,13 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
     let r = &f.retraction;
     let lim = &p.limits;
     let engine = TemplateEngine::new();
-    let model_name = job.model.meta.name.get("fr").to_string();
+    let model_name = one_line(job.model.meta.name.get("fr"));
     let layers = layer_starts(job);
     let vars = template_scope(p, f, plan, &model_name, layers.len());
-    let start = render(&engine, "gcode.start", &p.gcode.start, &vars);
-    let end = render(&engine, "gcode.end", &p.gcode.end, &vars);
+    let start = render(&engine, "gcode.start", &p.gcode.start, &vars)
+        .and_then(|t| check_template_temperatures("gcode.start", &t, p).map(|_| t));
+    let end = render(&engine, "gcode.end", &p.gcode.end, &vars)
+        .and_then(|t| check_template_temperatures("gcode.end", &t, p).map(|_| t));
     let (start, end) = match (start, end) {
         (Ok(s), Ok(e)) => (s, e),
         (s, e) => return Err([s.err(), e.err()].into_iter().flatten().collect()),
@@ -454,7 +519,9 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
                 .map_or(String::new(), |t| ascii(t.get("fr")));
             let mut sc = vars.clone();
             sc.push_constant("pause_text", text);
-            pauses.push(render(&engine, "gcode.pause", &p.gcode.pause, &sc).map_err(|e| vec![e])?);
+            let t = render(&engine, "gcode.pause", &p.gcode.pause, &sc).map_err(|e| vec![e])?;
+            check_template_temperatures("gcode.pause", &t, p).map_err(|e| vec![e])?;
+            pauses.push(t);
         }
     }
     let mut next_pause = pauses.into_iter();
@@ -502,10 +569,10 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
     }
     line!(g, "; model = {}", model_name);
     for (k, v) in job.params {
-        line!(g, "; param {k} = {}", param_text(v));
+        line!(g, "; param {} = {}", one_line(k), param_text(v));
     }
-    line!(g, "; printer = {}", p.printer.name.get("fr"));
-    line!(g, "; filament = {}", f.filament.name.get("fr"));
+    line!(g, "; printer = {}", one_line(p.printer.name.get("fr")));
+    line!(g, "; filament = {}", one_line(f.filament.name.get("fr")));
     line!(
         g,
         "; nozzle = {}{}{}",
@@ -550,6 +617,7 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
     g.push_str(&start);
     g.push('\n');
     line!(g, "; --- FabWeave : parcours ---");
+    modes(&mut g);
     let mut progress = Progress {
         total: s.time,
         last: None,
@@ -578,6 +646,7 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         f: -1,
         fan: None,
         retracted: 0.0,
+        max_z: f64::NEG_INFINITY,
     };
     // Rétraction d'un point : celle d'essai (modèle de calibration) ou celle
     // du filament.
@@ -651,6 +720,10 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
             }
             if let Some(t) = next_pause.next() {
                 g.push_str(&t);
+                // La macro de pause peut changer les modes, l'avance et la
+                // position : tout est réaffirmé, chaque axe et F réécrits.
+                modes(&mut g);
+                (st.x, st.y, st.z, st.f) = (String::new(), String::new(), String::new(), -1);
             }
             continue;
         }
@@ -764,11 +837,26 @@ pub fn emit(job: &Job) -> Result<String, Vec<Issue>> {
         "; estimated printing time (normal mode) = {}",
         duration(s.time)
     );
-    line!(g, "; filament_type = {}", f.filament.material);
+    line!(g, "; filament_type = {}", one_line(&f.filament.material));
     line!(g, "; nozzle_diameter = {}", num(p.nozzle.diameter, 2));
-    line!(g, "; printer_model = {}", p.printer.model);
+    line!(g, "; printer_model = {}", one_line(&p.printer.model));
     line!(g, "; max_layer_z = {}", num(s.bounds.max[2], 3));
+    // Dernier rempart : le plan refuse déjà ces parcours (`path.too_high`,
+    // `path.hop_too_high`).
+    if st.max_z > p.bed.max_height + 1e-6 {
+        return Err(vec![Issue::error("gcode.out_of_volume")
+            .field("printer.bed.max_height")
+            .value(st.max_z)]);
+    }
     Ok(g)
+}
+
+/// Coordonnées absolues et extrusion relative, quoi qu'aient laissé le
+/// gabarit de démarrage ou une macro de pause : les `E` du parcours sont
+/// relatifs.
+fn modes(g: &mut String) {
+    line!(g, "G90 ; FabWeave : coordonnées absolues");
+    line!(g, "M83 ; FabWeave : extrusion relative");
 }
 
 #[cfg(test)]
@@ -898,6 +986,9 @@ p",
         // Encombrement 40 × 30 centré sur le plateau 250 × 210 : décalage (105, 90).
         let expected = [
             // Accélérations de la première couche (impression, déplacements).
+            // Modes réaffirmés après le gabarit de démarrage (AUD-003).
+            "G90 ; FabWeave : coordonnées absolues",
+            "M83 ; FabWeave : extrusion relative",
             "M204 P500 T4000",
             // Déplacement initial : rétraction, montée, déplacement, descente.
             "G1 E-0.7 F2100",
@@ -1136,5 +1227,176 @@ p",
         let _ = printer();
         let _ = crate::testing::core_one();
         let _ = crate::testing::petg();
+    }
+
+    /// G-code du parcours d'essai, avec ces profils et ce modèle.
+    fn export(model: &str, printer: &str, filament: &str) -> Result<String, Vec<Issue>> {
+        let mut w = crate::Workbench::default();
+        w.set_printer(printer).map_err(|e| e.clone())?;
+        w.set_filament(filament)?;
+        w.load_model(model)?;
+        let ev = w.evaluate(&serde_json::Map::new());
+        w.gcode(&ev)
+    }
+
+    const LINE: &str =
+        "---\nlet p = new_path();\np.travel_to(0, 0, Z);\np.print_to(10, 0, Z, 0.45, 0.2);\np";
+
+    fn model(name: &str, z: f64) -> String {
+        format!(
+            "[meta]\nname = {name}\ncategory = \"t\"\n{}",
+            LINE.replace('Z', &z.to_string())
+        )
+    }
+
+    #[test]
+    fn text_never_becomes_a_command() {
+        // Retour à la ligne dans le nom : refusé à la lecture.
+        for name in [
+            "\"a\\nM117 X\"",
+            "\"a\\rM117 X\"",
+            "{ fr = \"a\", en = \"b\\nG28\" }",
+        ] {
+            let e =
+                export(&model(name, 0.2), crate::testing::MK4S, crate::testing::PLA).unwrap_err();
+            assert_eq!(e[0].code, "model.control_character", "{name}");
+        }
+        let choice = "[meta]\nname = \"t\"\ncategory = \"t\"\n[params.c]\ntype = \"choice\"\nlabel = \"c\"\noptions = [\"a\\nG28\"]\ndefault = \"a\\nG28\"\n";
+        let e = export(
+            &format!("{choice}{}", LINE.replace('Z', "0.2")),
+            crate::testing::MK4S,
+            crate::testing::PLA,
+        )
+        .unwrap_err();
+        assert!(e.iter().any(|i| i.code == "param.invalid_options"), "{e:?}");
+        // Et dans les profils.
+        let printer =
+            crate::testing::MK4S.replacen("model = \"MK4S\"", "model = \"MK4S\\nG28\"", 1);
+        let e = export(&model("\"t\"", 0.2), &printer, crate::testing::PLA).unwrap_err();
+        assert_eq!(e[0].code, "profile.control_character");
+        let filament = crate::testing::PLA.replacen("type = \"PLA\"", "type = \"PLA\\r\\nG28\"", 1);
+        let e = export(&model("\"t\"", 0.2), crate::testing::MK4S, &filament).unwrap_err();
+        assert_eq!(e[0].code, "profile.control_character");
+        // Rempart de l'émetteur : jamais plus d'une ligne.
+        assert_eq!(one_line("a\nG28\r\tb"), "a G28  b");
+    }
+
+    #[test]
+    fn no_hop_goes_above_the_print_volume() {
+        // MK4S : 220 mm. Un point à 219,9 mm : le saut initial (0,6 mm)
+        // dépasserait ; refus, et l'export aussi.
+        let e = export(
+            &model("\"t\"", 219.9),
+            crate::testing::MK4S,
+            crate::testing::PLA,
+        )
+        .unwrap_err();
+        assert!(e.iter().any(|i| i.code == "path.hop_too_high"), "{e:?}");
+        // Un déplacement avec saut près du sommet.
+        let src = "[meta]\nname = \"t\"\ncategory = \"t\"\n---\nlet p = new_path();\np.travel_to(0, 0, 0.2);\np.print_to(10, 0, 0.2, 0.45, 0.2);\np.print_to(10, 0, 219.9, 0.45, 0.2);\np.travel_to(50, 0, 219.9);\np.print_to(60, 0, 219.9, 0.45, 0.2);\np";
+        let e = export(src, crate::testing::MK4S, crate::testing::PLA).unwrap_err();
+        assert!(e.iter().any(|i| i.code == "path.hop_too_high"), "{e:?}");
+        // Plus bas, tout passe, et aucun Z écrit ne dépasse.
+        let g = export(
+            &model("\"t\"", 200.0),
+            crate::testing::MK4S,
+            crate::testing::PLA,
+        )
+        .unwrap();
+        let path = &g
+            [g.find("; --- FabWeave : parcours").unwrap()..g.find("; --- FabWeave : fin").unwrap()];
+        for z in path
+            .split_whitespace()
+            .filter_map(|w| w.strip_prefix('Z'))
+            .filter_map(|v| v.parse::<f64>().ok())
+        {
+            assert!(z <= 220.0, "Z{z}");
+        }
+    }
+
+    #[test]
+    fn extrusion_is_relative_whatever_the_templates_say() {
+        // Gabarits en M82 et G91, pause qui laisse G91 : le parcours repasse
+        // en G90 / M83 avant de bouger.
+        let printer = crate::testing::MK4S.replace("M83", "M82\nG91").replacen(
+            "M601\n",
+            "M601\nG91\nM82\n",
+            1,
+        );
+        let src = "[meta]\nname = \"t\"\ncategory = \"t\"\n---\nlet p = new_path();\np.travel_to(0, 0, 0.2);\np.print_to(10, 0, 0.2, 0.45, 0.2);\np.pause(\"x\");\np.print_to(20, 0, 0.2, 0.45, 0.2);\np";
+        let g = export(src, &printer, crate::testing::PLA).unwrap();
+        let body = &g[g.find("; --- FabWeave : parcours").unwrap()..];
+        let lines: Vec<&str> = body.lines().collect();
+        let modes = |from: usize| {
+            let m = lines[from..]
+                .iter()
+                .position(|l| l.starts_with("M83"))
+                .unwrap()
+                + from;
+            let first_move = lines[from..]
+                .iter()
+                .position(|l| l.starts_with("G1"))
+                .unwrap()
+                + from;
+            assert!(m < first_move, "{:?}", &lines[from..first_move + 1]);
+        };
+        modes(0);
+        let pause = lines.iter().position(|l| l.starts_with("M601")).unwrap();
+        modes(pause);
+        // Après la pause, X, Y, Z et F sont réécrits.
+        let next = lines[pause..]
+            .iter()
+            .find(|l| l.starts_with("G1 X"))
+            .unwrap();
+        assert!(
+            next.contains(" Y") && next.contains(" Z") && next.contains(" F"),
+            "{next}"
+        );
+    }
+
+    #[test]
+    fn temperatures_stay_under_the_machine_limits() {
+        let ok = model("\"t\"", 0.2);
+        // Filament à 999 °C : refusé.
+        let hot = crate::testing::PLA.replacen("first_layer = 215.0", "first_layer = 999.0", 1);
+        let e = export(&ok, crate::testing::MK4S, &hot).unwrap_err();
+        assert!(
+            e.iter()
+                .any(|i| i.code == "temperature.nozzle_above_machine"),
+            "{e:?}"
+        );
+        // Plateau au-delà des 120 °C de la MK4S.
+        let bed = crate::testing::PLA.replacen("bed = 60.0", "bed = 130.0", 1);
+        let e = export(&ok, crate::testing::MK4S, &bed).unwrap_err();
+        assert!(
+            e.iter().any(|i| i.code == "temperature.bed_above_machine"),
+            "{e:?}"
+        );
+        // Consigne écrite en clair dans un gabarit.
+        let printer = crate::testing::MK4S.replacen("M83", "M83\nM104 S350", 1);
+        let e = export(&ok, &printer, crate::testing::PLA).unwrap_err();
+        assert!(
+            e.iter().any(|i| i.code == "profile.template_temperature"),
+            "{e:?}"
+        );
+        // Profil sans plafond : générique, signalé.
+        let bare: String = crate::testing::MK4S
+            .lines()
+            .filter(|l| {
+                !l.starts_with("max_nozzle_temperature") && !l.starts_with("max_bed_temperature")
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let mut w = crate::Workbench::default();
+        w.set_printer(&bare).unwrap();
+        w.set_filament(crate::testing::PLA).unwrap();
+        w.load_model(&ok).unwrap();
+        let ev = w.evaluate(&serde_json::Map::new());
+        assert!(ev
+            .issues
+            .iter()
+            .any(|i| i.code == "temperature.limit_unknown"));
+        assert!(w.gcode(&ev).is_ok());
+        assert_eq!(template_temperatures("M104 S200\nM190 R95 ; plateau\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=110"), [200.0, 110.0]);
     }
 }

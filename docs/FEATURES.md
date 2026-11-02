@@ -50,7 +50,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | --- | --- | --- | --- |
 | ENG-01 | Bac à sable Rhai : limites d'opérations, de profondeur, de points ; aucun accès fichier ni réseau | v0.1 | fait |
 | ENG-02 | Section du boudin (stade si W > H, rectangle sinon) × longueur 3D → volume → `E` selon le diamètre et le multiplicateur de débit | v0.1 | fait |
-| ENG-03 | Extrusion relative (`M83`) | v0.1 | fait |
+| ENG-03 | Extrusion relative (`M83`), réaffirmée par le moteur avec `G90` après le démarrage et après chaque pause (AUD-003, 02/11/2026) | v0.1 | fait |
 | ENG-04 | Centrage automatique sur le plateau (origine au coin ou au centre) ; dépassement bloquant | v0.1 | fait |
 | ENG-05 | Vitesse = vitesse nominale du filament × facteur du script ; première couche ralentie | v0.1 | fait |
 | ENG-06 | Plafond de débit volumétrique (mm³/s) : vitesse réduite, segments comptés et signalés | v0.1 | fait |
@@ -142,8 +142,9 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 
 | Id | Fonction | Jalon | État |
 | --- | --- | --- | --- |
-| SAFE-01 | Export refusé si le script échoue ou si la pièce sort du volume | v0.1 | fait |
-| SAFE-02 | Plafonds du profil jamais dépassés (débit, Z, températures) | v0.1 | fait |
+| SAFE-01 | Export refusé si le script échoue ou si la pièce sort du volume, sauts en Z compris (AUD-002, 02/11/2026) | v0.1 | fait |
+| SAFE-02 | Plafonds du profil jamais dépassés : débit, vitesse Z (v0.1) ; températures de la buse et du plateau, gabarits compris (AUD-004, 02/11/2026 : annoncé « fait » sans plafond thermique jusque-là) | v0.1 | fait |
+| SAFE-07 | Aucun texte du modèle ou des profils ne devient une commande : caractères de contrôle refusés à la lecture, une seule ligne à l'écriture (AUD-001) | v0.9 | fait |
 | SAFE-03 | Garde-buse : carte de hauteur, bout de la buse, cône et tête ; heurts surlignés, comptés, export refusé ; frôlements signalés (ADR-0008, proposée) | v0.5 | fait |
 | SAFE-04 | Segments trop courts / trop nombreux par seconde (planificateur), signalés | v0.5 | fait |
 | SAFE-05 | Porte-à-faux, ponts trop longs, largeur et hauteur incohérentes avec la buse, première couche trop fine ou décollée, signalés | v0.5 | fait |
@@ -170,7 +171,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | --- | --- | --- | --- |
 | DESK-01 | `fabweave check | stats | export` (calcul aux valeurs par défaut et aux bornes, `--json` ; aux bornes, pièce hors plateau et `fail` du modèle tolérés ; `--set` garde en texte la valeur d'un `choice`) | v0.2 | fait |
 | DESK-02 | Rechargement à chaud de `models/` et `profiles/` en développement (fichier modifié ou ajouté, même dans un nouveau dossier) | v0.2 | fait |
-| DESK-03 | Application Tauri, dossier de modèles surveillé | v0.6 | prévu |
+| DESK-03 | Application Tauri : macOS faite (v0.9-beta1) ; Windows, Linux et dossier de modèles surveillé à faire | v0.6 | en cours |
 | DESK-04 | Projet `.fabweave.json`, projet embarqué dans le G-code | v0.6 | prévu |
 | DESK-05 | Envoi à l'imprimante (PrusaLink, OctoPrint, Moonraker) | après v1.0 | prévu |
 | DESK-06 | Serveur MCP (stdio) pour un agent IA | après v1.0 | prévu |

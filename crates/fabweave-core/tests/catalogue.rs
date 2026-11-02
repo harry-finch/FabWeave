@@ -145,6 +145,7 @@ fn every_model_survives_its_parameter_bounds() {
                             i.code,
                             "path.out_of_bed"
                                 | "path.too_high"
+                                | "path.hop_too_high"
                                 | "model.failure"
                                 | "guard.nozzle_collision"
                                 | "guard.head_collision"

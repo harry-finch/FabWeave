@@ -488,3 +488,29 @@ Reprise de la feuille de route pendant l'impression de la lampe à coussins.
 
 **Choix de l'utilisateur.** DESK-05 et DESK-06 sortent de la v0.6 et passent après la v1.0, sans jalon fixé. La v0.6 garde l'application de bureau, les projets et la CLI complète.
 
+## 2026-10-30 — v0.9-beta1 : application macOS
+
+**Choix de l'utilisateur.** Publier une bêta avec l'application macOS maintenant, et s'en servir pour tous les essais restants.
+
+**Choix.** `crates/fabweave-desktop` sur le modèle de FabSpeed, sans serveur local : l'interface est statique et le moteur reste en WebAssembly. Crate hors du workspace : Tauri exige `ui/dist` à la compilation, les tests du moteur n'ont pas à en dépendre ; `resolver = "3"` pour rester en Rust 1.88. Gestionnaire de dépôt de Tauri coupé, sinon l'interface ne reçoit plus les `.weave` déposés. Exports dans Téléchargements, avec « (n) » si le nom existe. Version 0.9.0-beta.1 partout.
+
+**Vérification.** Capture d'écran impossible sur ce poste (droits macOS) : auto-test temporaire injecté dans une build de distribution, retiré ensuite. Moteur prêt, calcul de 55 ms sur le test de débit, WebGL 2, G-code exporté, deuxième fichier renommé « (1) ». Fichiers et données de test effacés.
+
+**Non fait.** Application non notarisée. Les liens `target="_blank"` (source d'un modèle) ne s'ouvrent probablement pas dans la fenêtre, non essayé.
+
+## 2026-11-02 — Audit technique, lot 1 : sécurité de l'export
+
+**Contexte.** Audit d'un agent tiers (AUDIT-01, gardé hors du dépôt). Quatre contre-exemples vérifiés dans le code : nom de modèle qui injecte une commande, saut en Z à 220,2 mm sur une MK4S de 220 mm, export en `M82` avec un gabarit modifié, consigne de 999 °C acceptée. Évaluation point par point avec l'utilisateur : lot 1 avant publication, lots 2 et 3 ensuite ; les optimisations proposées sont écartées faute de mesure qui les justifie, et la course à l'export (AUD-008) est ramenée à peu de chose, car le moteur traite les demandes dans l'ordre et refuse un export en erreur.
+
+**Choix.**
+- AUD-001 : caractères de contrôle refusés à la lecture (`model.control_character`, `profile.control_character`, choix d'un `choice`), et `one_line` sur tout texte écrit dans le G-code ou passé aux gabarits, au cas où.
+- AUD-002 : le plan contrôle le Z des sauts (déplacement initial, déplacements avec rétraction) : `path.hop_too_high`, déplacements en rouge dans la vue. L'émetteur garde le Z le plus haut écrit et refuse au-delà de `max_height` (`gcode.out_of_volume`), en dernier rempart.
+- AUD-003 : `G90` et `M83` écrits par le moteur avant le parcours et après chaque pause ; après une pause, X, Y, Z et F réécrits. Au passage : un `G1` sans mouvement retenait l'avance sans l'écrire, le mouvement suivant pouvait l'omettre ; corrigé.
+- AUD-004 : `limits.max_nozzle_temperature` et `max_bed_temperature` (champs facultatifs du profil v2, éditeur compris) ; valeurs des fiches des fabricants validées par l'utilisateur (MK4S et CORE One 290 / 120, X1E 320 / 120, A1 et P1S 300 / 100, génériques 260 / 100). Sans elles, 300 / 120 et `temperature.limit_unknown`. Contrôle de toutes les consignes du filament, décalages d'essai compris, et des consignes écrites en clair dans les gabarits rendus (`profile.template_temperature`). SAFE-02 annonçait les températures « faites » sans plafond : corrigé dans FEATURES.
+- AUD-012 : README (état, Node exact, application macOS) ; STATUS (couverture exacte des tests du catalogue).
+
+**Vérification.** Quatre tests rejouent les sondes de l'audit et leurs variantes (CR, CRLF, nom par langue, choix, profils ; saut initial et saut de déplacement ; gabarits en `M82` / `G91` et pause qui les change ; 999 °C, plateau, gabarit à 350 °C, profil sans plafond).
+
+## 2026-11-02 — Publication de la v0.9-beta1
+
+À la demande de l'utilisateur, pour la faire tester par un collègue : commit de l'application macOS et du lot 1 de l'audit, push de `main`, tag `v0.9.0-beta.1` et pré-version GitHub avec le DMG (Apple Silicon, signature ad hoc). Les essais de l'utilisateur continuent pendant la bêta. README : téléchargement et ouverture d'une application non notarisée (« Ouvrir quand même » dans Réglages Système ; le clic droit › Ouvrir ne suffit plus depuis macOS 15).

@@ -90,6 +90,8 @@ export const PRINTER_GROUPS: Group[] = [
       opt('limits.travel_acceleration', 'limits.travel_acceleration', 'mm/s²'),
       opt('limits.first_layer_acceleration', 'limits.first_layer_acceleration', 'mm/s²'),
       opt('limits.jerk', 'limits.jerk', 'mm/s', 1, 1),
+      opt('limits.max_nozzle_temperature', 'limits.max_nozzle_temperature', '°C', 5, 0),
+      opt('limits.max_bed_temperature', 'limits.max_bed_temperature', '°C', 5, 0),
     ],
   },
   {

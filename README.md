@@ -6,11 +6,11 @@ Inspiré de [FullControl](https://fullcontrol.xyz) (Andrew Gleadall, Loughboroug
 
 Les modèles sont de simples fichiers texte `.weave` : un en-tête TOML (description, curseurs) et un script [Rhai](https://rhai.rs) qui trace le parcours. Un modèle s'écrit à la main ou se fait générer par une IA à partir d'une spécification courte, puis se glisse dans l'application.
 
-> État : **v0.2 validée** (catalogue, ouverture de `.weave`, outil `fabweave`, prompt pour IA) ; **v0.3 en cours** : imprimantes et filaments (Bambu Lab X1E, profils complets, buse, placement, adhésion, édition et import des profils), catalogue de vingt-quatre modèles. Voir [STATUS.md](STATUS.md) et [ROADMAP.md](ROADMAP.md).
+> État : **0.9.0-beta.1**, bêta avec une application macOS. Vingt-quatre modèles, sept imprimantes (Prusa MK4S et CORE One, Bambu Lab X1E, A1 et P1S, Marlin et Klipper génériques), cinq filaments, import des profils de PrusaSlicer, Bambu Studio et OrcaSlicer, vue 3D en volume, garde-buse. Validé par des impressions : la MK4S ; à valider pendant la bêta : la CORE One, la X1E et plusieurs modèles. Détail dans [STATUS.md](STATUS.md) et [ROADMAP.md](ROADMAP.md).
 
 ## Lancer
 
-Prérequis : Rust 1.88 (installé automatiquement par `rust-toolchain.toml`) avec la cible `wasm32-unknown-unknown`, [wasm-pack](https://rustwasm.github.io/wasm-pack/), Node 20+.
+Prérequis : Rust 1.88 (installé automatiquement par `rust-toolchain.toml`) avec la cible `wasm32-unknown-unknown`, [wasm-pack](https://rustwasm.github.io/wasm-pack/), Node `^20.19.0` ou `>=22.12.0` (exigé par Vite).
 
 ```bash
 rustup target add wasm32-unknown-unknown
@@ -44,6 +44,16 @@ La préparation de l'impression se choisit aussi en ligne de commande (buse, pla
 cargo run --release -p fabweave-cli -- export models/mecanique/hex_adapter.weave -o hex.gcode --nozzle 0.6 --high-flow --brim 5 --copies 2x1 --rotate 30
 ```
 
+Application macOS : le DMG de la bêta est dans les [versions publiées](https://github.com/harry-finch/FabWeave/releases) (Apple Silicon seulement). Elle n'est pas notarisée : au premier lancement, macOS refuse de l'ouvrir ; aller dans Réglages Système › Confidentialité et sécurité, puis « Ouvrir quand même ». Si macOS la dit « endommagée », lancer `xattr -dr com.apple.quarantine /Applications/FabWeave.app` dans le Terminal.
+
+Pour la construire :
+
+```bash
+cd ui && npm run desktop
+```
+
+L'application et le DMG sont dans `crates/fabweave-desktop/target/release/bundle/`. Les exports vont dans Téléchargements ; préférences et « Mes modèles » restent propres à l'application, séparés de ceux du navigateur.
+
 Faire écrire un modèle par une IA : donner [docs/PROMPT_MODELE_IA.md](docs/PROMPT_MODELE_IA.md) comme instructions, puis vérifier le fichier obtenu avec `fabweave check`.
 
 ## Développer
@@ -63,6 +73,7 @@ Mesures de performance : `cargo run --release -p fabweave-core --example bench` 
 | `crates/fabweave-core` | Moteur pur : lecture des `.weave`, exécution Rhai en bac à sable, parcours, physique de l'extrusion, contrôles, G-code |
 | `crates/fabweave-wasm` | Le moteur pour l'interface (WebAssembly, appelé depuis un Web Worker) |
 | `crates/fabweave-cli` | Outil `fabweave` : vérifier (`check`), mesurer (`stats`) et exporter (`export`) un `.weave` sans interface |
+| `crates/fabweave-desktop` | Application de bureau (Tauri) : l'interface dans une fenêtre ; hors du workspace Rust |
 | `models/` | Le catalogue de modèles `.weave`, par catégorie |
 | `profiles/` | Profils imprimantes et filaments (TOML) |
 | `ui/` | Interface Svelte 5 (skill `fab-design-system`) |

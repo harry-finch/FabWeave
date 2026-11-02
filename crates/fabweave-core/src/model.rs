@@ -36,6 +36,16 @@ impl Text {
                 .map_or("", String::as_str),
         }
     }
+
+    /// Un caractère de contrôle (retour à la ligne…) dans l'une des langues :
+    /// recopié dans le G-code, il y ouvrirait une ligne de commande.
+    pub fn has_control(&self) -> bool {
+        let bad = |s: &str| s.chars().any(char::is_control);
+        match self {
+            Text::Plain(s) => bad(s),
+            Text::Localized(m) => m.values().any(|s| bad(s)),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -258,6 +268,9 @@ pub fn parse(source: &str) -> Result<Model, Vec<Issue>> {
     {
         issues.push(Issue::error("model.invalid_nozzle").field("meta.recommended_nozzle"));
     }
+    if raw.meta.name.has_control() {
+        issues.push(Issue::error("model.control_character").field("meta.name"));
+    }
 
     let mut params = IndexMap::new();
     for (id, def) in raw.params {
@@ -445,7 +458,11 @@ fn convert_param(
                         },
                     })
                     .collect();
-                if options.is_empty() || options.iter().any(|o| o.value.is_empty()) {
+                if options.is_empty()
+                    || options
+                        .iter()
+                        .any(|o| o.value.is_empty() || o.value.chars().any(char::is_control))
+                {
                     issues.push(err("param.invalid_options", opts.span()));
                 }
                 for (i, o) in options.iter().enumerate() {

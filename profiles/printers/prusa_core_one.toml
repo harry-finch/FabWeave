@@ -36,6 +36,9 @@ clearance_height = 33.0
 max_print_speed = 200.0
 travel_speed = 180.0
 max_z_speed = 12.0
+# Consignes les plus hautes (fiche technique Prusa).
+max_nozzle_temperature = 290.0
+max_bed_temperature = 120.0
 # Accélérations de PrusaSlicer (profils 0.20mm STRUCTURAL) : celle des parois
 # extérieures, les modèles FabWeave étant pour l'essentiel des parois uniques.
 acceleration = 1500.0

@@ -154,11 +154,20 @@ Critères d'acceptation : cas de collision connus détectés (tests) ; aucun fau
 
 ## v0.6 — Bureau et projets (jalon 6)
 
-- Application **Tauri 2** (macOS, Windows, Linux) : **dossier de modèles surveillé** (un `.weave` déposé ou modifié apparaît aussitôt), fenêtres natives, fichiers récents.
+- Application **Tauri 2** (macOS faite pour la v0.9-beta1 ; Windows, Linux) : **dossier de modèles surveillé** (un `.weave` déposé ou modifié apparaît aussitôt), fenêtres natives, fichiers récents.
 - **Projet** `.fabweave.json` (modèle embarqué, valeurs, profils) ; projet embarqué en commentaire dans le G-code (glisser un G-code FabWeave le rouvre).
 - **CLI complète**.
 
 Reportés après la v1.0 le 30/10/2026 : envoi à l'imprimante et serveur MCP.
+
+## v0.9-beta1 — Bêta pour macOS · *en cours*
+
+Décidée par l'utilisateur le 30/10/2026 : publier maintenant une bêta avec l'application macOS, qui sert à tester et valider tout ce qui reste ouvert (v0.3, v0.4, v0.5).
+
+1. **Application macOS** (Tauri, Apple Silicon, signature ad hoc, non notarisée) : interface et moteur WebAssembly dans une fenêtre, exports dans Téléchargements. *Faite le 30/10/2026 : `npm run desktop`.*
+2. **Audit technique** (AUDIT-01, 02/11/2026, rapport hors dépôt), lot 1 avant publication : textes jamais transformés en commandes (AUD-001), sauts en Z dans le volume (AUD-002), `G90` / `M83` réaffirmés par le moteur (AUD-003), plafonds de température par imprimante (AUD-004), README à jour (AUD-012). *Fait le 02/11/2026.* Lot 2 ensuite : budgets de calcul, CI, sauvegardes, identifiants des modèles personnels, export CLI atomique. Lot 3 plus tard : moteur relançable, CSP, tests de l'interface, notarisation.
+3. ⏸ Essais de l'utilisateur avec cette application.
+4. Publication du dépôt et de la bêta. *Faite le 02/11/2026, à la demande de l'utilisateur, avant la fin de ses essais, pour la faire tester par un collègue : pré-version GitHub `v0.9.0-beta.1` avec le DMG.*
 
 ## v1.0 — Publication
 

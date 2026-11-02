@@ -1,7 +1,7 @@
 {
   "name": "fabweave-ui",
   "private": true,
-  "version": "0.1.0-dev",
+  "version": "0.9.0-beta.1",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
@@ -10,7 +10,8 @@
     "build": "npm run wasm && vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "bench": "node scripts/bench-wasm.mjs"
+    "bench": "node scripts/bench-wasm.mjs",
+    "desktop": "cd ../crates/fabweave-desktop && npm exec --yes --package=@tauri-apps/cli@2.12.3 -- tauri build"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",

@@ -9,10 +9,12 @@
 
 # Recherche (conversations, documents de travail) : hors dépôt public
 /docs/research/
+/docs/AUDIT-*.md
 
 # Builds de l'application de bureau
 /dist-desktop/
 /crates/fabweave-desktop/gen/
+/crates/fabweave-desktop/target/
 
 # G-code de test produits pendant le développement
 *.gcode

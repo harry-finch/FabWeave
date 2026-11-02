@@ -33,3 +33,4 @@ FabWeave : générateur de **G-code direct** à partir de **modèles paramétriq
 - Mesures : `cargo run --release -p fabweave-core --example bench`, `cd ui && npm run bench`.
 - Vérifier un modèle : `cargo run --release -p fabweave-cli -- check <modèle.weave>` (aussi `stats`, `export -o <sortie.gcode>`, options `--printer`, `--filament`, `--set id=valeur`, `--json`).
 - Build : `cd ui && npm run build` (moteur compris), puis `npm run preview`.
+- Application macOS : `cd ui && npm run desktop` (sortie dans `crates/fabweave-desktop/target/release/bundle/`). Le crate est hors du workspace : les tests ci-dessus ne le compilent pas.

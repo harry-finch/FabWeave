@@ -101,6 +101,8 @@ export interface PrinterProfile {
     travel_acceleration?: number;
     first_layer_acceleration?: number;
     jerk?: number;
+    max_nozzle_temperature?: number;
+    max_bed_temperature?: number;
   };
   layers: { layer_height: number; first_layer_height: number; by_nozzle?: NozzleLayers[] };
   gcode: { thumbnails?: string[]; start: string; end: string };

@@ -173,6 +173,12 @@ pub struct MachineLimits {
     /// 8 mm/s par défaut.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub jerk: Option<f64>,
+    /// Consigne la plus haute de la buse et du plateau (°C, fiche du
+    /// fabricant) ; sans elle, les plafonds génériques, signalés.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_nozzle_temperature: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_bed_temperature: Option<f64>,
 }
 
 /// Accélérations retenues (mm/s², mm/s).
@@ -185,8 +191,22 @@ pub struct Accelerations {
 }
 
 pub const DEFAULT_JERK: f64 = 8.0;
+/// Plafonds de température d'un profil qui n'en donne pas (°C) : une buse
+/// tout métal et un plateau courants.
+pub const DEFAULT_MAX_NOZZLE_TEMPERATURE: f64 = 300.0;
+pub const DEFAULT_MAX_BED_TEMPERATURE: f64 = 120.0;
 
 impl MachineLimits {
+    /// Plafonds de la buse et du plateau (°C), génériques à défaut.
+    pub fn max_temperatures(&self) -> [f64; 2] {
+        [
+            self.max_nozzle_temperature
+                .unwrap_or(DEFAULT_MAX_NOZZLE_TEMPERATURE),
+            self.max_bed_temperature
+                .unwrap_or(DEFAULT_MAX_BED_TEMPERATURE),
+        ]
+    }
+
     pub fn accelerations(&self) -> Option<Accelerations> {
         self.acceleration.map(|a| Accelerations {
             print: a,
@@ -518,6 +538,14 @@ pub fn read_filament(src: &str) -> Result<FilamentProfile, Vec<Issue>> {
 /// Contrôle des valeurs d'un profil imprimante (domaines, zones, gabarits).
 pub fn check_printer(p: &PrinterProfile) -> Vec<Issue> {
     let mut out = Vec::new();
+    control_characters(
+        &[
+            ("printer.name", p.printer.name.has_control()),
+            ("printer.model", has_control(&p.printer.model)),
+            ("bed.plate", has_control(&p.bed.plate)),
+        ],
+        &mut out,
+    );
     check_format(
         &p.format,
         p.version,
@@ -547,6 +575,8 @@ pub fn check_printer(p: &PrinterProfile) -> Vec<Issue> {
             l.first_layer_acceleration,
         ),
         ("limits.jerk", l.jerk),
+        ("limits.max_nozzle_temperature", l.max_nozzle_temperature),
+        ("limits.max_bed_temperature", l.max_bed_temperature),
         ("nozzle.cone_height", p.nozzle.cone_height),
     ];
     let present: Vec<_> = optional
@@ -644,6 +674,13 @@ pub fn parse_filament(src: &str) -> Result<FilamentProfile, Vec<Issue>> {
 /// Contrôle des valeurs d'un profil filament.
 pub fn check_filament(f: &FilamentProfile) -> Vec<Issue> {
     let mut out = Vec::new();
+    control_characters(
+        &[
+            ("filament.name", f.filament.name.has_control()),
+            ("filament.type", has_control(&f.filament.material)),
+        ],
+        &mut out,
+    );
     check_format(
         &f.format,
         f.version,
@@ -686,6 +723,9 @@ pub fn check_filament(f: &FilamentProfile) -> Vec<Issue> {
         .filter_map(|(k, v)| v.map(|v| (k, v)))
         .collect();
     positive(&flows, &mut out);
+    if let Some(idle) = f.temperature.idle {
+        positive(&[("temperature.idle", idle)], &mut out);
+    }
     non_negative(
         &[
             ("filament.pressure_advance", f.filament.pressure_advance),
@@ -708,6 +748,20 @@ pub fn check_filament(f: &FilamentProfile) -> Vec<Issue> {
         &mut out,
     );
     out
+}
+
+fn has_control(s: &str) -> bool {
+    s.chars().any(char::is_control)
+}
+
+/// Textes recopiés dans le G-code : un retour à la ligne y ouvrirait une
+/// commande.
+fn control_characters(fields: &[(&'static str, bool)], out: &mut Vec<Issue>) {
+    for (field, bad) in fields {
+        if *bad {
+            out.push(Issue::error("profile.control_character").field(*field));
+        }
+    }
 }
 
 /// Profil imprimante écrit en TOML (format et version courants), relu tel
