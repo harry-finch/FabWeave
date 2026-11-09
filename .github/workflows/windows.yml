@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Version publiée où ajouter l'installeur (vide : fichier gardé en artefact seulement)
+        description: "Version publiée où ajouter l'installeur (vide : fichier gardé en artefact seulement)"
         required: false
         type: string
 
