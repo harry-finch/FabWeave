@@ -46,7 +46,9 @@ cargo run --release -p fabweave-cli -- export models/mecanique/hex_adapter.weave
 
 Application macOS : le DMG de la bêta est dans les [versions publiées](https://github.com/harry-finch/FabWeave/releases) (Apple Silicon seulement). Elle n'est pas notarisée : au premier lancement, macOS refuse de l'ouvrir ; aller dans Réglages Système › Confidentialité et sécurité, puis « Ouvrir quand même ». Si macOS la dit « endommagée », lancer `xattr -dr com.apple.quarantine /Applications/FabWeave.app` dans le Terminal.
 
-Pour la construire :
+Application Windows : l'installeur (`.exe`, installation sans droits administrateur) se construit sur GitHub, onglet Actions › « Application Windows » (`.github/workflows/windows.yml`), et s'ajoute à la version publiée. Il n'est pas signé : SmartScreen affiche « Windows a protégé votre ordinateur » ; choisir « Informations complémentaires » puis « Exécuter quand même ». Non encore essayé sur un poste Windows.
+
+Pour construire celle de macOS :
 
 ```bash
 cd ui && npm run desktop

@@ -154,7 +154,7 @@ Critères d'acceptation : cas de collision connus détectés (tests) ; aucun fau
 
 ## v0.6 — Bureau et projets (jalon 6)
 
-- Application **Tauri 2** (macOS faite pour la v0.9-beta1 ; Windows, Linux) : **dossier de modèles surveillé** (un `.weave` déposé ou modifié apparaît aussitôt), fenêtres natives, fichiers récents.
+- Application **Tauri 2** (macOS faite pour la v0.9-beta1 ; Windows : installeur construit par GitHub Actions, à essayer ; Linux) : **dossier de modèles surveillé** (un `.weave` déposé ou modifié apparaît aussitôt), fenêtres natives, fichiers récents.
 - **Projet** `.fabweave.json` (modèle embarqué, valeurs, profils) ; projet embarqué en commentaire dans le G-code (glisser un G-code FabWeave le rouvre).
 - **CLI complète**.
 

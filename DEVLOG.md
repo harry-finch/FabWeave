@@ -514,3 +514,9 @@ Reprise de la feuille de route pendant l'impression de la lampe à coussins.
 ## 2026-11-02 — Publication de la v0.9-beta1
 
 À la demande de l'utilisateur, pour la faire tester par un collègue : commit de l'application macOS et du lot 1 de l'audit, push de `main`, tag `v0.9.0-beta.1` et pré-version GitHub avec le DMG (Apple Silicon, signature ad hoc). Les essais de l'utilisateur continuent pendant la bêta. README : téléchargement et ouverture d'une application non notarisée (« Ouvrir quand même » dans Réglages Système ; le clic droit › Ouvrir ne suffit plus depuis macOS 15).
+
+## 2026-11-09 — Application Windows
+
+**Choix.** Tauri ne se compile pas pour Windows depuis macOS : workflow GitHub Actions manuel (`windows.yml`) sur `windows-latest`, qui construit l'installeur NSIS et l'ajoute à une version publiée. NSIS seul : le MSI refuse une version `0.9.0-beta.1`. Installation par utilisateur (pas de droits administrateur, utile au fablab), français et anglais. Non signé (SmartScreen avertit).
+
+**Non fait.** Aucune exécution du workflow ni essai sous Windows. Signature de code (v1.0).
