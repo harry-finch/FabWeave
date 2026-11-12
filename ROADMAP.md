@@ -1,4 +1,4 @@
-# Feuille de route
+<!-- Généré par FabBoard depuis roadmap/ : ne pas modifier à la main. -->
 
 **But de la v1.0** : une application de bureau (et une version web sans installation) qui reprend le principe de FullControl pour les makers et les fablabs : un **catalogue de modèles paramétriques** dont on règle les curseurs, un **aperçu 3D en direct** du parcours de la buse, et un **G-code direct** adapté à l'imprimante et au filament choisis, sûr pour la machine. Les modèles sont des fichiers `.weave` (en-tête TOML + script Rhai) faciles à écrire à la main ou à faire générer par une IA.
 
@@ -19,192 +19,72 @@ Ce que FabWeave apporte par rapport à FullControl (site et bibliothèque Python
 
 La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md) (chaque fonction y a son identifiant et son jalon). Les points d'arrêt **⏸** sont les moments où le travail s'interrompt pour une validation par l'utilisateur.
 
----
+**Avancement : 4 livrés sur 15** (27 %)
 
-## v0.0 — Fondations · *validée* (24/10/2026)
+## Restant à faire
 
-Dépôt Git, consignes, feuille de route, inventaire des fonctions, décisions d'architecture (ADR-0001 à 0003).
+1. **[R-004 v0.3 — Imprimantes et filaments (jalon 3)](roadmap/items/R-004-v0-3-imprimantes-et-filaments-jalon-3.md)** · À tester · jalon v0.3
+   Chaque machine du fablab a un profil fiable, et l'utilisateur peut créer le sien.
+2. **[R-006 v0.5 — Sécurité et qualité du parcours (jalon 5)](roadmap/items/R-006-v0-5-securite-et-qualite-du-parcours-jalon-5.md)** · À tester · jalon v0.5
+   Garde-buse, qualité des segments et contrôles du parcours, avec la gravité de l'ADR-0008 à valider.
+3. **[R-007 v0.6 — Bureau et projets (jalon 6)](roadmap/items/R-007-v0-6-bureau-et-projets-jalon-6.md)** · Idée · jalon v0.6
+   Application de bureau Tauri 2 avec dossier de modèles surveillé, projet .fabweave.json et CLI complète.
+4. **[R-008 v0.9-beta1 — Bêta pour macOS](roadmap/items/R-008-v0-9-beta1-beta-pour-macos.md)** · À tester · jalon v0.9-beta1
+   Publier une bêta avec l'application macOS pour tester et valider tout ce qui reste ouvert (v0.3, v0.4, v0.5).
+5. **[R-009 Audit technique, lot 2](roadmap/items/R-009-audit-technique-lot-2.md)** · Idée
+   Budgets de calcul, CI, sauvegardes, identifiants des modèles personnels, export CLI atomique.
+6. **[R-010 Audit technique, lot 3](roadmap/items/R-010-audit-technique-lot-3.md)** · Idée
+   Moteur relançable, CSP, tests de l'interface, notarisation.
+7. **[R-011 v1.0 — Publication](roadmap/items/R-011-v1-0-publication.md)** · Idée · jalon v1.0
+   Installeurs signés, version web statique, documentation utilisateur FR / EN et catalogue d'au moins 15 modèles imprimés au fablab.
+8. **[R-012 v1.1 — Habiller un volume (jalon 7)](roadmap/items/R-012-v1-1-habiller-un-volume-jalon-7.md)** · Spécifiée · jalon v1.1
+   Importer un volume 3D (STL, 3MF) et l'habiller d'un motif du catalogue imprimé en une spirale continue.
+9. **[R-013 Envoi à l'imprimante (DESK-05)](roadmap/items/R-013-envoi-a-l-imprimante-desk-05.md)** · Idée
+   Envoi du G-code à l'imprimante (PrusaLink, OctoPrint, Moonraker), optionnel, après la v1.0.
+10. **[R-014 Serveur MCP (DESK-06)](roadmap/items/R-014-serveur-mcp-desk-06.md)** · Idée
+   Serveur MCP (stdio) pour qu'un agent IA crée, vérifie, prévisualise et exporte un modèle, après la v1.0.
+11. **[R-015 v2 — Atelier de formes](roadmap/items/R-015-v2-atelier-de-formes.md)** · Idée · jalon v2
+   Espace pour jouer et prototyper de nouvelles formes sur le format .weave, avec éditeur de code intégré.
 
-## v0.1 — Tranche verticale (jalon 1) · *validée* (24/10/2026 ; vase imprimé sur la CORE One)
+## Actions à faire
 
-**But** : choisir un modèle, bouger ses curseurs, voir le parcours en 3D et imprimer le G-code exporté sur une machine du fablab, de bout en bout.
+- [ ] [A-001](roadmap/actions/A-001-imprimer-un-modele-valide-sur-la-core-one-jalon.md) Imprimer un modèle validé sur la CORE One (jalon v0.3) (tester, R-004)
+- [ ] [A-002](roadmap/actions/A-002-essayer-la-bambu-lab-x1e-par-la-carte-sd-en.md) Essayer la Bambu Lab X1E par la carte SD, en .gcode et en .gcode.3mf (jalon v0.3) (tester, R-004)
+- [ ] [A-003](roadmap/actions/A-003-relever-la-comparaison-des-temps-estimes-avec.md) Relever la comparaison des temps estimés avec PrusaSlicer (critère v0.4) (tester, R-005)
+- [ ] [A-004](roadmap/actions/A-004-valider-le-jalon-v0-5-dont-la-gravite-retenue.md) Valider le jalon v0.5, dont la gravité retenue dans l'ADR-0008 (valider, R-006)
+- [ ] [A-005](roadmap/actions/A-005-mesurer-le-cone-des-buses-du-fablab.md) Mesurer le cône des buses du fablab (fournir, R-006)
+- [ ] [A-006](roadmap/actions/A-006-imprimer-la-seconde-version-de-la-lampe-a.md) Imprimer la seconde version de la lampe à coussins (tester, R-006)
+- [ ] [A-007](roadmap/actions/A-007-essayer-l-application-macos-de-la-beta-v0-9.md) Essayer l'application macOS de la bêta v0.9-beta1 (tester, R-008)
+- [ ] [A-008](roadmap/actions/A-008-essayer-l-installeur-windows-nsis.md) Essayer l'installeur Windows (NSIS) (tester, R-007)
+- [ ] [A-009](roadmap/actions/A-009-valider-la-migration-de-la-feuille-de-route.md) Valider la migration de la feuille de route (valider)
 
-Étapes et points d'arrêt :
+## Livré
 
-1. **Squelette** : workspace Rust (`fabweave-core`, `fabweave-wasm`), interface depuis le kit `fab-design-system`, moteur dans un Web Worker (ADR-0001).
-2. **Format et moteur de script** : lecture du `.weave` (en-tête TOML, séparateur `---`, corps Rhai), paramètres `float` / `int` / `bool`, API minimale du parcours, bac à sable (limites d'opérations et de points), erreurs avec ligne et colonne. **Mesure de performance** de Rhai en WebAssembly sur un parcours de 50 000 et 200 000 points (ADR-0002).
-   ⏸ Validation : spécification du format (`docs/WEAVE_FORMAT.md`, premier jet), chiffres de performance, premier G-code brut relu dans le visualiseur de PrusaSlicer. *Validé le 24/10/2026.*
-3. **Physique et G-code** : section de boudin (stade), `E` relatif, centrage sur le plateau, vitesse nominale × facteur, plafonds de débit volumétrique et de vitesse Z (comptés), première couche ralentie, ventilateur, rétraction et saut en Z sur les déplacements, gabarits de démarrage et de fin avec variables, machine à états (pas de commande redondante), commentaires de métadonnées (temps, filament en mm / g). Profils **Prusa MK4S** et **Prusa Core One** (gabarits de démarrage et de fin d'après les profils officiels, source citée), deux profils filament (PLA, PETG).
-4. **Interface** (squelette déjà en place : kit, worker, curseurs, vue 3D en lignes, mesures, messages, export) : liste de modèles simple ; à gauche le modèle et ses curseurs générés depuis l'en-tête ; au centre la vue 3D en lignes colorées (orbite, déplacement, zoom, cadrer `F`, plateau dessiné) ; à droite l'imprimante, le filament, les mesures (points, longueur, temps estimé, filament, débit max atteint) et les messages ; **Exporter le G-code** (action principale). Reprise du dernier modèle et des valeurs ; FR / EN ; thème clair.
-5. **Identité** : couleur et symbole du logo, planche de variantes.
-   ⏸ Choix du logo par l'utilisateur. *Retenu le 24/10/2026 : deux cercles ondulés entrelacés, bleu FabCAM (`branding/README.md`).*
-6. **Modèle étalon** : le **vase à ondulations** (port de « Ripple Texture Demo » de FullControl, CAT-01) : spirale continue, Z continu, largeur variable.
+### v0.0 : Fondations
 
-Critères d'acceptation :
+- [R-001 v0.0 — Fondations](roadmap/items/R-001-v0-0-fondations.md) · livrée le 2026-10-24
+  Dépôt Git, consignes, feuille de route, inventaire des fonctions et décisions d'architecture (ADR-0001 à 0003).
 
-- `cargo test --workspace`, `cargo clippy --workspace --all-targets` et `npm run check` sans erreur.
-- Le G-code exporté s'ouvre dans le visualiseur G-code de PrusaSlicer : dimensions et position justes, extrusion cohérente (largeur affichée ≈ largeur demandée), temps estimé à ± 15 % de celui de PrusaSlicer.
-- Un modèle de 50 000 points se recalcule pendant le déplacement d'un curseur sans saccade visible (ou passe en calcul au relâchement, signalé dans la barre d'état).
-- ⏸ **Validation de jalon** : le vase imprimé sur la MK4S ou la Core One du fablab.
+### v0.1 : Tranche verticale
 
-## v0.2 — Catalogue et format complet (jalon 2) · *validée* (27/10/2026 ; trois modèles imprimés)
+- [R-002 v0.1 — Tranche verticale (jalon 1)](roadmap/items/R-002-v0-1-tranche-verticale-jalon-1.md) · livrée le 2026-10-24
+  Choisir un modèle, bouger ses curseurs, voir le parcours en 3D et imprimer le G-code exporté sur une machine du fablab, de bout en bout.
 
-**But** : le catalogue devient le cœur de l'application, et le format `.weave` est assez riche et assez documenté pour qu'une IA externe produise des modèles valides du premier coup.
+### v0.2 : Catalogue et format complet
 
-Étapes et points d'arrêt :
+- [R-003 v0.2 — Catalogue et format complet (jalon 2)](roadmap/items/R-003-v0-2-catalogue-et-format-complet-jalon-2.md) · livrée le 2026-10-27
+  Le catalogue devient le cœur de l'application et le format .weave est assez riche et documenté pour qu'une IA produise des modèles valides du premier coup.
 
-1. **Format et API** : paramètres `choice`, messages du modèle (`warn`, `fail`), annotations, ponts, API native de points inspirée de FullControl (formes, transformations, modulation), mesure du gain.
-   ⏸ Validation de l'API et de la spécification (avant d'écrire le catalogue et le prompt pour IA).
-2. **Pour l'IA** : `fabweave-cli check | export | stats`, `docs/PROMPT_MODELE_IA.md`, essai de génération de trois modèles à partir du seul prompt. *Fait le 24/10/2026 : trois modèles sur trois valides au premier essai.*
-3. **Interface du catalogue** : catégories, recherche, vignettes, fiche du modèle, annotations dans la vue 3D, ouverture et glisser-déposer de `.weave`, « Mes modèles ». *Fait le 27/10/2026.*
-4. **Catalogue de départ** d'environ dix modèles. *Fait le 27/10/2026 : onze modèles (CAT-01 à CAT-11, fond des vases CAT-23) ; l'impression par gouttes (CAT-12) passe en v0.3, faute d'extrusion à l'arrêt dans l'API (API-15).*
-5. ⏸ Validation de jalon : trois modèles imprimés. *Validé le 27/10/2026.*
+### v0.4 : Visualisation et analyse
 
-- **Catalogue** : arbre par catégories, recherche, étiquettes, vignettes rendues par l'application, fiche du modèle (description, auteur, source et licence, buse recommandée, temps et matière estimés avec les profils courants).
-- **Format v1 complet** : paramètres `choice` (liste), unités, pas, groupes et `advanced = true` (« ▸ Avancé »), libellés et infobulles FR / EN, avertissements et erreurs émis par le script avec un code (`warn("model.thin_wall", …)`), annotations 3D (`note(x, y, z, "texte")`, comme les repères « Start », « End » de FullControl), points de départ et de fin.
-- **API haut niveau en Rust natif** (rapide, et moins d'erreurs pour une IA) : segments, arcs, cercles, polygones, spirales et hélices, ondes polaires, zigzags, copies (translation, rotation, miroir, répétition en Z), modulation en Z d'un tracé plat, subdivision, `bridge_to`, essuyage.
-- **Modèles de l'utilisateur** : ouvrir ou glisser-déposer un `.weave`, « Mes modèles » mémorisés localement, erreurs du script montrées avec la ligne ; rechargement à chaud du dossier `models/` en développement.
-- **Pour l'IA** : `docs/WEAVE_FORMAT.md` (spécification), `docs/PROMPT_MODELE_IA.md` (prompt système prêt à copier, avec deux exemples complets) et `fabweave-cli check | export | stats` pour qu'un agent vérifie son fichier sans ouvrir l'application.
-- **Fond des vases** : option « Fond » (aucun, 1 ou 2 couches) sur les vases du catalogue, à commencer par le vase à ondulations : couches pleines qui épousent le contour de la base (branches, ondulations comprises), puis la spirale démarre au-dessus sans couture. Repose sur une primitive native de **remplissage d'un contour fermé** (lignes en zigzag croisées d'une couche à l'autre, faites ; anneaux concentriques en v0.3), réutilisable par les autres modèles.
-- **Catalogue de départ** d'environ dix modèles (liste `CAT` de [FEATURES.md](docs/FEATURES.md)), dont le tamis à ponts tendus, l'entretoise et le ressort non planaires ; ports de FullControl cités avec leur source.
+- [R-005 v0.4 — Visualisation et analyse (jalon 4)](roadmap/items/R-005-v0-4-visualisation-et-analyse-jalon-4.md) · livrée le 2026-10-30
+  Rendu en volume, coloration, avancement et coupe en Z, inspection du segment survolé, image de la vue et estimation du temps.
 
-Critères d'acceptation :
+## Écarté
 
-- Chaque modèle du catalogue a un test moteur : déterminisme, pièce dans le plateau, aucun message bloquant aux valeurs par défaut, aucun plantage aux bornes de chaque curseur.
-- Trois modèles nouveaux générés par une IA à partir du seul prompt passent `fabweave-cli check` au premier ou au deuxième essai.
-- ⏸ Validation de jalon : trois modèles du catalogue imprimés.
-
-## v0.3 — Imprimantes et filaments (jalon 3) · *en cours*
-
-**But** : chaque machine du fablab a un profil fiable, et l'utilisateur peut créer le sien.
-
-Étapes et points d'arrêt (machines du fablab : Prusa MK4S, Prusa CORE One, **Bambu Lab X1E** alimentée par la carte SD) :
-
-1. **Bambu Lab X1E** : profil (gabarits de Bambu Studio réécrits), dialecte Bambu (en-tête lu par le firmware, couches et progression à l'écran), paquet `.gcode.3mf` (G-code, somme MD5, métadonnées de plaque, vignettes), export au choix `.gcode` ou `.gcode.3mf`.
-   ⏸ Essai sur la X1E par la carte SD des deux formats ; choix consigné dans l'ADR-0005. *Essai reporté (non bloquant) : fait avec l'impression de validation de l'étape 6.*
-2. **Profils complets et dialectes** : schéma de profil enrichi (zones exclues du plateau, accélérations, cône de la buse), migration et test de lecture de l'ancien format ; progression `M73` et vignette pour les Prusa ; Marlin générique, Klipper ; avance de pression ; ligne de purge hors pièce. *Fait le 27/10/2026 : profil imprimante v2 (v1 lu tel quel), estimation du temps avec accélérations (ENG-15, avancée de la v0.4), vignettes PNG et QOI dans le G-code, profils Marlin et Klipper génériques, purges en zones exclues ; valeurs du cône à mesurer sur les machines.*
-3. **Buse, placement, adhésion** : changer de buse en un clic, position et rotation sur le plateau, copies, bordure et radeau. *Fait le 27/10/2026 : buse mémorisée par imprimante (couches et débit par buse), placement, copies pièce par pièce, bordure et radeau générés par le moteur, plateau rond, pièce hors plateau surlignée.*
-4. **Édition et import des profils** dans l'application ; import depuis PrusaSlicer, OrcaSlicer et Bambu Studio. *Fait le 27/10/2026 : éditeur (copie d'un profil livré, origine de chaque valeur, contrôle en direct), profils de l'utilisateur sur le poste, export TOML, import avec rapport et gabarits traduits, relecture exigée avant l'export (ADR-0006, acceptée). Validé le 28/10/2026.*
-5. **Reports de la v0.2** : remplissage en anneaux concentriques (API-14), extrusion à l'arrêt (API-15), impression par gouttes (CAT-12). *Fait le 28/10/2026 : `fill_rings` (décalages de `i_overlay`), option « Anneaux » du fond du vase à ondulations, `path.blob`, modèle « Tube de gouttes ».*
-6. ⏸ Validation de jalon : une impression validée par machine du fablab. *MK4S validée le 28/10/2026 (plusieurs modèles, vignette à l'écran) ; restent la CORE One et la X1E.*
-
-Étapes ajoutées le 28/10/2026 pour terminer la v0.3, menées pendant les impressions de l'étape 6 :
-
-7. **Filaments** : TPU, ASA, PETG-CF (PRF-04), préchauffe de l'enceinte de la CORE One, facteur des ponts par filament (PRF-06). *Fait le 28/10/2026.*
-8. **Bambu Lab A1 et P1S** (PRF-09) : profils et gabarits de Bambu Studio réécrits. *Fait le 28/10/2026 : gabarits traduits par l'import (nouvelles correspondances des variables de purge Bambu), non essayés sur machine.*
-9. **Essuyage et pause** (API-12). *Fait le 28/10/2026 : `path.wipe`, `path.pause`, gabarit de pause dans les sept profils et à l'import.*
-10. **Catalogue** : tour de température et test de débit (CAT-22), 2 000 rétractions (CAT-15), défi porte-à-faux plus (CAT-16), écrous et vis (CAT-13), support de téléphone (CAT-14), panier tressé (CAT-19), boîte à visser (CAT-20). *Fait le 28/10/2026 : les cinq derniers, puis, après le choix de l'utilisateur, réglages d'essai des modèles d'étalonnage (ADR-0007) : tour de température, test de débit et test des 2 000 rétractions, nouvelle rubrique « Étalonnage ».*
-
-- **Profils versionnés** (TOML) : plateau (taille, forme rectangulaire ou ronde, origine), buse, cinématique (vitesses max, vitesse Z max), cône de dégagement de la buse, dialecte du firmware, gabarits de démarrage et de fin ; filaments : températures (première couche, suivantes, plateau), refroidissement, rétraction, débit volumétrique max, vitesse nominale, facteur d'étirement des ponts.
-- **Bibliothèque** : Prusa MK4S et Core One (livrées en v0.1), **Bambu Lab A1, P1 et X1**, plus « Marlin générique ».
-- **Dialectes** : Prusa (Buddy), Bambu Lab, Marlin, Klipper ; avance de pression (`M572`, `M900`, `SET_PRESSURE_ADVANCE`), contrôles de modèle et de buse (`M862.x`), ligne de purge hors pièce, vignette intégrée au G-code (écran des Prusa).
-- **Bambu Lab** (étude en début de jalon) : G-code brut lancé depuis la carte SD, ou paquet `.gcode.3mf` (G-code de plaque, sommes MD5, métadonnées de plaque et de filament, vignette) comme le fait l'outil `bambox`, que le firmware contrôle avant d'imprimer. Choix consigné dans une ADR.
-- **Édition dans l'application** : dupliquer un profil, modifier, importer / exporter, mémorisé par poste ; chaque valeur dit son origine (profil livré, modifié, importé). Les profils livrés ne sont jamais écrasés : une modification crée une copie.
-  - **Filaments** : modifier chaque paramètre (températures, refroidissement, rétraction, débit volumétrique max, vitesse nominale, multiplicateur de débit, densité, facteur des ponts), créer un filament à partir d'un autre, importer un fichier de filament.
-  - **Imprimantes** : importer un profil d'imprimante (plateau, buse, vitesses, gabarits de démarrage et de fin), le vérifier et le corriger avant usage.
-  - **Import depuis les trancheurs** : profils filament et imprimante de PrusaSlicer (`.ini`), OrcaSlicer et Bambu Studio (`.json`) convertis en TOML FabWeave ; les valeurs reprises, ignorées ou manquantes sont listées, et les gabarits de G-code sont signalés « à relire » (leurs variables diffèrent des nôtres).
-  - Valeurs vérifiées à l'import comme à l'édition : hors domaine → erreur ou avertissement à code stable, jamais corrigées en silence.
-- **API** : remplissage en anneaux concentriques (API-14), extrusion à l'arrêt (API-15) et le modèle d'impression par gouttes (CAT-12).
-- **Placement** : position et rotation sur le plateau, copies multiples en grille, plateau dessiné à sa forme réelle, dépassement surligné et bloquant.
-- **Changer de buse en un clic** : sélecteur du diamètre de buse à côté de l'imprimante (0,25 · 0,4 · 0,5 · 0,6 · 0,8 mm, ou valeur libre), sans dupliquer le profil ; option buse haut débit (HF) et buse abrasive quand l'imprimante les propose. Le parcours se recalcule aussitôt (les largeurs et hauteurs des modèles sont en multiples de `printer.nozzle_diameter`) ; le diamètre est transmis aux gabarits (contrôle `M862.1` des Prusa) ; le profil peut ajuster par buse la hauteur de première couche, et le filament le débit volumétrique max (buse HF). Choix mémorisé par imprimante.
-- Diamètre de buse : avertissement si le modèle recommande une autre buse.
-- **Adhésion au plateau** : bordure (*brim*) ou radeau (*raft*) ajoutés par le moteur, au choix de l'utilisateur et non du modèle (le `.weave` reste muet là-dessus). Bordure : boucles décalées autour de l'empreinte de la première couche (nombre de tours ou largeur, écart à la pièce) ; radeau : couches de base et d'interface sous la pièce, qui la rehausse d'autant, avec écart en Z pour le décollage. Emprise et hauteur ajoutées prises en compte dans le contrôle du volume d'impression ; le modèle peut seulement recommander une adhésion (`[meta]`).
-
-Critères d'acceptation : G-code de chaque profil livré relu (démarrage, fin, unités, températures) ; ⏸ une impression validée par machine du fablab.
-
-## v0.4 — Visualisation et analyse (jalon 4) · *validée* (30/10/2026)
-
-Commencée le 28/10/2026 pendant les impressions de validation de la v0.3.
-
-Étapes et points d'arrêt :
-
-1. **Rendu en volume** (VIEW-06) : boudins à leur largeur et leur hauteur, éclairage simple, bascule volume / lignes mémorisée. *Fait le 28/10/2026 : 200 195 segments en 12,3 ms par image (M4).*
-2. **Coloration et légende** (VIEW-07). *Fait le 28/10/2026 : huit grandeurs, rampe violette validée dans les deux thèmes.*
-3. **Curseur de progression**, buse simulée, coupe en Z (VIEW-08). *Fait le 29/10/2026 : barre de lecture en bas de la vue, coupe en Z par plan de coupe à droite, déplacements affichables ; plages de dessin, rien de reconstruit en avançant.*
-4. **Inspection du segment survolé** (VIEW-09). *Fait le 29/10/2026 : choix à l'écran sans lancer de rayons, fiche à côté du pointeur ; le moteur transmet vitesse demandée, plafond et durée de chaque mouvement.*
-5. **Export PNG** de la vue (VIEW-10). *Fait le 29/10/2026 : vue rendue à plus haute définition (≈ 3 000 px), sans les étiquettes.*
-6. **Temps estimé** comparé à PrusaSlicer sur le catalogue. *Préparé le 29/10/2026 (`.tmp/essais-v0.4/`), comparaison non relevée : critère de ± 5 % non vérifié, reste ouvert.*
-7. ⏸ Validation de jalon. *Validée par l'utilisateur le 30/10/2026.*
-
-- **Rendu volumétrique** : boudins à section oblongue W × H, éclairage simple ; mode lignes pour les très grands parcours.
-- **Coloration** au choix : type de mouvement (impression, pont, déplacement), vitesse obtenue, débit volumétrique, largeur W, hauteur H, ventilateur, Z, ordre d'impression ; légende graduée.
-- **Curseur de progression** (couche, pourcentage, temps), simulation de la buse, déplacements affichables, coupe en Z.
-- **Inspection** du segment survolé : W, H, vitesse demandée et obtenue, débit, raison d'un plafonnement.
-- Estimation du temps avec accélérations (planificateur trapézoïdal simplifié).
-- Export PNG de la vue.
-
-Critères d'acceptation : 200 000 segments affichés en volumétrique à 60 images/s sur un ordinateur d'atelier ; temps estimé à ± 5 % de PrusaSlicer sur le catalogue.
-
-## v0.5 — Sécurité et qualité du parcours (jalon 5) · *en cours*
-
-Commencée le 30/10/2026.
-
-Étapes et points d'arrêt :
-
-1. **Garde-buse** (SAFE-03, ADR-0008). *Fait le 30/10/2026 : bout, cône et tête ; heurt bloquant, frôlement signalé ; aucun heurt sur le catalogue aux valeurs par défaut, sans cône dans les profils livrés tant qu'il n'est pas mesuré.*
-2. **Qualité des segments** (SAFE-04, API-11). *Fait le 30/10/2026 : `pts.simplify(tolérance)`, choisi par le modèle et jamais appliqué d'office ; segments trop courts et saturation du planificateur signalés.*
-3. **Contrôles du parcours** (SAFE-05). *Fait le 30/10/2026 : porte-à-faux, ponts, section du boudin, première couche ; avertissements comptés, seuils d'atelier fixes. « Trop rapide » en première couche existait déjà : vitesse plafonnée et comptée.*
-4. ⏸ Validation de jalon, dont la gravité retenue dans l'ADR-0008.
-
-- **Garde-buse** : carte de hauteur de la matière déposée, détection des collisions du cône de la buse et du carter en non planaire ; segments fautifs surlignés, comptés, export bloqué (ADR à venir sur la gravité).
-- **Discrétisation adaptative** (tolérance de corde) dans l'API haut niveau ; fusion des points alignés ; longueur minimale de segment et nombre de segments par seconde maximal (saturation du planificateur, « bégaiement »), signalés.
-- **Contrôles** : porte-à-faux au-delà d'un angle, ponts trop longs pour le filament, largeur incohérente avec la buse, première couche trop fine ou trop rapide.
-
-Critères d'acceptation : cas de collision connus détectés (tests) ; aucun faux positif sur le catalogue.
-
-## v0.6 — Bureau et projets (jalon 6)
-
-- Application **Tauri 2** (macOS faite pour la v0.9-beta1 ; Windows : installeur construit par GitHub Actions, à essayer ; Linux) : **dossier de modèles surveillé** (un `.weave` déposé ou modifié apparaît aussitôt), fenêtres natives, fichiers récents.
-- **Projet** `.fabweave.json` (modèle embarqué, valeurs, profils) ; projet embarqué en commentaire dans le G-code (glisser un G-code FabWeave le rouvre).
-- **CLI complète**.
-
-Reportés après la v1.0 le 30/10/2026 : envoi à l'imprimante et serveur MCP.
-
-## v0.9-beta1 — Bêta pour macOS · *en cours*
-
-Décidée par l'utilisateur le 30/10/2026 : publier maintenant une bêta avec l'application macOS, qui sert à tester et valider tout ce qui reste ouvert (v0.3, v0.4, v0.5).
-
-1. **Application macOS** (Tauri, Apple Silicon, signature ad hoc, non notarisée) : interface et moteur WebAssembly dans une fenêtre, exports dans Téléchargements. *Faite le 30/10/2026 : `npm run desktop`.*
-2. **Audit technique** (AUDIT-01, 02/11/2026, rapport hors dépôt), lot 1 avant publication : textes jamais transformés en commandes (AUD-001), sauts en Z dans le volume (AUD-002), `G90` / `M83` réaffirmés par le moteur (AUD-003), plafonds de température par imprimante (AUD-004), README à jour (AUD-012). *Fait le 02/11/2026.* Lot 2 ensuite : budgets de calcul, CI, sauvegardes, identifiants des modèles personnels, export CLI atomique. Lot 3 plus tard : moteur relançable, CSP, tests de l'interface, notarisation.
-3. ⏸ Essais de l'utilisateur avec cette application.
-4. Publication du dépôt et de la bêta. *Faite le 02/11/2026, à la demande de l'utilisateur, avant la fin de ses essais, pour la faire tester par un collègue : pré-version GitHub `v0.9.0-beta.1` avec le DMG.*
-
-## v1.0 — Publication
-
-- Installeurs signés, version web statique, documentation utilisateur FR / EN (dont « écrire un modèle »), tests de bout en bout de l'interface.
-- Catalogue d'au moins 15 modèles, chacun **imprimé au fablab** avec ses réglages validés (fiche de validation, photo).
-
-## v1.1 — Habiller un volume (jalon 7)
-
-**But** : importer un volume 3D (STL, 3MF) et l'habiller d'un motif du catalogue (maille, ondulations, gouttes, abat-jour…) imprimé en une spirale continue, comme les modèles paramétriques. Formes visées : révolutions, polygones extrudés ou torsadés, formes organiques peu détaillées ; une seule paroi, jamais de tranchage.
-
-**Point de départ** : essai du 29/10/2026 sur la branche `essai/habillage` (DEVLOG ; format en section 8 de [WEAVE_FORMAT](docs/WEAVE_FORMAT.md)) : STL coupé en tranches, un contour fermé par hauteur, repère (u, z) aligné d'une tranche à l'autre par courbures puis distances (torsion suivie) ; motifs `.weave` avec `[meta] motif = true` qui reçoivent `form` ; maille et ondulations calculées sur quatre volumes d'essai (vase, hexagone, pentagone torsadé, forme organique) en ligne de commande.
-
-Étapes et points d'arrêt :
-
-1. **Décision** (ADR) : forme et motif dans le format `.weave` (motif = modèle qui reçoit une forme ; forme importée ou paramétrique), frontière avec le tranchage, version du format. ⏸ validation de l'ADR.
-2. **Formes** (FORM-01 à FORM-04) : lecture STL et 3MF dans le moteur (octets donnés par l'interface), tranches, refus nommant la hauteur fautive (anse, branche, îles, maillage ouvert) ; formes paramétriques (révolution d'un profil, polygone extrudé et torsadé) pour les mêmes motifs sans fichier.
-3. **Suivre la surface** (FORM-05) : spirale qui avance le long de la paroi et non en Z (porte-à-faux au-delà de 45°, descentes, comme la lampe à coussins), dégagement du cône de la buse vérifié par le garde-buse (SAFE-03).
-4. **Motifs** (FORM-06) : maille, ondulations, écailles, gouttes, vermicelles, abat-jour réécrits en motifs ; fond plein ou maillé, bord plein ; angles vifs respectés.
-5. **Interface** (FORM-07) : mode « Habiller un volume » : import par dépôt ou `⌘O`, aperçu du volume, choix de l'axe, motif et ses curseurs ; panneaux Machine, Plateau, Messages et Export inchangés.
-6. ⏸ Validation de jalon : un volume de chaque famille habillé et imprimé à l'atelier.
-
-Critères d'acceptation : chaque famille de forme lue et habillée par chaque motif sans message bloquant ; volume refusé avec la hauteur fautive quand il n'a pas un contour par hauteur ; volume de 200 000 triangles lu et tranché en moins d'une seconde dans le navigateur ; mêmes volume, motif, valeurs et profils → même G-code, octet pour octet ; une impression validée par famille.
-
-## Après la v1.0, sans jalon fixé
-
-- **Envoi à l'imprimante** (DESK-05, optionnel) : PrusaLink, OctoPrint, Moonraker.
-- **Serveur MCP** (DESK-06, stdio) : un agent IA crée, vérifie, prévisualise (PNG) et exporte un modèle.
-
-## v2 — Atelier de formes (après la v1.0)
-
-L'espace pour jouer et prototyper de nouvelles formes, sur le même format `.weave` :
-
-- éditeur de code intégré (CodeMirror 6 : coloration Rhai, complétion de l'API, erreurs en ligne), évaluation en direct, curseurs déclarés au fil de l'écriture, « Enregistrer dans Mes modèles » ;
-- à évaluer : éditeur d'équations ou de nœuds, tracés importés (SVG → parcours), texte, multi-outils (changeur d'outils, MMU), enchaînement de modèles.
-
-## Hors périmètre
-
-- Découpage de modèles STL (c'est le métier de PrusaSlicer, Orca, Cura) et supports automatiques. Habiller la paroi d'un volume importé d'un motif (v1.1) n'en est pas : ni remplissage, ni couches pleines, ni pièces quelconques.
-- Comptes, nuage, place de marché.
-- Envoi réseau vers les Bambu Lab (MQTT, compte Bambu) et gestion de l'AMS (multi-couleurs).
+- [R-016 Découpage de modèles STL et supports automatiques](roadmap/items/R-016-decoupage-de-modeles-stl-et-supports.md)
+  Hors périmètre : c'est le métier de PrusaSlicer, Orca, Cura.
+- [R-017 Comptes, nuage, place de marché](roadmap/items/R-017-comptes-nuage-place-de-marche.md)
+  Hors périmètre du projet.
+- [R-018 Envoi réseau vers les Bambu Lab et gestion de l'AMS](roadmap/items/R-018-envoi-reseau-vers-les-bambu-lab-et-gestion-de-l.md)
+  Hors périmètre : MQTT, compte Bambu et multi-couleurs (AMS).

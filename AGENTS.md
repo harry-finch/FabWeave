@@ -2,13 +2,14 @@
 
 > Ce fichier est repris dans CLAUDE.md.
 
-FabWeave : générateur de **G-code direct** à partir de **modèles paramétriques** (catalogue de fichiers `.weave`), pour makers et fablabs, inspiré de FullControl (fullcontrol.xyz). Workspace Rust (`fabweave-core` pur, `fabweave-wasm` pour l'interface) + interface Svelte 5 dans `ui/`, même écosystème que FabSpeed et FabVents. Lire [README.md](README.md), [STATUS.md](STATUS.md), [ROADMAP.md](ROADMAP.md) et [docs/FEATURES.md](docs/FEATURES.md) avant de modifier.
+FabWeave : générateur de **G-code direct** à partir de **modèles paramétriques** (catalogue de fichiers `.weave`), pour makers et fablabs, inspiré de FullControl (fullcontrol.xyz). Workspace Rust (`fabweave-core` pur, `fabweave-wasm` pour l'interface) + interface Svelte 5 dans `ui/`, même écosystème que FabSpeed et FabVents. Lire [README.md](README.md), [STATUS.md](STATUS.md), [ROADMAP.md](ROADMAP.md) (vue générée de `roadmap/`) et [docs/FEATURES.md](docs/FEATURES.md) avant de modifier.
 
 ## Skills à utiliser (`.agents/skills/`)
 
 - `fab-design-system` : toute modification de l'interface ; jetons, composants, mise en page, textes et identité de la famille Fab, avec un kit de démarrage. Ses valeurs chiffrées font foi.
 - `professional-workshop-ui` : les mêmes principes en termes généraux.
-- `project-documentation` : STATUS, DEVLOG, ROADMAP, ADR, FEATURES.
+- `fab-roadmap` : la feuille de route est dans `roadmap/` (format FabBoard : un fichier par élément et par action de l'utilisateur) ; `ROADMAP.md` est généré, ne jamais le modifier à la main. Spécifier, tenir les statuts, créer une action quand on attend l'utilisateur, `fabboard roadmap lint` avant chaque commit. L'ancienne feuille de route écrite à la main est conservée dans `docs/ROADMAP-avant-fabboard.md`.
+- `project-documentation` : STATUS, DEVLOG, ADR, FEATURES.
 
 ## Règles
 

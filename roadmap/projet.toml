@@ -7,3 +7,48 @@ figure = "stack"                        # provisoire : à remplacer par la buse 
 
 [[test]]
 type = "release"
+
+# Jalons, dans l'ordre.
+[[jalons]]
+id = "v0.0"
+titre = "Fondations"
+
+[[jalons]]
+id = "v0.1"
+titre = "Tranche verticale"
+
+[[jalons]]
+id = "v0.2"
+titre = "Catalogue et format complet"
+
+[[jalons]]
+id = "v0.3"
+titre = "Imprimantes et filaments"
+
+[[jalons]]
+id = "v0.4"
+titre = "Visualisation et analyse"
+
+[[jalons]]
+id = "v0.5"
+titre = "Sécurité et qualité du parcours"
+
+[[jalons]]
+id = "v0.6"
+titre = "Bureau et projets"
+
+[[jalons]]
+id = "v0.9-beta1"
+titre = "Bêta pour macOS"
+
+[[jalons]]
+id = "v1.0"
+titre = "Publication"
+
+[[jalons]]
+id = "v1.1"
+titre = "Habiller un volume"
+
+[[jalons]]
+id = "v2"
+titre = "Atelier de formes"
