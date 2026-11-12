@@ -8,35 +8,50 @@ Pour un projet dont FabBoard signale `roadmap.legacy` : un `ROADMAP.md` écrit �
 2. Si `roadmap/` n'existe pas, s'arrêter : c'est FabBoard qui le crée (« Mettre d'équerre »).
 3. Lire **tout** l'ancien `ROADMAP.md`, puis `STATUS.md`, `DEVLOG.md` et les documents qu'il cite, pour connaître l'état réel : la feuille de route peut être en retard sur le code.
 
+Pendant le travail, `fabboard roadmap lint` et `fabboard doctor` signalent encore `roadmap.legacy` : c'est normal tant que l'ancien fichier n'est pas déplacé (dernière étape).
+
+**Ne pas passer `--commit` aux commandes `fabboard` pendant une migration** : l'option commite sur-le-champ, une commande après l'autre. La migration se termine par un seul commit, fait à la main.
+
 ## Correspondances
 
 | Dans l'ancien fichier | Devient |
 | --- | --- |
-| Introduction, but du projet, principes | `roadmap/intro.md`, repris tel quel (les liens relatifs restent valides : `ROADMAP.md` reste à la racine) |
-| Versions ou jalons (« v0.7 », « M2b ») | `[[jalons]]` de `projet.toml`, dans l'ordre, avec leur titre |
-| Un jalon ou un lot **terminé et validé** | Un élément `livree` par jalon ou par lot, corps = le texte d'origine, `livree` = la date écrite dans le document (à défaut, celle du commit qui l'a marqué terminé : `git log -S`) |
-| Un jalon **livré mais pas encore validé** par l'utilisateur | Élément `a-tester`, et une action `tester` ou `valider` qui dit ce qui reste à vérifier |
-| Un travail **en cours** | Élément `en-cours` |
-| Un travail **à venir**, décrit avec but, contenu et critères | Élément `specifiee` : répartir le texte existant dans les six sections, sans le réécrire ; une section sans matière reçoit « À préciser. » et l'élément reste `idee` |
+| Introduction, but du projet, principes | `roadmap/intro.md`, repris tel quel, sans le titre du document ni les séparateurs (`ROADMAP.md` généré a sa propre mise en page). Les liens relatifs restent valides : `ROADMAP.md` reste à la racine |
+| Versions ou jalons (« v0.7 », « M2b ») | `[[jalons]]` de `projet.toml`, dans l'ordre, avec leur titre. Ajouter sans rien retirer du fichier, commentaires compris |
+| Un jalon ou un lot **terminé et validé** | Un élément `livree` par jalon ou par lot, corps = le texte d'origine recopié |
+| Un jalon **livré mais pas encore validé** par l'utilisateur | Élément `a-tester`, corps = le texte d'origine, et une action `tester` ou `valider` qui dit ce qui reste à vérifier |
+| Un travail **en cours** | Élément `en-cours` ; répartir le texte existant dans les six sections de la spécification, « À préciser. » là où le document ne dit rien |
+| Un travail **à venir**, décrit avec but, contenu et critères | Élément `specifiee` : répartir le texte existant dans les six sections, sans le réécrire. S'il manque de la matière pour une section, l'élément reste `idee` avec le texte d'origine en corps |
 | Un travail à venir en une ligne, une piste, une « suite différée » | Élément `idee` |
-| Un point d'arrêt en attente (« ⏸ validation », « à confirmer par l'utilisateur ») | Une action du bon type, rattachée à son élément |
-| Un travail explicitement écarté | Élément `abandonnee`, avec la raison dans le corps |
+| Un point d'arrêt en attente (« ⏸ validation », « à confirmer par l'utilisateur », « non vérifié : … ») | Une action du bon type, rattachée à son élément. Seulement ce que le document demande explicitement à l'utilisateur |
+| Un travail **écarté**, ou « hors périmètre, à réévaluer plus tard » | Élément `abandonnee`, avec dans le corps le texte d'origine, la raison et l'échéance de réévaluation s'il y en a une. La décision est déjà prise dans le document : pas d'action |
 | Un tableau de constats, de risques, de mesures | Reste dans le document d'origine (voir « L'ancien fichier ») et se cite depuis l'élément concerné |
 
 Granularité : **un élément par chose qu'on peut livrer et vérifier séparément**. Un jalon déjà livré peut rester un seul élément ; un jalon à venir se découpe selon ses lots s'ils sont nommés dans le texte. Dans le doute, garder le découpage de l'auteur.
 
 L'ordre de `ordre.txt` reprend l'ordre du document, sauf priorité explicite (« à la demande de l'utilisateur, X précède Y »).
 
+## Dates
+
+Les dates ne s'inventent pas ; elles se cherchent, dans cet ordre :
+
+- `livree` : la date écrite dans la feuille de route ; sinon celle de l'entrée du `DEVLOG` ou du `STATUS` qui note la validation par l'utilisateur ; sinon celle du commit qui a marqué le jalon terminé (`git log -S "<texte>" -- ROADMAP.md`).
+- `cree` : la date du commit qui a introduit le jalon dans la feuille de route ; à défaut, celle de sa livraison ; pour ce qui n'a jamais été daté, le jour de la migration.
+
+Elles se posent à la création : `fabboard roadmap add "Titre" --resume "…" --jalon v0.4 --cree 2026-10-30`, puis `fabboard roadmap set R-004 --statut livree --livree 2026-11-06`. Le corps se passe par `--corps-fichier chemin.md`, ou s'écrit ensuite dans le fichier.
+
 ## Règles
 
-- **Ne pas inventer.** Pas de date, de critère ni de périmètre qui ne soit dans les documents du projet. Un statut incertain se décide avec l'utilisateur (action `decider`), pas au jugé.
-- **Ne pas résumer** le texte des jalons livrés : il fait partie de l'histoire du projet. Le recopier.
+- **Ne pas inventer.** Pas de date, de critère ni de périmètre qui ne soit dans les documents du projet. Un statut vraiment incertain se décide avec l'utilisateur (action `decider`), pas au jugé.
+- **Ne pas résumer** le texte des jalons livrés : il fait partie de l'histoire du projet. Le recopier. Seul `resume` (l'en-tête) est une phrase de ta main, fidèle au texte.
 - **Garder les identifiants du projet** (« v0.5 », « M2b », « AUD-017 », « CAT-01 ») dans les titres ou les corps : d'autres documents les citent.
-- **Ne rien changer d'autre** : ni code, ni autre document, sauf les liens vers `ROADMAP.md` qui viseraient une ancre disparue.
+- **Ne rien changer d'autre** : ni code, ni autre document, sauf les liens vers `ROADMAP.md` qui viseraient une ancre disparue. Si une autre skill ou un document du projet décrit encore `ROADMAP.md` comme écrit à la main, le signaler dans le rapport au lieu de le corriger.
 
 ## L'ancien fichier
 
 Il n'est pas supprimé : `git mv ROADMAP.md docs/ROADMAP-avant-fabboard.md` (créer `docs/` au besoin), avec en tête une ligne qui dit qu'il est remplacé par `roadmap/` depuis telle date et conservé pour l'histoire. Corriger les liens relatifs qu'il contient si le déplacement les casse. Ensuite seulement : `fabboard roadmap render`, qui écrit le nouveau `ROADMAP.md`.
+
+Le `ROADMAP.md` généré est un sommaire : titre, description rapide, statut et lien de chaque élément. Le détail des jalons est dans les fichiers de `roadmap/items/` et dans le document conservé.
 
 Mettre à jour les consignes d'agent du projet (`AGENTS.md`) : là où elles parlent de `ROADMAP.md`, dire que la feuille de route est dans `roadmap/` et renvoyer à la skill `fab-roadmap`.
 
@@ -49,4 +64,6 @@ Mettre à jour les consignes d'agent du projet (`AGENTS.md`) : là où elles par
 
 ## Livrer
 
-Un commit sur la branche (`roadmap: migration de l'ancienne feuille de route`), puis une action `valider` : « Valider la migration de la feuille de route », avec dans son corps le nombre d'éléments par statut, les choix faits là où le document était ambigu, et ce qui demande son avis. Ne pas fusionner ni pousser : c'est sa décision.
+1. Créer l'action finale : `fabboard action add --type valider "Valider la migration de la feuille de route" --corps "…"`, avec dans son corps le nombre d'éléments par statut, les choix faits là où le document était ambigu, les dates dont la source n'est pas la feuille de route, et ce qui demande son avis.
+2. **Un seul commit** sur la branche, action comprise : `roadmap: migration de l'ancienne feuille de route`.
+3. Ne pas fusionner ni pousser : c'est sa décision.

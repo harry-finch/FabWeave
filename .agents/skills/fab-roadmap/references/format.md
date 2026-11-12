@@ -117,7 +117,7 @@ L'en-tête est du YAML restreint : une clé par ligne, une valeur scalaire sur u
 
 D'autres sections peuvent suivre (notes, décisions, maquettes).
 
-Le contrôle signale **une fois par élément** les sections manquantes, pour les statuts `specifiee`, `en-cours` et `a-tester`. Un élément `livree` n'y est pas tenu : les jalons livrés avant l'adoption du format gardent leur texte d'origine.
+Le contrôle signale **une fois par élément** les sections manquantes, pour les statuts `specifiee` et `en-cours` : c'est là que la spécification sert. Un élément `a-tester` ou `livree` n'y est pas tenu : les jalons développés avant l'adoption du format gardent leur texte d'origine.
 
 ## `ordre.txt`
 
@@ -163,7 +163,7 @@ Un agent qui s'arrête pour attendre l'utilisateur **crée une action** ; à la 
 
 ## `ROADMAP.md`
 
-Vue générée depuis `roadmap/` : l'introduction, puis les éléments restants dans l'ordre de priorité (titre, description rapide, statut, lien vers le fichier), les actions à faire, et les éléments livrés par jalon. La première ligne est le marqueur :
+Vue générée depuis `roadmap/` : l'introduction, puis les éléments restants dans l'ordre de priorité (titre, description rapide, statut, lien vers le fichier), les actions à faire, les éléments livrés par jalon, et les éléments écartés (abandonnés). La première ligne est le marqueur :
 
 ```markdown
 <!-- Généré par FabBoard depuis roadmap/ : ne pas modifier à la main. -->

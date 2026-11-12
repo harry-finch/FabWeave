@@ -33,9 +33,9 @@ fabboard roadmap lint                                   # avant chaque commit
 fabboard roadmap render                                 # après une édition à la main
 ```
 
-Le corps d'un élément (la spécification) s'écrit dans son fichier, sous l'en-tête. Si `fabboard` n'est pas installé, écrire les fichiers à la main selon [format.md](references/format.md) et le dire à l'utilisateur.
+Le corps d'un élément (la spécification) s'écrit dans son fichier, sous l'en-tête, ou se passe par `--corps-fichier chemin.md`. Si `fabboard` n'est pas installé, écrire les fichiers à la main selon [format.md](references/format.md) et le dire à l'utilisateur.
 
-Les fichiers de `roadmap/` et `ROADMAP.md` **se commitent avec le travail** qu'ils décrivent.
+Les fichiers de `roadmap/` et `ROADMAP.md` **se commitent avec le travail** qu'ils décrivent. L'option `--commit` existe sur chaque commande d'écriture, mais elle commite sur-le-champ, ces seuls fichiers : ne s'en servir que pour un changement isolé (une idée ajoutée, une action créée hors de tout travail en cours).
 
 ## Cycle de vie d'un élément
 
