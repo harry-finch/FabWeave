@@ -19,7 +19,7 @@ Ce que FabWeave apporte par rapport à FullControl (site et bibliothèque Python
 
 La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md) (chaque fonction y a son identifiant et son jalon). Les points d'arrêt **⏸** sont les moments où le travail s'interrompt pour une validation par l'utilisateur.
 
-**Avancement : 4 livrés sur 15** (27 %)
+**Avancement : 4 livrés sur 16** (25 %)
 
 ## Restant à faire
 
@@ -45,6 +45,8 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
    Serveur MCP (stdio) pour qu'un agent IA crée, vérifie, prévisualise et exporte un modèle, après la v1.0.
 11. **[R-015 v2 — Atelier de formes](roadmap/items/R-015-v2-atelier-de-formes.md)** · Idée · jalon v2
    Espace pour jouer et prototyper de nouvelles formes sur le format .weave, avec éditeur de code intégré.
+12. **[R-019 Afficher la figure de FabWeave dans l’application](roadmap/items/R-019-afficher-la-figure-de-fabweave-dans-l.md)** · Idée
+   Étudier l’usage du vase ondulé sous une buse dans un état vide, au premier lancement ou dans À propos, puis choisir l’emplacement avec l’utilisateur.
 
 ## Actions à faire
 
@@ -56,6 +58,9 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-006](roadmap/actions/A-006-imprimer-la-seconde-version-de-la-lampe-a.md) Imprimer la seconde version de la lampe à coussins (tester, R-006)
 - [ ] [A-007](roadmap/actions/A-007-essayer-l-application-macos-de-la-beta-v0-9.md) Essayer l'application macOS de la bêta v0.9-beta1 (tester, R-008)
 - [ ] [A-008](roadmap/actions/A-008-essayer-l-installeur-windows-nsis.md) Essayer l'installeur Windows (NSIS) (tester, R-007)
+- [ ] [A-010](roadmap/actions/A-010-permettre-la-finalisation-git-et-skills-de.md) Permettre la finalisation Git et skills de FabWeave (fournir)
+- [ ] [A-011](roadmap/actions/A-011-examiner-la-figure-buse-sur-piece-tissee-de.md) Examiner la figure du vase ondulé de FabWeave (tester)
+- [ ] [A-012](roadmap/actions/A-012-valider-la-mise-d-equerre-de-fabweave.md) Valider la mise d’équerre de FabWeave (valider)
 
 ## Livré
 

@@ -11,6 +11,10 @@ FabWeave : générateur de **G-code direct** à partir de **modèles paramétriq
 - `fab-roadmap` : la feuille de route est dans `roadmap/` (format FabBoard : un fichier par élément et par action de l'utilisateur) ; `ROADMAP.md` est généré, ne jamais le modifier à la main. Spécifier, tenir les statuts, créer une action quand on attend l'utilisateur, `fabboard roadmap lint` avant chaque commit. L'ancienne feuille de route écrite à la main est conservée dans `docs/ROADMAP-avant-fabboard.md`.
 - `project-documentation` : STATUS, DEVLOG, ADR, FEATURES.
 
+## Feuille de route
+
+La feuille de route est dans `roadmap/`, lue par FabBoard ; `ROADMAP.md` est sa vue générée et ne se modifie jamais à la main. Suivre la skill [`fab-roadmap`](.agents/skills/fab-roadmap/SKILL.md) pour spécifier, tenir les statuts et créer les actions qui attendent l'utilisateur. Lancer `fabboard roadmap lint` avant chaque commit.
+
 ## Règles
 
 - `fabweave-core` reste pur : aucune IO, aucun réseau, aucune dépendance d'interface ; déterministe (même modèle, mêmes paramètres, mêmes profils → même G-code, octet pour octet).

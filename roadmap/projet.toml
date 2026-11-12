@@ -3,8 +3,20 @@ nom = "FabWeave"
 resume = "G-code direct, modèles paramétriques"
 identite = "#58b5f5"
 logo = "branding/fabweave-logo.svg"
-figure = "stack"                        # provisoire : à remplacer par la buse sur pièce tissée
+figure = "ripple-vase"                 # provisoire : concept choisi, contrôle visuel à valider
 agent = "codex"
+
+[[test]]
+type = "build"
+titre = "Application macOS (DMG local)"
+motif = "crates/fabweave-desktop/target/release/bundle/dmg/*.dmg"
+
+[[test]]
+type = "url"
+titre = "Version web locale"
+url = "http://localhost:5175"
+commande = "npm run dev"
+dossier = "ui"
 
 [[test]]
 type = "release"

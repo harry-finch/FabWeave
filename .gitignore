@@ -27,3 +27,7 @@
 tmp/
 .DS_Store
 *.log
+
+# Planches de contrôle des figures Hairline
+/branding/illustrations/*.png
+/branding/illustrations/*-source.txt
