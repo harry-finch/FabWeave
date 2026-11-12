@@ -4,6 +4,7 @@ resume = "G-code direct, modèles paramétriques"
 identite = "#58b5f5"
 logo = "branding/fabweave-logo.svg"
 figure = "stack"                        # provisoire : à remplacer par la buse sur pièce tissée
+agent = "codex"
 
 [[test]]
 type = "release"
