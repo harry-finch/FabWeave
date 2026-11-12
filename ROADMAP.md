@@ -60,7 +60,6 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-008](roadmap/actions/A-008-essayer-l-installeur-windows-nsis.md) Essayer l'installeur Windows (NSIS) (tester, R-007)
 - [ ] [A-010](roadmap/actions/A-010-permettre-la-finalisation-git-et-skills-de.md) Permettre la finalisation Git et skills de FabWeave (fournir)
 - [ ] [A-011](roadmap/actions/A-011-examiner-la-figure-buse-sur-piece-tissee-de.md) Examiner la figure du vase ondulé de FabWeave (tester)
-- [ ] [A-012](roadmap/actions/A-012-valider-la-mise-d-equerre-de-fabweave.md) Valider la mise d’équerre de FabWeave (valider)
 
 ## Livré
 
