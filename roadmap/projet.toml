@@ -1,0 +1,8 @@
+format = 1
+nom = "FabWeave"
+resume = "G-code direct, modèles paramétriques"
+identite = "#58b5f5"
+logo = "branding/fabweave-logo.svg"
+
+[[test]]
+type = "release"
