@@ -2,7 +2,7 @@
 id: R-007
 titre: "v0.6 — Bureau et projets (jalon 6)"
 resume: "Application de bureau Tauri 2 avec dossier de modèles surveillé, projet .fabweave.json et CLI complète."
-statut: idee
+statut: en-cours
 jalon: v0.6
 cree: 2026-10-24
 maj: 2026-11-12

@@ -27,7 +27,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
    Chaque machine du fablab a un profil fiable, et l'utilisateur peut créer le sien.
 2. **[R-006 v0.5 — Sécurité et qualité du parcours (jalon 5)](roadmap/items/R-006-v0-5-securite-et-qualite-du-parcours-jalon-5.md)** · À tester · jalon v0.5
    Garde-buse, qualité des segments et contrôles du parcours, avec la gravité de l'ADR-0008 à valider.
-3. **[R-007 v0.6 — Bureau et projets (jalon 6)](roadmap/items/R-007-v0-6-bureau-et-projets-jalon-6.md)** · Idée · jalon v0.6
+3. **[R-007 v0.6 — Bureau et projets (jalon 6)](roadmap/items/R-007-v0-6-bureau-et-projets-jalon-6.md)** · En cours · jalon v0.6
    Application de bureau Tauri 2 avec dossier de modèles surveillé, projet .fabweave.json et CLI complète.
 4. **[R-008 v0.9-beta1 — Bêta pour macOS](roadmap/items/R-008-v0-9-beta1-beta-pour-macos.md)** · À tester · jalon v0.9-beta1
    Publier une bêta avec l'application macOS pour tester et valider tout ce qui reste ouvert (v0.3, v0.4, v0.5).
