@@ -1,6 +1,6 @@
 ---
 name: fab-roadmap
-description: Feuille de route d'un projet au format de FabBoard (dossier roadmap/) — spécifier une idée avec l'utilisateur et la transformer en spécification détaillée, tenir les statuts à jour pendant le développement, créer une action quand on attend l'utilisateur (valider, tester, fournir, décider) et lire ses réponses, ajouter une idée, migrer une ancienne ROADMAP.md. Utiliser dès qu'un projet contient roadmap/projet.toml, quand l'utilisateur parle de feuille de route, de roadmap, de jalon, de spécification, de « ce qu'il reste à faire », ou qu'il lance /fab-roadmap. Pour Claude Code et Codex.
+description: Feuille de route d'un projet au format de FabBoard (dossier roadmap/) — spécifier une idée avec l'utilisateur et la transformer en spécification détaillée, tenir les statuts à jour pendant le développement, créer une action quand on attend l'utilisateur (valider, tester, fournir, décider) et lire ses réponses, ajouter une idée, migrer une ancienne ROADMAP.md, terminer la mise d'équerre d'un projet (feuille de route, skills, documentation, figure de la carte). Utiliser dès qu'un projet contient roadmap/projet.toml, quand l'utilisateur parle de feuille de route, de roadmap, de jalon, de spécification, de « ce qu'il reste à faire », de mise d'équerre, ou qu'il lance /fab-roadmap. Pour Claude Code et Codex.
 ---
 
 # Fab roadmap
@@ -90,6 +90,10 @@ Un titre à l'infinitif, qui se comprend seul (« Choisir le logo parmi la planc
 ## Ajouter une idée
 
 `fabboard roadmap add "Titre" --resume "…"` : statut `idee`, en fin de liste. Ne pas spécifier dans la foulée sans qu'on te le demande. Une idée qui vient de toi en cours de travail (une dette, une suite évidente) s'ajoute ainsi, et se signale.
+
+## Terminer la mise d'équerre d'un projet
+
+Quand l'utilisateur lance « Terminer la mise d'équerre avec l'agent » depuis FabBoard, ou demande de mettre un projet d'équerre : suivre [equerre.md](references/equerre.md). Une session, quatre étapes : la feuille de route, les skills, la documentation, la figure de la carte (dont il choisit le concept), puis un bilan.
 
 ## Migrer une ancienne feuille de route
 
