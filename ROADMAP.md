@@ -58,7 +58,6 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-006](roadmap/actions/A-006-imprimer-la-seconde-version-de-la-lampe-a.md) Imprimer la seconde version de la lampe à coussins (tester, R-006)
 - [ ] [A-007](roadmap/actions/A-007-essayer-l-application-macos-de-la-beta-v0-9.md) Essayer l'application macOS de la bêta v0.9-beta1 (tester, R-008)
 - [ ] [A-008](roadmap/actions/A-008-essayer-l-installeur-windows-nsis.md) Essayer l'installeur Windows (NSIS) (tester, R-007)
-- [ ] [A-010](roadmap/actions/A-010-permettre-la-finalisation-git-et-skills-de.md) Permettre la finalisation Git et skills de FabWeave (fournir)
 - [ ] [A-011](roadmap/actions/A-011-examiner-la-figure-buse-sur-piece-tissee-de.md) Examiner la figure du vase ondulé de FabWeave (tester)
 
 ## Livré
