@@ -5,6 +5,7 @@ identite = "#58b5f5"
 logo = "branding/fabweave-logo.svg"
 figure = "ripple-vase"                 # provisoire : concept choisi, contrôle visuel à valider
 agent = "codex"
+equerre = "2026-11-12"
 
 [[test]]
 type = "build"
