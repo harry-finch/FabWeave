@@ -13,6 +13,15 @@ FabBoard met un projet d'équerre en deux temps. Le premier est automatique : il
 
 Les étapes sont indépendantes : en sauter une déjà faite, et faire **un commit par étape**.
 
+### Si la session ne peut pas écrire dans `.git/` ou `.agents/`
+
+Certains agents tournent dans un bac à sable qui protège ces deux dossiers (Codex en `workspace-write` sans demande d'approbation, par exemple) : créer une branche, commiter ou mettre une skill à jour échoue alors (« cannot lock ref », « Operation not permitted »). Ne pas insister ni contourner.
+
+- Le vérifier **d'emblée** (`git switch -c fabboard/mise-d-equerre`) et le dire à l'utilisateur avant de commencer, plutôt qu'à la fin.
+- Faire tout le reste : les fichiers de `roadmap/`, la documentation et la figure s'écrivent normalement.
+- Pour les skills : indiquer à l'utilisateur les boutons « Remplacer… », « Garder » et « Mettre à jour » de la fiche du projet dans FabBoard, qui font la même chose que les commandes.
+- À la fin, **une seule** action `fournir` qui donne les commandes exactes à lancer par lui (les `git add` et `git commit` par étape, les `fabboard skills …`), dans l'ordre. Ne pas créer d'action de validation tant que cela n'est pas fait.
+
 ## 1. Feuille de route
 
 Si `fabboard doctor` signale `roadmap.legacy` : suivre [migration.md](migration.md) en entier.
@@ -40,7 +49,10 @@ Ne rien inventer : pas de jalon, de date ni de fonction qui ne soit dans les doc
 `fabboard skills status` donne l'état de chaque skill du projet par rapport à la bibliothèque.
 
 - `en-retard` : `fabboard skills install <nom>` les met à jour, sans risque.
-- `differente` (copie d'avant FabBoard) ou `modifiee` : montrer à l'utilisateur ce qui diffère (`diff -r` entre la copie du projet et celle de la bibliothèque, résumé en quelques lignes par fichier), et dire si ce que le projet a en propre existe déjà dans la bibliothèque. Avec son accord : `fabboard skills install <nom> --force`. Si le projet a une retouche que la bibliothèque n'a pas, ne pas l'écraser : la signaler, c'est à lui de décider où elle va.
+- `differente` (copie d'avant FabBoard) ou `modifiee` : montrer à l'utilisateur ce qui diffère (`diff -r` entre la copie du projet et celle de la bibliothèque, résumé en quelques lignes par fichier), et dire si ce que le projet a en propre existe déjà dans la bibliothèque. Puis, selon sa réponse :
+  - remplacer par la version de la bibliothèque : `fabboard skills install <nom> --force` ;
+  - garder la copie du projet telle quelle : `fabboard skills keep <nom>` (FabBoard cesse de la signaler) ;
+  - si le projet a une retouche que la bibliothèque n'a pas et qui mérite d'y aller : ne pas l'écraser, la signaler, c'est à lui de décider où elle va.
 - `hors-bibliotheque` : ne pas y toucher.
 - Une skill que les consignes d'agent citent et qui n'est pas installée : proposer de l'installer.
 
@@ -67,5 +79,5 @@ Si l'utilisateur n'est pas là pour choisir : créer une action `valider` (« Ch
 ## 5. Bilan
 
 1. `fabboard doctor .` et `fabboard roadmap lint` : ce qui reste est soit expliqué, soit devenu une action.
-2. Une action `valider` : « Valider la mise d'équerre de <projet> », avec dans son corps ce qui a été fait à chaque étape, ce qui a été laissé et pourquoi, et la branche à fusionner.
+2. Une action `valider`, créée avec `--motif equerre` : « Valider la mise d'équerre de <projet> » (`fabboard action add --type valider --motif equerre "Valider la mise d'équerre de <projet>" --corps "…"`). Quand l'utilisateur la cochera, FabBoard notera le projet comme d'équerre. Dans son corps : ce qui a été fait à chaque étape, ce qui a été laissé et pourquoi, et la branche à fusionner.
 3. Dire à l'utilisateur, en quelques lignes, ce qui a changé et ce qu'il lui reste à faire. Ne pas fusionner ni pousser : c'est sa décision.
