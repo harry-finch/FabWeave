@@ -113,6 +113,7 @@ Chaque application ajoute ses propres jetons dans un bloc commenté de `app.css`
 
 - FabVents, canevas : `--canvas-bg`, `--plate-fill` (`#4b4f55` / `#b9bdc3`), `--plate-edge`, `--plate-margin`, `--hole-fill` (= fond, le trou laisse voir le fond), `--ctrl`, `--ctrl-edge`, `--ctrl-reach`, `--ctrl-reach-fill`, `--ctrl-dim`, `--ctrl-active` (= accent), `--ctrl-active-fill`, `--canvas-ghost`.
 - FabSpeed, origine des valeurs : `--origin-lab` (cyan), `--origin-calc` (gris), `--origin-user` (violet `#b58cff`), `--origin-derived` (orange), et leurs teintes ; jauges : `--gauge-marker`, `--gauge-tick`, `--meter-neutral` ; schéma de coupe : `--scene-material-tint` (opacité de la matière) et `--scene-danger` ; son trait vient des jetons `--hairline-*` par la classe `.linework` (voir [canevas.md](canevas.md)).
+- FabWeave, vue 3D du parcours : préfixe `--view-*` (fond, plateau, grille, zones exclues : `--view-bg`, `--view-bed`, `--view-bed-edge`, `--view-grid`, `--view-bed-exclude`), à côté de `--path-*` (parcours) et `--scale-*` (rampe de coloration) ; la buse simulée (VIEW-08) a `--view-nozzle` (`#b9bdc3` / `#6b7078`, remplissage translucide de la buse) et `--view-nozzle-edge` (`#2a2d31` / `#2a2d31`, ses arêtes, identique dans les deux thèmes). L'outil reste neutre : aucune couleur de sens. Les valeurs sont lues par `Viewport.svelte` et relues au changement de thème (`FabWeave/ui/src/app.css`).
 
 Règles pour un nouveau jeton du domaine :
 
