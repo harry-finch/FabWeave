@@ -1,3 +1,8 @@
+---
+name: professional-workshop-ui
+description: Maintain the compact professional desktop design language and shared UI conventions for FabCAM.
+---
+
 # Professional Workshop UI
 
 A reusable UX/UI skill for compact, professional desktop applications used in technical, creative, engineering, fabrication, CAD/CAM, electronics, machine-control, and data-heavy workflows.

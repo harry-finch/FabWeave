@@ -12,6 +12,11 @@
   import Dialog from './components/Dialog.svelte';
   import Alerts from './components/Alerts.svelte';
   import Tag from './components/Tag.svelte';
+  import TaskList from './components/TaskList.svelte';
+  import ContextCard from './components/ContextCard.svelte';
+  import ProposalCard from './components/ProposalCard.svelte';
+  import RecordsTable from './components/RecordsTable.svelte';
+  import AssistantPanel from './components/AssistantPanel.svelte';
   import { Calculator, FlaskConical } from '@lucide/svelte';
   import { ui } from './lib/ui.svelte';
   import { t } from './lib/i18n.svelte';
@@ -21,6 +26,8 @@
   let margin = $state(4);
   let mode = $state<'a' | 'b' | 'c'>('a');
   let shape = $state<'rect' | 'disc'>('rect');
+  let proposal = $state(true);
+  let messages = $state<{ id: string; author: string; text: string }[]>([]);
 
   function keydown(e: KeyboardEvent) {
     const el = e.target as HTMLElement | null;
@@ -50,7 +57,14 @@
       </Section>
     </aside>
     <main class="workspace">
-      <p class="empty">Espace de travail</p>
+      <div class="examples">
+        <h2>Exemples de motifs</h2>
+        <TaskList label="Tâches" tasks={[{ id: '1', title: 'Vérification', state: 'En cours', detail: 'Contrôle des données', progress: 65 }]} />
+        <ContextCard title="Source" excerpt="Paramètres de la machine." source="Document local" />
+        {#if proposal}<ProposalCard title="Proposition" description="Ajuster la marge à 5 mm." applyLabel="Appliquer" rejectLabel="Rejeter" onapply={() => { margin = 5; proposal = false; }} onreject={() => { proposal = false; }} />{/if}
+        <RecordsTable columns={['Pièce', 'État']} rows={[{ id: '1', cells: ['Plaque', 'Prêt'], status: 'Prêt' }, { id: '2', cells: ['Support', 'À vérifier'], status: 'À vérifier' }]} searchLabel="Rechercher" filterLabel="État" allLabel="Tous" emptyLabel="Aucune donnée." noResultsLabel="Aucun résultat." countLabel="résultat(s)" />
+        <AssistantPanel label="Assistance" {messages} inputLabel="Message" sendLabel="Envoyer" busyLabel="En cours" onsubmit={(text) => { messages = [...messages, { id: String(messages.length), author: 'Vous', text }]; }} />
+      </div>
     </main>
     <aside class="panel right">
       <Section id="metrics" title="Mesures">
@@ -128,19 +142,20 @@
 
   .workspace {
     display: grid;
-    place-items: center;
+    align-content: start;
+    overflow-y: auto;
+    padding: var(--s4);
     min-width: 0;
     background: var(--bg-workspace);
   }
+
+  .examples { display: grid; gap: var(--s3); width: min(100%, 560px); margin: 0 auto; }
+  .examples h2 { font-size: var(--fs-lg); margin: 0; }
 
   .sub {
     margin: var(--s1) 0 0;
     color: var(--text-secondary);
     font-size: var(--fs-sm);
-  }
-
-  .empty {
-    color: var(--text-muted);
   }
 
   .metrics {

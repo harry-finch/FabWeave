@@ -1,8 +1,14 @@
 {
   "version": 1,
   "skills": {
+    "fab-design-system": {
+      "fingerprint": "sha256:4faddd07a8106031575433c7e928cf9e25f50fec24d81e4134b0405b939e1e4a"
+    },
     "fab-roadmap": {
       "fingerprint": "sha256:bd9b70351a0f200e27c2d70e889a6faa1596df7beeadd41cdb0f3687ac92b01e"
+    },
+    "professional-workshop-ui": {
+      "fingerprint": "sha256:16a5b53ac65a22806432de60d53ffe4cc2afdc225ce8a0f9f98a593d22348638"
     },
     "project-documentation": {
       "fingerprint": "sha256:a94c5f45d801835f13723fece14c3394615640258076a42a99dc585710c8310b"

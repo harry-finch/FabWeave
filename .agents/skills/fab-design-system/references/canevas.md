@@ -21,7 +21,7 @@ $effect(() => {
 });
 ```
 
-En SVG inline, utiliser directement `fill="var(--scene-flute)"` ou des classes stylées par jetons.
+En SVG inline, utiliser directement `fill="var(--scene-danger)"` ou des classes stylées par jetons.
 
 ## Rendu
 
@@ -65,7 +65,18 @@ FabWeave montre le parcours de la buse en 3D avec **three.js** (WebGL 2, ADR-000
 
 ## Schémas (SVG)
 
-FabSpeed dessine ses schémas de coupe en SVG avec des jetons `--scene-*` : grille 6 %, matière enlevée, passes, outil (mandrin, queue, goujures) en gris neutres, flèches `--scene-arrow`, danger rouge 35 %. Mêmes principes : neutres pour la matière et l'outil, couleur de sens seulement pour un état (zone dangereuse), cotes en `--scene-dim` muted.
+Un schéma montre le travail **à l'échelle**, en projection droite (coupe, vue de dessus), avec ses cotes et ses textes. Il se dessine **au trait**, dans le langage des illustrations de la famille (skill `fab-illustration-system`), sans en être une : il porte des valeurs, des mots et des couleurs de sens. Référence : le schéma de coupe de FabSpeed (`CutScene.svelte`).
+
+- **Le trait** : 1 px constant (`vector-effect: non-scaling-stroke`), extrémités et jointures rondes, en quatre poids. La classe `.linework`, posée sur la racine du schéma, donne les mêmes gris que les figures : `--hairline-hi` (vif), `--hairline-edge` (silhouettes, cotes, flèches), `--hairline-mid` (traits courants), `--hairline-lo` (en retrait, lignes de passes en pointillé). **Un seul élément vif** : le sujet du schéma (la fraise).
+- **Les formes** : au contour, remplies de la couleur du fond pour cacher ce qui est derrière, coins arrondis de 2 px. Ni grille de fond, ni aplat gris, ni hachures.
+- **La couleur, trois usages, pas un de plus** :
+  1. *la matière* : la pièce non usinée prend la couleur de sa matière (une donnée, comme une pastille) en teinte légère (`--scene-material-tint` : 0,18 en sombre, 0,28 en clair) ; ce qui est enlevé reste vide ;
+  2. *l'état de ce qui se passe* : la zone en train d'être coupée prend la couleur de sens du verdict affiché ailleurs en toutes lettres (vert sain, orange à surveiller), en petit : une tranche, un secteur ;
+  3. *le danger* : rouge (`--scene-danger`), pour ce qui bloque.
+  Jamais l'accent, jamais l'identité ; flèches et textes restent neutres.
+- **Remplir le cadre** : le dessin prend les proportions de sa zone (mesurée) et l'échelle occupe toute la hauteur ; ce qui n'a pas d'échelle propre (la longueur d'une plaque) s'allonge plutôt que de laisser des marges.
+- **Le mouvement** dit quelque chose (le défilement des goujures donne le sens d'évacuation des copeaux) et s'arrête sous `prefers-reduced-motion`.
+- **Textes** : cotes et légendes par `t('…')`, en `--text-secondary` / `--text-muted`.
 
 ## Export d'image
 

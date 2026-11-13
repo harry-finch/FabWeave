@@ -18,7 +18,7 @@ L'espace de travail (canevas, schéma de coupe, résultat) occupe le centre et l
 
 ### 2. Un logiciel professionnel, pas un tableau de bord
 
-La référence visuelle est l'application de bureau créative (Illustrator, Lightroom, InDesign) : surfaces neutres, inspecteur contextuel, contrôles compacts de 28 px, petites capitales pour les sections. À l'inverse d'un SaaS : pas de grandes cartes, pas de dégradés, pas d'illustrations, pas de gros boutons arrondis.
+La référence visuelle est l'application de bureau créative (Illustrator, Lightroom, InDesign) : surfaces neutres, inspecteur contextuel, contrôles compacts de 28 px, petites capitales pour les sections. À l'inverse d'un SaaS : pas de grandes cartes décoratives ; des encarts compacts et utiles sont possibles, pas de dégradés, pas d'images d'ambiance, pas de gros boutons arrondis. Les seules illustrations sont des figures au trait, neutres, là où il n'y a pas encore de travail à montrer : état vide de l'espace de travail, premier lancement, À propos (skill `fab-illustration-system`).
 
 ### 3. Le moteur est honnête
 
@@ -78,3 +78,7 @@ Le document est sauvegardé localement 400 ms après chaque modification et repr
 ## Relation avec `professional-workshop-ui`
 
 `professional-workshop-ui` décrit le langage commun en termes généraux (densité, couleur sémantique, hiérarchie des boutons). Cette skill en est l'implémentation concrète et chiffrée pour les applications Fab : quand les deux divergent sur un détail, la valeur chiffrée d'ici l'emporte, car elle est vérifiée dans FabSpeed et FabVents.
+
+## Assistance et visibilité du travail
+
+Une tâche longue expose son état réel et ses étapes utiles ; une proposition indique ses sources et attend une décision explicite lorsqu’elle modifie le travail. Voir [beautiful-ui.md](beautiful-ui.md). Ces motifs complètent le travail central sans imposer une interface de chat.

@@ -40,7 +40,7 @@ Grille CSS de la fenêtre : `grid-template-rows: auto 1fr auto; height: 100vh`. 
 
 ## Panneaux
 
-- Un panneau = une pile de **sections repliables** (`Section`), séparées par un trait `--divider`. Pas de cartes, pas de cadres dans le panneau.
+- Un panneau = une pile de **sections repliables** (`Section`), séparées par un trait `--divider`. Éviter les grandes cartes décoratives ; un encart compact peut identifier une source ou une décision.
 - Défilement vertical du panneau entier (`overflow-y: auto`), jamais de défilement horizontal : un contenu qui déborde est un défaut.
 - Panneau gauche : **ce que l'on fabrique**, dans l'ordre de travail, sections numérotées (① Plaque ② Disposition ③ Forme ④ Bords ⑤ Fabrication ; FabSpeed : machine, matière, fraise, opération).
 - Panneau droit : **ce qui est sélectionné, puis ce que l'on obtient** : l'élément ou le canal en tête, puis Mesures, puis Messages. (FabSpeed : l'assistant et les messages.)
@@ -69,7 +69,7 @@ Grille CSS de la fenêtre : `grid-template-rows: auto 1fr auto; height: 100vh`. 
 
 - Toujours centré sur le travail : cadrage automatique tant que l'utilisateur n'a ni zoomé ni déplacé la vue ; `F` recadre.
 - Barre d'outils en haut : outils (groupe radio à gauche), séparateur vertical (1 × 18 px, `--border-strong`), onglets, espace extensible, annuler / rétablir, séparateur, zoom (− 100 % + ⤢).
-- État vide ou chargement : texte muted centré (`display: grid; place-content: center`), avec une icône 24–32 px au plus et une phrase qui dit quoi faire.
+- État vide ou chargement : texte muted centré (`display: grid; place-content: center`), avec une icône 24–32 px au plus et une phrase qui dit quoi faire. Quand l'état vide occupe tout l'espace de travail, une figure au trait de 240 px peut remplacer l'icône (skill `fab-illustration-system`) ; jamais pour un chargement. Dans un panneau, la seule figure admise est l'aperçu paramétrique d'une fiche.
 - Aide contextuelle de l'outil ou de l'onglet actif : une phrase en bas à gauche de l'espace de travail (`--fs-sm` muted, 60 % de la largeur au plus, `pointer-events: none`).
 
 ## Calques (z-index)
@@ -82,3 +82,7 @@ Grille CSS de la fenêtre : `grid-template-rows: auto 1fr auto; height: 100vh`. 
 | Voile de dépôt de fichier | 800 |
 | Toasts | 900 |
 | Infobulle | 1000 |
+
+## Encarts contextuels
+
+Une source, une proposition ou une étape peut être regroupée dans un encart compact quand cela facilite la lecture ou la décision. Employer les surfaces et séparateurs existants, sans ombre de panneau ni grille de grandes cartes ; préserver la priorité du travail central. Voir [beautiful-ui.md](beautiful-ui.md).

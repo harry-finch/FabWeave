@@ -18,8 +18,9 @@ Chaque composant existe dans FabSpeed et/ou FabVents ; la colonne « Kit » indi
 | `AppBar` | ✓ (gabarit) | Barre d'application |
 | `StatusBar` | ✓ (gabarit) | Barre d'état |
 | `tip` (action) | ✓ | Infobulle |
+| `Figure` | skill `fab-illustration-system` | Illustration au trait : état vide de l'espace de travail, premier lancement, À propos, aperçu paramétrique d'une fiche |
 | Toasts | ✓ (`ui.toast`, `App.svelte`) | Confirmation passagère |
-| Barre d'outils, onglets, menu contextuel, sélecteur à pictogrammes, liste d'éléments, mesures, cellule de résultat, `kbd`, voile de dépôt | modèles ci-dessous | — |
+| Barre d'outils, onglets, curseur, barre de lecture, menu contextuel, sélecteur à pictogrammes, liste d'éléments, mesures, cellule de résultat, `kbd`, voile de dépôt | modèles ci-dessous | — |
 
 ## Boutons
 
@@ -158,3 +159,7 @@ Pastille 7 px (vert prêt, orange chargement, rouge hors service) + texte ; sép
 ## Pictogrammes maison
 
 Quand Lucide n'a pas l'icône (formes de perforation, dispositions, opérations d'usinage, fraises) : SVG 24 × 24, `fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"`, couleur héritée du texte, taille passée en propriété. Ils doivent se confondre avec Lucide.
+
+## Motifs complémentaires
+
+Pour les lignes de tâche, tableaux filtrables, encarts de source ou de proposition et interfaces d’assistance, utiliser les spécifications de [beautiful-ui.md](beautiful-ui.md). Le kit fournit TaskList, RecordsTable, ContextCard, ProposalCard et AssistantPanel ; les autres motifs sont à implémenter selon le besoin.

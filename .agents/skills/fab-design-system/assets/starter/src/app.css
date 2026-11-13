@@ -58,6 +58,13 @@
   --segment-track: #161616;
   --track: #161616;
 
+  /* Illustrations au trait (figures Hairline, skill fab-illustration-system) :
+     un seul trait, neutre. La plaque vaut le fond sur lequel la figure est
+     posée (`Figure.svelte` la règle par surface) ; les trois gris du trait
+     en sont tirés plus bas (`[data-hairline]`). Valent pour les deux thèmes. */
+  --hairline-plate: var(--bg-workspace);
+  --hairline-hi: var(--text-primary);
+
   /* Jetons du domaine (canevas, schémas, jauges…) : préfixés par leur rôle,
      redéfinis dans le thème clair. Exemple :
      --canvas-bg: #1c1c1c;
@@ -198,6 +205,20 @@ a:hover {
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Illustrations au trait : silhouette, trait courant et trait en retrait sont
+   le trait vif fondu dans la plaque (40 %, 26 %, 15 % : les poids de
+   Hairline). La figure garde ainsi sa hiérarchie sur toute surface, dans les
+   deux thèmes. Sans `color-mix`, elle prend les gris d'origine de Hairline.
+   `.linework` donne les mêmes gris à un schéma de l'application. */
+@supports (color: color-mix(in srgb, red, blue)) {
+  [data-hairline],
+  .linework {
+    --hairline-edge: color-mix(in srgb, var(--hairline-hi) 40%, var(--hairline-plate));
+    --hairline-mid: color-mix(in srgb, var(--hairline-hi) 26%, var(--hairline-plate));
+    --hairline-lo: color-mix(in srgb, var(--hairline-hi) 15%, var(--hairline-plate));
+  }
 }
 
 /* Champs de saisie compacts. */

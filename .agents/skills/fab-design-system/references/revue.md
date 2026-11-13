@@ -6,7 +6,7 @@
 | --- | --- |
 | Couleur hexadécimale dans un composant ou dans le code de dessin | Un jeton existant, ou un nouveau jeton du domaine défini dans les deux thèmes |
 | Couleur d'identité sur un bouton, une sélection, un graphique | Accent bleu pour l'action ; identité réservée au logo et au liseré |
-| Cartes, cadres dans les panneaux, ombres sur les panneaux | Sections séparées par un trait `--divider` |
+| Grandes cartes décoratives ou ombres sur les panneaux | Sections au trait `--divider` ; encart compact si nécessaire à une décision ou une source |
 | Bouton principal multiple | Un seul `btn primary` par contexte |
 | Segment actif en bleu | Segment en relief (`--bg-elevated` + liseré intérieur) |
 | Onglet actif en aplat | Texte primary + soulignement 2 px accent |
@@ -21,7 +21,8 @@
 | Icône seule sans infobulle | `aria-label` + `use:tip` avec le raccourci |
 | Contrôles de 36–44 px, rayons de 8–12 px, grandes marges « aérées » | 28 px, rayon 4 px, rythme 4 / 8 / 12 |
 | Défilement horizontal d'un panneau, texte qui passe sous un bord | Libellé plus court, sélecteur en pleine largeur, troncature avec infobulle |
-| Dégradés, illustrations, animations décoratives | Rien : le travail de l'utilisateur est l'image |
+| Dégradés, images d'ambiance, animations décoratives | Rien : le travail de l'utilisateur est l'image |
+| Illustration libre (image de banque, personnage, pictogramme agrandi), ou figure hors de ses emplacements | Figure au trait de `fab-illustration-system`, neutre, là où il n'y a pas encore de travail à montrer |
 | Paramètres tous visibles en même temps | Inspecteur contextuel, sections, « ▸ Avancé » |
 | Noir pur / blanc pur | Échelle de surfaces et de textes |
 | Stockage local sans `try/catch` | Toujours protégé, l'application marche sans |
@@ -73,3 +74,14 @@
 **Vérification**
 
 - [ ] Parcouru dans le navigateur (ou l'application) : capture en sombre et en clair, à 1440 px et 1100 px de large.
+
+**Tâches et assistance, si présentes**
+
+- [ ] Progression, échec et annulation reflètent l’état réel ; le résultat précédent n’est pas présenté comme actuel.
+- [ ] Sources et modifications proposées sont consultables ; les actions conséquentes demandent une décision explicite.
+- [ ] Les encarts servent le contexte, restent compacts et fonctionnent aux deux thèmes et au clavier.
+- [ ] Les animations respectent `prefers-reduced-motion` ; l’information reste disponible sans animation.
+
+**Illustrations, si présentes**
+
+- [ ] Figure au trait neutre (jetons `--hairline-*`), à l'un des emplacements prévus, accompagnée d'une phrase qui dit quoi faire ; liste de contrôle de `fab-illustration-system` passée.

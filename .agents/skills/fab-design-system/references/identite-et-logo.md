@@ -13,7 +13,7 @@ Elle n'est jamais utilisée pour un bouton, une sélection, un état ou un graph
 
 | Application | Identité (sombre) | Identité (thème clair) | Symbole | Source |
 | --- | --- | --- | --- | --- |
-| FabSpeed | `#D954DC` magenta | `#C03FC4` | Pivot et deux anneaux d'arcs interrompus (rotation) | `FabSpeed/branding/fabspeed-logo.svg` (variante 01C-B) |
+| FabSpeed | `#EE46FC` magenta | `#C03FC4` | Pivot et deux anneaux d'arcs interrompus (rotation) | `FabSpeed/branding/fabspeed-logo.svg` (logo V2, 25/10/2026) |
 | FabVents | `#B5D93A` chartreuse | `#6F8C12` | Perforations hexagonales dont la taille croît vers le centre | `FabVents/ui/public/fabvents-logo.svg` |
 | FabWeave | `#58B5F5` bleu FabCAM | `#438ABA` (3:1 sur `#e6e6e6`) | Deux cercles ondulés entrelacés, 3 ondes, dessus-dessous alternés | `FabWeave/branding/fabweave-logo.svg` |
 | FabCAM | `#58B5F5` (logo) | — | — | `FabCAM/logo/FabCAM_A_optical_precision/A0_baseline_app-icon.svg` |
@@ -58,6 +58,7 @@ Carré à coins arrondis de 120 unités, rayon ≈ 27, fond graphite bleuté `#1
 | `ui/public/favicon.svg` | Onglet du navigateur |
 | `favicon.ico` (16, 32, 48), `favicon-32.png`, `apple-touch-icon.png` (180) | Navigateurs sans SVG ; liens versionnés (`?v=…`) pour vider les caches |
 | Icônes macOS / Windows / Linux | Générées depuis le SVG à l'étape de packaging (Tauri) |
+| `branding/illustrations/` | Figures au trait de l'application, dont le symbole en figure pour À propos et le premier lancement. Elles restent neutres : la couleur d'identité n'y passe pas (skill `fab-illustration-system`) |
 
 ## Dans la barre d'application
 

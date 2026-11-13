@@ -92,4 +92,8 @@ Toujours dans un `try { … } catch {}` : le stockage peut être indisponible (n
 | Calcul impossible | Erreur rouge, champ souligné, export désactivé avec la raison |
 | Chargement | Pastille orange dans la barre d'état ; écran d'accueil sobre (texte muted centré) au démarrage |
 
-Animations : 120 ms (chevrons, fondu d'infobulle), 160 ms (apparition d'un toast). Rien d'autre ne bouge.
+Animations : 120 ms (chevrons, fondu d'infobulle), 160 ms (apparition d'un toast). Une progression peut employer un mouvement discret et utile ; respecter `prefers-reduced-motion` et conserver un état textuel.
+
+## Tâches longues et propositions
+
+Afficher étapes, état et erreurs réels, avec annulation seulement si elle est prise en charge. Une proposition reste distincte du document jusqu’à son application explicite ; voir [beautiful-ui.md](beautiful-ui.md).

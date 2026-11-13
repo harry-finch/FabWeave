@@ -101,12 +101,18 @@ Valeurs intermédiaires tolérées et déjà utilisées : 2 px (padding d'un rai
 
 `--font` (Inter Variable, chargée par `@fontsource-variable/inter`), `--mono` (rare : code, identifiants), `--fs-xs` 10,5 px, `--fs-sm` 11,5 px, `--fs-md` 12,5 px (texte par défaut), `--fs-lg` 14 px. Détail dans [typographie.md](typographie.md).
 
+## Illustrations
+
+`--hairline-plate` (= `--bg-workspace`, réglé ensuite par surface) et `--hairline-hi` (= `--text-primary`) colorent les figures au trait de la skill `fab-illustration-system`. Les trois gris du trait (`--hairline-edge`, `--hairline-mid`, `--hairline-lo`) en sont tirés par `color-mix` (40 %, 26 %, 15 %) dans la règle `[data-hairline], .linework` de `app.css` : la figure garde sa hiérarchie sur toute surface, et un schéma au trait (classe `.linework`) prend les mêmes gris. Aucune valeur propre, donc rien à redéfinir dans le thème clair. Une figure ne prend ni l'accent, ni une couleur de sens, ni l'identité.
+
+Ces jetons sont plus récents que FabSpeed et FabVents : les ajouter à une application existante quand elle reçoit sa première figure.
+
 ## Jetons du domaine
 
 Chaque application ajoute ses propres jetons dans un bloc commenté de `app.css`, **dans les deux thèmes**, préfixés par leur rôle :
 
 - FabVents, canevas : `--canvas-bg`, `--plate-fill` (`#4b4f55` / `#b9bdc3`), `--plate-edge`, `--plate-margin`, `--hole-fill` (= fond, le trou laisse voir le fond), `--ctrl`, `--ctrl-edge`, `--ctrl-reach`, `--ctrl-reach-fill`, `--ctrl-dim`, `--ctrl-active` (= accent), `--ctrl-active-fill`, `--canvas-ghost`.
-- FabSpeed, origine des valeurs : `--origin-lab` (cyan), `--origin-calc` (gris), `--origin-user` (violet `#b58cff`), `--origin-derived` (orange), et leurs teintes ; jauges : `--gauge-marker`, `--gauge-tick`, `--meter-neutral` ; schéma de coupe : `--scene-*` (grille, matière enlevée, outil, flûtes, flèches…).
+- FabSpeed, origine des valeurs : `--origin-lab` (cyan), `--origin-calc` (gris), `--origin-user` (violet `#b58cff`), `--origin-derived` (orange), et leurs teintes ; jauges : `--gauge-marker`, `--gauge-tick`, `--meter-neutral` ; schéma de coupe : `--scene-material-tint` (opacité de la matière) et `--scene-danger` ; son trait vient des jetons `--hairline-*` par la classe `.linework` (voir [canevas.md](canevas.md)).
 
 Règles pour un nouveau jeton du domaine :
 
