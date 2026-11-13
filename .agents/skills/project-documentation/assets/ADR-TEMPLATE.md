@@ -1,24 +1,24 @@
-# ADR-XXXX: Title
+# ADR-XXXX : Titre
 
-Status: Proposed
-Date: YYYY-MM-DD
+Statut : Proposée
+Date : AAAA-MM-JJ
 
-## Context
+## Contexte
 
-Describe the problem, constraints, and relevant existing architecture.
+Le problème, les contraintes, l'architecture existante qui compte.
 
-## Decision
+## Décision
 
-State the chosen approach precisely.
+L'approche retenue, énoncée précisément.
 
-## Alternatives considered
+## Alternatives envisagées
 
-List credible alternatives and why they were not chosen.
+Les alternatives sérieuses, et pourquoi elles n'ont pas été retenues.
 
-## Consequences
+## Conséquences
 
-Describe benefits, costs, compatibility impact, migration implications, and upstream-fork impact.
+Ce que la décision apporte, ce qu'elle coûte, l'effet sur la compatibilité et la migration.
 
 ## Validation
 
-State how the decision will be validated and what evidence could cause it to be revisited.
+Comment la décision sera vérifiée, et quelle preuve la remettrait en cause.

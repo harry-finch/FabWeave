@@ -2,7 +2,10 @@
   "version": 1,
   "skills": {
     "fab-roadmap": {
-      "fingerprint": "sha256:4d862335844937cce8a017344578723065e0d6662521851463ff6e3c6d4a579d"
+      "fingerprint": "sha256:bd9b70351a0f200e27c2d70e889a6faa1596df7beeadd41cdb0f3687ac92b01e"
+    },
+    "project-documentation": {
+      "fingerprint": "sha256:a94c5f45d801835f13723fece14c3394615640258076a42a99dc585710c8310b"
     }
   }
 }

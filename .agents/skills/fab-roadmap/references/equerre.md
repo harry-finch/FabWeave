@@ -17,7 +17,23 @@ Les étapes sont indépendantes : en sauter une déjà faite, et faire **un comm
 
 Si `fabboard doctor` signale `roadmap.legacy` : suivre [migration.md](migration.md) en entier.
 
-Sinon, vérifier que `projet.toml` dit vrai : sous-titre, couleur, logo, jalons, et surtout les **versions à tester** (`[[test]]`) : l'adresse locale et la commande qui la sert, le motif des builds, la release. Demander à l'utilisateur comment il essaie le projet si rien ne se déduit des consignes d'agent. Renseigner `agent` (`claude` ou `codex`) s'il le dit.
+Si `fabboard doctor` signale `roadmap.empty` (le dossier existe, sans aucun élément) et que le projet a déjà une histoire : la **reconstituer**, voir « Projet sans feuille de route » plus bas. Un projet tout neuf n'a rien à reconstituer : demander à l'utilisateur ses premières idées et les ajouter (`fabboard roadmap add`).
+
+Dans tous les cas, vérifier que `projet.toml` dit vrai : sous-titre, couleur, logo, jalons, et surtout les **versions à tester** (`[[test]]`) : l'adresse locale et la commande qui la sert, le motif des builds, la release. Demander à l'utilisateur comment il essaie le projet si rien ne se déduit des consignes d'agent. Renseigner `agent` (`claude` ou `codex`) s'il le dit.
+
+### Projet sans feuille de route
+
+Un projet avancé, voire presque terminé, peut n'avoir jamais eu de feuille de route : FabBoard affiche alors « Feuille de route à écrire » au lieu de son avancement réel. Le but est que la carte dise vrai : ce qui est livré, ce qui reste.
+
+1. **Lire ce qui existe**, dans cet ordre : les versions publiées (`git tag`, notes de version, `CHANGELOG`), `STATUS.md` et `DEVLOG.md`, le `README.md` (ce que l'application fait), `docs/FEATURES.md` s'il existe, puis l'historique Git (`git log --oneline`) pour dater.
+2. **Proposer** à l'utilisateur, avant d'écrire quoi que ce soit, une feuille de route à gros grain :
+   - les **jalons** : une version publiée ou un grand lot par jalon, dans l'ordre ;
+   - **ce qui est livré** : un élément `livree` par jalon ou par grand lot (pas un par fonction), avec un titre, une description rapide tirée des documents, et la date du tag ou du commit ;
+   - **ce qui reste** : cela ne se devine pas. Lui demander ce qui manque pour qu'il considère le projet terminé, et ce qu'il envisage ensuite ; chaque réponse devient une idée.
+3. Après son accord seulement : `[[jalons]]` dans `projet.toml`, puis les éléments (`fabboard roadmap add … --cree`, `fabboard roadmap set … --statut livree --livree`), le corps de chaque élément livré citant sa source (« d'après les notes de la version 0.9.0 »). `ordre.txt` reprend la priorité qu'il a donnée à ce qui reste.
+4. Si une version publiée attend encore son essai, l'élément est `a-tester` et une action `tester` le dit.
+
+Ne rien inventer : pas de jalon, de date ni de fonction qui ne soit dans les documents, l'historique ou ses réponses. Une feuille de route reconstituée de cinq éléments justes vaut mieux qu'une de trente supposés.
 
 ## 2. Skills
 
