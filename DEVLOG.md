@@ -575,3 +575,10 @@ Les paragraphes suivants proviennent de STATUS.md avant son allègement. Ils con
 ## 2026-11-12 — Figure : choix du vase ondulé
 
 À la demande de l'utilisateur, le concept « vase ondulé sous une buse, le pointeur règle l'amplitude des ondulations » remplace la pièce tissée. Source `branding/illustrations/ripple-vase.js`, page autonome `hairline-ripple-vase.html`, référence FabBoard `ripple-vase`. Ancienne proposition conservée comme exploration, non utilisée par la carte. R-019, A-011 et le bilan A-012 mis à jour. Moteur et bench Hairline intacts, validation statique conforme ; contrôle visuel toujours en attente, faute de navigateur. Aucun changement de l'interface ni du moteur de FabWeave.
+
+
+## 2026-11-12 — Reprise de la mise d’équerre
+
+Le travail précédent est présent dans le commit `1175867` sur `main`. L’utilisateur autorise la poursuite en conservant hors de nos commits les deux modifications préexistantes de fab-roadmap (registre et référence equerre.md). Création de la branche `fabboard/mise-d-equerre` refusée (`cannot lock ref`) ; mise à jour déjà approuvée de professional-workshop-ui et project-documentation refusée (`Operation not permitted` dans `.agents/skills/`). Aucun nouveau commit ni push. A-010 et A-012 actualisées pour tenir compte du commit existant.
+
+Accès navigateur indisponible ; contrôle natif de Vivaldi refusé par l’outil. Aucun contrôle visuel réalisé, figure toujours provisoire et A-011 maintenue. Validation statique Hairline relancée : moteur et page intacts, figure conforme. Doctor ne relève que les trois différences de skills, dont fab-design-system conservée volontairement ; lint roadmap conforme. Aucun changement de code, nouveau test Rust/Svelte, build bureau ou essai d’impression.

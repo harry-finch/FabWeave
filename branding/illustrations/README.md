@@ -13,7 +13,7 @@ La première proposition [woven-nozzle.js](woven-nozzle.js) et sa [page](hairlin
 
 ## Contrôles du 12/11/2026
 
-`build.mjs` et `validate.mjs` acceptent la nouvelle page. **La figure n'a pas été regardée dans un navigateur.** Le contrôle `look.mjs` reste bloqué par l'absence de Chrome ou Chromium. Elle reste provisoire dans `roadmap/projet.toml` ; A-011 porte les essais à reprendre.
+`build.mjs` et `validate.mjs` acceptent la nouvelle page. **La figure n'a pas été regardée dans un navigateur.** Le contrôle `look.mjs` n’a pas été réalisé lors de la session initiale. À la reprise, l’accès navigateur de l’outil est indisponible et le contrôle natif de Vivaldi est refusé ; aucun contrôle visuel supplémentaire n’a donc été effectué. La validation statique a été relancée avec succès. Elle reste provisoire dans `roadmap/projet.toml` ; A-011 porte les essais à reprendre.
 
 Revue de `look.md` à partir du code, sans validation visuelle :
 

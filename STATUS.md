@@ -16,7 +16,7 @@
 - Profils livrés sans cône de buse mesuré : seuls le bout et la tête sont vérifiés ; gravité du garde-buse encore à valider ([ADR-0008](docs/adr/0008-garde-buse-et-gravite-des-collisions.md)).
 - Application macOS non notarisée ; installeur Windows non signé. Retours de bêta attendus.
 - Mesures historiques : 50 000 points en pur script en 81 ms ; WebAssembly de 3,6 Mo (1,1 Mo gzip). Le fond en lignes peut multiplier les rétractions ; l'option anneaux l'évite.
-- Mise d'équerre du 12/11 : documentation et critères bureau validés ; mises à jour de skills et commits bloqués par les droits sur `.agents/` et `.git/` (A-010). Figure choisie et construite, contrôle visuel restant (A-011), bilan à valider (A-012). `fab-design-system` conservée par choix de l'utilisateur.
+- Mise d'équerre du 12/11 : documentation et critères bureau validés, travail précédent enregistré dans `1175867` sur `main` ; mises à jour de skills et création de la branche de reprise encore bloquées par les droits sur `.agents/` et `.git/` (A-010). Figure choisie et construite, contrôle visuel restant (A-011), bilan à valider (A-012). `fab-design-system` conservée par choix de l'utilisateur.
 
 ## À suivre
 
