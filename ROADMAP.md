@@ -50,7 +50,6 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 
 ## Actions à faire
 
-- [ ] [A-001](roadmap/actions/A-001-imprimer-un-modele-valide-sur-la-core-one-jalon.md) Imprimer un modèle validé sur la CORE One (jalon v0.3) (tester, R-004)
 - [ ] [A-002](roadmap/actions/A-002-essayer-la-bambu-lab-x1e-par-la-carte-sd-en.md) Essayer la Bambu Lab X1E par la carte SD, en .gcode et en .gcode.3mf (jalon v0.3) (tester, R-004)
 - [ ] [A-003](roadmap/actions/A-003-relever-la-comparaison-des-temps-estimes-avec.md) Relever la comparaison des temps estimés avec PrusaSlicer (critère v0.4) (tester, R-005)
 - [ ] [A-004](roadmap/actions/A-004-valider-le-jalon-v0-5-dont-la-gravite-retenue.md) Valider le jalon v0.5, dont la gravité retenue dans l'ADR-0008 (valider, R-006)
