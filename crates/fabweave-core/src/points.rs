@@ -81,13 +81,13 @@ fn positive(v: &Dynamic, what: &str) -> R<f64> {
     Ok(x)
 }
 
-struct Builder {
+pub(crate) struct Builder {
     pts: Vec<[f64; 3]>,
     limit: usize,
 }
 
 impl Builder {
-    fn new(limit: usize, n: usize) -> R<Self> {
+    pub(crate) fn new(limit: usize, n: usize) -> R<Self> {
         if n > limit {
             return Err(fault("path.too_many_points", limit.to_string()));
         }
@@ -97,7 +97,7 @@ impl Builder {
         })
     }
 
-    fn push(&mut self, p: [f64; 3]) -> R<()> {
+    pub(crate) fn push(&mut self, p: [f64; 3]) -> R<()> {
         if self.pts.len() >= self.limit {
             return Err(fault("path.too_many_points", self.limit.to_string()));
         }
@@ -105,7 +105,7 @@ impl Builder {
         Ok(())
     }
 
-    fn done(self) -> Points {
+    pub(crate) fn done(self) -> Points {
         Points(self.pts)
     }
 }

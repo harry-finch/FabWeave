@@ -47,7 +47,7 @@ step = 0.1
 
 [params.bottom_layers]
 type = "int"
-label = { fr = "Couches du fond", en = "Bottom layers" }
+label = { fr = "Fond (couches)", en = "Bottom layers" }
 help = { fr = "Couches pleines (anneaux) sous la spirale ; 0 : manchon ouvert.", en = "Solid layers (rings) under the spiral; 0: open sleeve." }
 default = 2
 min = 0

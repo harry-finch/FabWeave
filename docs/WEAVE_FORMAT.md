@@ -245,6 +245,20 @@ Les vitesses demandées restent **plafonnées** par l'imprimante, la première c
 
 Les arguments numériques acceptent entiers et flottants. Une largeur, une hauteur ou une vitesse nulle ou négative, une position non finie, un ventilateur hors de 0–100 sont des erreurs (`path.invalid_width`, …) positionnées sur la ligne du script.
 
+### Formes (calcul natif, R-023)
+
+Pour composer vases, pots et abat-jour sans boucle de script : une silhouette (`curve`), une section vue de dessus, une torsion et une cage, réunies par `revolve` en une spirale continue.
+
+| Fonction | Rôle |
+| --- | --- |
+| `section(type, côtés, profondeur)` | Section vue de dessus ; `s.at(angle)` rend le facteur du rayon, entre `1 − profondeur` et 1 (la silhouette est l'enveloppe, la section creuse vers l'intérieur). Types : `"round"`, `"faceted"` (polygone), `"petal"` (lobes arrondis), `"star"` (pointes), `"fluted"` (cannelures concaves), `"flower"` (ondulation douce), `"teeth"` (créneaux), `"drop"` (goutte, une pointe à l'angle 0, `côtés` ignoré). `côtés` de 3 à 60, `profondeur` de 0 à 0,9. |
+| `twist_angle(rythme, degrés, t)` | Rotation en **radians** à la part `t` de la hauteur (0 en bas, 1 en haut) pour `degrés` en tout : `"even"` (régulière), `"s"` (en S, lente aux extrémités), `"back_and_forth"` (aller-retour, revient à 0 en haut). |
+| `cage(anneaux, points, déplacements, douceur)` | Grille de déformation : `anneaux` (2 à 8) répartis du bas au haut, `points` (3 à 24) par anneau à angles réguliers depuis 0 ; `déplacements` en mm, anneau du bas d'abord (positif : la paroi sort). `c.at(angle, t)` rend le déplacement radial. `douceur` 0 : la paroi passe par les points ; 1 : plus douce, en deçà des points. |
+| `revolve(opts)` | Spirale continue (liste de points) : `opts` est une table `#{ profile, section, twist, twist_kind, taper, cage, start, pitch, segments, end }`. Obligatoires : `profile` (`Curve`), `start` (hauteur du départ), `pitch` (montée par tour). Facultatifs : `section`, `twist` (degrés), `twist_kind` (`"even"` par défaut), `taper` (−0,9 à 0,9 : rétrécit vers le haut si positif), `cage`, `segments` par tour (120), `end` (haut de la silhouette). La hauteur de la silhouette est celle au-dessus du plateau ; les tours partent devant, au milieu. |
+| `revolve_ring(opts, z)` | Un tour fermé à la hauteur `z`, mêmes réglages (fond d'une pièce : `revolve_ring(shape, z).fill_rings(…)`). |
+
+Erreurs : type ou rythme inconnu (`shape.unknown_section`, `shape.unknown_twist`), cage dont le nombre de déplacements ne correspond pas (`shape.cage_size`), rayon qui descend sous 0,5 mm (`shape.radius_too_small`), départ au-dessus de la fin (`shape.no_turn`), nombres hors domaine (`points.invalid_count`, `points.invalid_value`). Modèle d'exemple : [free_form.weave](../models/vases/free_form.weave).
+
 ### Fonctions mathématiques
 
 `sin cos tan asin acos atan sinh cosh tanh exp ln log sqrt` (un argument), `atan(y, x)` et `atan2(y, x)`, `pow(x, y)`, `hypot(x, y)`, `min(a, b)`, `max(a, b)`, `clamp(x, lo, hi)`, `lerp(a, b, t)`, `rad(degrés)`, `deg(radians)`. `noise(x, y, z)` : bruit de gradient 3D (calcul natif), valeur de −1 à 1, continue, nulle sur les points entiers, motifs d'une taille d'environ 1 ; diviser les coordonnées par la taille du motif voulue, les décaler pour un autre tirage. Sur un cylindre, le prendre en `(cos(a) × r, sin(a) × r, z)` : pas de couture (voir le photophore vermiculé du catalogue). Les fonctions de Rhai restent disponibles : `floor(x)`, `ceiling(x)`, `round(x)`, `abs(x)`, `x.to_int()`, `x.to_float()`…
@@ -313,6 +327,7 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `temperature.limit_unknown` | info | Le profil d'imprimante ne donne pas ses plafonds : 300 °C pour la buse, 120 °C pour le plateau. |
 | `gcode.pause_missing` | erreur | Le modèle fait des pauses mais le profil d'imprimante n'a pas de gabarit `pause` (export refusé). |
 | `points.invalid_count`, `points.invalid_value`, `points.index_out_of_range`, `points.empty` | erreur | Argument invalide d'une fonction de points (nombre de segments, rayon…). |
+| `shape.unknown_section`, `shape.unknown_twist`, `shape.cage_size`, `shape.radius_too_small`, `shape.no_turn` | erreur | Fonctions de forme : type de section ou rythme inconnu, cage mal dimensionnée, rayon sous 0,5 mm, spirale sans tour. |
 | `model.warning` | avertissement | `warn()` du modèle (son texte, sa ligne). |
 | `model.failure` | erreur | `fail()` du modèle. Aux bornes d'un paramètre, `fabweave check` tolère ce refus (combinaison impossible avec les autres valeurs par défaut, par exemple un trou plus grand que la pièce) ; aux valeurs par défaut, jamais. |
 | `param.invalid_options`, `param.duplicate_option`, `param.unknown_option` | erreur | Paramètre `choice` mal défini, ou valeur hors liste. |

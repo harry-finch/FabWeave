@@ -29,6 +29,7 @@ pub mod project;
 pub mod quality;
 pub mod script;
 pub mod setup;
+pub mod shapes;
 pub mod template;
 pub mod workbench;
 

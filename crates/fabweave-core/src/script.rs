@@ -615,6 +615,7 @@ impl ScriptEngine {
         );
         crate::points::register(&mut engine, limits.max_points);
         crate::curve::register(&mut engine);
+        crate::shapes::register(&mut engine, limits.max_points);
         let sink = |log: Rc<RefCell<Log>>| {
             move |s: &str| {
                 let mut l = log.borrow_mut();

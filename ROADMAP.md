@@ -31,7 +31,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
    Application de bureau Tauri 2 avec dossier de modèles surveillé, projet .fabweave.json et CLI complète.
 4. **[R-020 Paramètre courbe : silhouette dessinée](roadmap/items/R-020-parametre-courbe-silhouette-dessinee.md)** · À tester · jalon v0.7
    Nouveau type de paramètre .weave : une silhouette modifiable en tirant des points, avec une galerie de silhouettes prêtes.
-5. **[R-023 Formes : sections vues de dessus, torsion et cage](roadmap/items/R-023-formes-sections-vues-de-dessus-torsion-et-cage.md)** · Spécifiée · jalon v0.7
+5. **[R-023 Formes : sections vues de dessus, torsion et cage](roadmap/items/R-023-formes-sections-vues-de-dessus-torsion-et-cage.md)** · À tester · jalon v0.7
    Fonctions de forme natives (sections pétale, étoile, cannelé…, torsion rythmée, cage de déformation) et un modèle « Forme libre ».
 6. **[R-021 Bibliothèque d'effets de parcours](roadmap/items/R-021-bibliotheque-d-effets-de-parcours.md)** · Spécifiée · jalon v0.7
    Effets tracés par la buse (trame, grain, vagues, picots, dentelle, colonnes, gros boudin) en fonctions natives de l'API, et un « Vase à effets ».
@@ -76,6 +76,8 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-016](roadmap/actions/A-016-donner-les-cotes-des-douilles-e27-et-e14-du.md) Donner les cotes des douilles E27 et E14 du fablab (fournir, R-022)
 - [ ] [A-017](roadmap/actions/A-017-dessiner-une-silhouette-dans-l-editeur-de-courbe.md) Dessiner une silhouette dans l'éditeur de courbe (tester, R-020)
 - [ ] [A-018](roadmap/actions/A-018-imprimer-un-vase-a-silhouette-libre.md) Imprimer un vase à silhouette libre (tester, R-020)
+- [ ] [A-019](roadmap/actions/A-019-composer-trois-pieces-avec-forme-libre.md) Composer trois pièces avec « Forme libre » (tester, R-023)
+- [ ] [A-020](roadmap/actions/A-020-imprimer-une-piece-torsadee-et-deformee-par-la.md) Imprimer une pièce torsadée et déformée par la cage (tester, R-023)
 
 ## Livré
 

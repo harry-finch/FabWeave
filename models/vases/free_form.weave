@@ -1,0 +1,402 @@
+format = "fabweave.model"
+version = 2
+
+[meta]
+name = { fr = "Forme libre", en = "Free form" }
+category = { fr = "Vases et luminaires", en = "Vases & lamps" }
+description = { fr = "Une silhouette dessinée, une section vue de dessus (pétale, étoile, cannelé…), une torsion et une cage dont chaque point pousse ou rentre la paroi : de quoi composer vases, pots et abat-jour en une spirale continue, sur un fond plein qui suit la section.", en = "A drawn silhouette, a section seen from above (petal, star, fluted…), a twist and a cage whose points push or pull the wall: compose vases, pots and shades as one continuous spiral, on a solid bottom that follows the section." }
+author = "FabWeave"
+tags = ["vase", "spirale", "silhouette", "section", "torsion", "cage"]
+license = "GPL-3.0-or-later"
+recommended_nozzle = [0.4, 0.5, 0.6]
+
+[params.silhouette]
+type = "curve"
+label = { fr = "Silhouette", en = "Silhouette" }
+unit = "mm"
+help = { fr = "Rayon extérieur selon la hauteur ; la section creuse vers l'intérieur. Le vase est aussi haut que le dernier point.", en = "Outer radius against height; the section cuts inwards. The vase is as tall as the last point." }
+default = [[32, 0], [42, 40], [34, 90], [38, 110]]
+min = [10, 0]
+max = [100, 250]
+points = [2, 16]
+presets = [
+    { name = { fr = "Pot", en = "Pot" }, points = [[32, 0], [42, 40], [34, 90], [38, 110]] },
+    { name = { fr = "Colonne", en = "Column" }, points = [[30, 0], [30, 160]] },
+    { name = { fr = "Coupe", en = "Bowl" }, points = [[25, 0], [55, 35], [70, 60]] },
+    { name = { fr = "Lanterne", en = "Lantern" }, points = [[28, 0], [45, 60], [28, 120]] },
+]
+
+[params.section]
+type = "choice"
+label = { fr = "Section", en = "Section" }
+help = { fr = "Forme vue de dessus.", en = "Shape seen from above." }
+default = "petal"
+options = [
+    { value = "round", label = { fr = "Ronde", en = "Round" } },
+    { value = "faceted", label = { fr = "Facettes", en = "Faceted" } },
+    { value = "petal", label = { fr = "Pétales", en = "Petals" } },
+    { value = "star", label = { fr = "Étoile", en = "Star" } },
+    { value = "fluted", label = { fr = "Cannelée", en = "Fluted" } },
+    { value = "flower", label = { fr = "Fleur", en = "Flower" } },
+    { value = "teeth", label = { fr = "Dents", en = "Teeth" } },
+    { value = "drop", label = { fr = "Goutte", en = "Drop" } },
+]
+
+[params.sides]
+type = "int"
+label = { fr = "Côtés / lobes", en = "Sides / lobes" }
+default = 8
+min = 3
+max = 60
+
+[params.depth]
+type = "float"
+label = { fr = "Profondeur", en = "Depth" }
+unit = "%"
+help = { fr = "Creux des lobes, en part du rayon.", en = "Depth of the lobes, as a share of the radius." }
+default = 15
+min = 0
+max = 60
+step = 1
+
+[params.twist]
+type = "float"
+label = { fr = "Torsion", en = "Twist" }
+unit = "°"
+help = { fr = "Rotation de la section du bas jusqu'en haut.", en = "Rotation of the section from bottom to top." }
+default = 45
+min = -360
+max = 360
+step = 5
+
+[params.twist_kind]
+type = "choice"
+label = { fr = "Rythme", en = "Rhythm" }
+help = { fr = "Régulière, en S (lente aux extrémités) ou aller-retour (revient en haut).", en = "Even, S-curve (slow at both ends) or back and forth (returns at the top)." }
+default = "even"
+options = [
+    { value = "even", label = { fr = "Régulière", en = "Even" } },
+    { value = "s", label = { fr = "En S", en = "S-curve" } },
+    { value = "back_and_forth", label = { fr = "Aller-retour", en = "Back & forth" } },
+]
+
+[params.taper]
+type = "float"
+label = { fr = "Resserrement", en = "Taper" }
+unit = "%"
+help = { fr = "Rétrécit (positif) ou élargit (négatif) la pièce vers le haut, en plus de la silhouette.", en = "Narrows (positive) or widens (negative) the piece towards the top, on top of the silhouette." }
+default = 0
+min = -60
+max = 60
+step = 1
+
+[params.cage_softness]
+type = "float"
+label = { fr = "Douceur cage", en = "Cage softness" }
+help = { fr = "0 : la paroi passe par les points de la cage ; 1 : plus douce, en deçà des points.", en = "0: the wall goes through the cage points; 1: softer, inside the points." }
+advanced = true
+default = 0.6
+min = 0
+max = 1
+step = 0.05
+
+[params.cage_0_1]
+type = "float"
+label = { fr = "Cage bas 1", en = "Cage bottom 1" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 1 de l'anneau du bas, à 0° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 1 of the bottom ring, at 0° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_0_2]
+type = "float"
+label = { fr = "Cage bas 2", en = "Cage bottom 2" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 2 de l'anneau du bas, à 60° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 2 of the bottom ring, at 60° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_0_3]
+type = "float"
+label = { fr = "Cage bas 3", en = "Cage bottom 3" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 3 de l'anneau du bas, à 120° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 3 of the bottom ring, at 120° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_0_4]
+type = "float"
+label = { fr = "Cage bas 4", en = "Cage bottom 4" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 4 de l'anneau du bas, à 180° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 4 of the bottom ring, at 180° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_0_5]
+type = "float"
+label = { fr = "Cage bas 5", en = "Cage bottom 5" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 5 de l'anneau du bas, à 240° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 5 of the bottom ring, at 240° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_0_6]
+type = "float"
+label = { fr = "Cage bas 6", en = "Cage bottom 6" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 6 de l'anneau du bas, à 300° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 6 of the bottom ring, at 300° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_1_1]
+type = "float"
+label = { fr = "Cage milieu 1", en = "Cage middle 1" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 1 de l'anneau du milieu, à 0° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 1 of the middle ring, at 0° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_1_2]
+type = "float"
+label = { fr = "Cage milieu 2", en = "Cage middle 2" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 2 de l'anneau du milieu, à 60° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 2 of the middle ring, at 60° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_1_3]
+type = "float"
+label = { fr = "Cage milieu 3", en = "Cage middle 3" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 3 de l'anneau du milieu, à 120° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 3 of the middle ring, at 120° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_1_4]
+type = "float"
+label = { fr = "Cage milieu 4", en = "Cage middle 4" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 4 de l'anneau du milieu, à 180° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 4 of the middle ring, at 180° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_1_5]
+type = "float"
+label = { fr = "Cage milieu 5", en = "Cage middle 5" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 5 de l'anneau du milieu, à 240° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 5 of the middle ring, at 240° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_1_6]
+type = "float"
+label = { fr = "Cage milieu 6", en = "Cage middle 6" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 6 de l'anneau du milieu, à 300° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 6 of the middle ring, at 300° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_2_1]
+type = "float"
+label = { fr = "Cage haut 1", en = "Cage top 1" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 1 de l'anneau du haut, à 0° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 1 of the top ring, at 0° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_2_2]
+type = "float"
+label = { fr = "Cage haut 2", en = "Cage top 2" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 2 de l'anneau du haut, à 60° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 2 of the top ring, at 60° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_2_3]
+type = "float"
+label = { fr = "Cage haut 3", en = "Cage top 3" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 3 de l'anneau du haut, à 120° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 3 of the top ring, at 120° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_2_4]
+type = "float"
+label = { fr = "Cage haut 4", en = "Cage top 4" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 4 de l'anneau du haut, à 180° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 4 of the top ring, at 180° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_2_5]
+type = "float"
+label = { fr = "Cage haut 5", en = "Cage top 5" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 5 de l'anneau du haut, à 240° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 5 of the top ring, at 240° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.cage_2_6]
+type = "float"
+label = { fr = "Cage haut 6", en = "Cage top 6" }
+unit = "mm"
+help = { fr = "Pousse (positif) ou rentre (négatif) la paroi autour du point 6 de l'anneau du haut, à 300° (0° : à droite, vu de dessus).", en = "Pushes (positive) or pulls (negative) the wall around point 6 of the top ring, at 300° (0°: right, seen from above)." }
+advanced = true
+default = 0
+min = -20
+max = 20
+step = 0.5
+
+[params.bottom_layers]
+type = "int"
+label = { fr = "Fond (couches)", en = "Bottom layers" }
+help = { fr = "Couches pleines (anneaux) sous la spirale ; 0 : manchon ouvert.", en = "Solid layers (rings) under the spiral; 0: open sleeve." }
+advanced = true
+default = 2
+min = 0
+max = 4
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+advanced = true
+default = 30
+min = 5
+max = 120
+step = 1
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+help = { fr = "Largeur d'extrusion, en multiple du diamètre de buse.", en = "Extrusion width, as a multiple of the nozzle diameter." }
+advanced = true
+default = 2
+min = 1
+max = 3
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+help = { fr = "Montée par tour, en multiple du diamètre de buse.", en = "Rise per turn, as a multiple of the nozzle diameter." }
+advanced = true
+default = 0.5
+min = 0.2
+max = 0.8
+step = 0.05
+---
+// Forme libre (FabWeave) : silhouette, section, torsion et cage calculées
+// en natif par `revolve` (R-023), en une spirale continue sur un fond plein.
+
+let ew = printer.nozzle_diameter * params.width_factor;   // largeur du boudin
+let eh = printer.nozzle_diameter * params.height_factor;  // montée par tour
+let fh = printer.first_layer_height;
+let nb = params.bottom_layers;
+let segs = max(180, params.sides * 12).to_int();
+
+let offsets = [];
+for ring in 0..3 {
+    for i in 1..=6 {
+        offsets.push(params[`cage_${ring}_${i}`]);
+    }
+}
+let shape = #{
+    profile: params.silhouette,
+    section: section(params.section, params.sides, params.depth / 100.0),
+    twist: params.twist,
+    twist_kind: params.twist_kind,
+    taper: params.taper / 100.0,
+    cage: cage(3, 6, offsets, params.cage_softness),
+    pitch: eh,
+    segments: segs,
+};
+
+let path = new_path();
+
+// Fond : contour à la section du pied, puis anneaux.
+let fw = printer.nozzle_diameter * 1.125;
+for j in 0..nb {
+    let z = fh + j * eh;
+    let h = if j == 0 { fh } else { eh };
+    shape.start = z;
+    let contour = revolve_ring(shape, z);
+    path.travel_to(contour);
+    path.print_points(contour, ew, h);
+    if j == 0 {
+        path.note(#{ fr: "Fond : contour, puis anneaux", en: "Bottom: outline, then rings" });
+    }
+    for r in contour.fill_rings(fw, ew / 2 + fw * 0.35) {
+        path.travel_to(r);
+        path.print_points(r, fw, h);
+    }
+}
+
+// Spirale : de la dernière couche du fond (ou du plateau) au haut de la silhouette.
+shape.start = if nb == 0 { 0.8 * eh } else { fh + (nb - 1) * eh };
+if params.silhouette.max_z - shape.start < eh {
+    fail(#{ fr: "Silhouette trop basse pour une spirale : monter le dernier point.", en: "Silhouette too low for a spiral: raise the last point." });
+}
+let wall = revolve(shape);
+path.set_speed(params.speed / 2);
+path.travel_to(wall);
+path.note(#{ fr: "Départ de la spirale", en: "Spiral start" });
+// Premier tour au ralenti, le reste à la vitesse demandée.
+let first = wall.slice(0, segs + 1);
+path.print_points(first, ew, eh);
+path.set_speed(params.speed);
+path.print_points(wall.slice(segs, wall.len()), ew, eh);
+path

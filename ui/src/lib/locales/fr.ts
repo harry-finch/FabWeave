@@ -442,6 +442,13 @@ const fr = {
       blob_without_position: 'Goutte sans position : placer la buse (travel_to, print_to…) avant blob().',
       invalid_blob: 'Goutte invalide ({detail}) : volume de 0 à 1 000 mm³, durée de 0 à 60 s.',
     },
+    shape: {
+      unknown_section: 'Type de section inconnu.',
+      unknown_twist: 'Rythme de torsion inconnu.',
+      cage_size: 'Cage : le nombre de déplacements ne correspond pas aux anneaux et aux points.',
+      radius_too_small: 'Le rayon descend sous 0,5 mm (section, resserrement ou cage trop forts).',
+      no_turn: 'Spirale sans tour : le départ est au-dessus du haut de la silhouette.',
+    },
     points: {
       invalid_count: 'Nombre invalide (entier positif attendu).',
       invalid_value: 'Valeur invalide (positive attendue).',

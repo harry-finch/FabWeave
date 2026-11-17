@@ -2,7 +2,7 @@
 id: R-023
 titre: "Formes : sections vues de dessus, torsion et cage"
 resume: "Fonctions de forme natives (sections pétale, étoile, cannelé…, torsion rythmée, cage de déformation) et un modèle « Forme libre »."
-statut: specifiee
+statut: a-tester
 jalon: v0.7
 cree: 2026-11-17
 maj: 2026-11-17

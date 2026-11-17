@@ -444,6 +444,13 @@ const en: Shape<typeof fr> = {
       blob_without_position: 'Blob without a position: move the nozzle (travel_to, print_to…) before blob().',
       invalid_blob: 'Invalid blob ({detail}): volume from 0 to 1,000 mm³, duration from 0 to 60 s.',
     },
+    shape: {
+      unknown_section: 'Unknown section type.',
+      unknown_twist: 'Unknown twist rhythm.',
+      cage_size: 'Cage: the number of offsets does not match the rings and points.',
+      radius_too_small: 'The radius drops below 0.5 mm (section, taper or cage too strong).',
+      no_turn: 'Spiral without a turn: the start is above the top of the silhouette.',
+    },
     points: {
       invalid_count: 'Invalid count (positive integer expected).',
       invalid_value: 'Invalid value (positive expected).',

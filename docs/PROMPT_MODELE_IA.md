@@ -67,6 +67,8 @@ Variables fournies : `params.<id>` (constantes), `printer.nozzle_diameter`, `pri
 | `path.set_fan(pourcent)`, `path.reset_fan()` | Ventilateur |
 | `path.note("texte")`, `path.note_at(x, y, z, "texte")` | Repère affiché dans la vue 3D (« Départ », « Pointe fine conseillée ») |
 
+**Formes natives** (vases, pots, abat-jour) : `section(type, côtés, profondeur)` (types `"round"`, `"faceted"`, `"petal"`, `"star"`, `"fluted"`, `"flower"`, `"teeth"`, `"drop"` ; profondeur de 0 à 0,9), `cage(anneaux, points, déplacements_mm, douceur)`, puis `revolve(#{ profile: params.silhouette, section: …, twist: degrés, twist_kind: "even" | "s" | "back_and_forth", taper: …, cage: …, start: z_départ, pitch: montée_par_tour, segments: 180 })` rend toute la spirale ; `revolve_ring(opts, z)` un tour fermé (pour le fond). Préfère-les à une boucle de script pour une pièce de révolution.
+
 **Listes de points calculées en natif** (≈ 70 fois plus rapides qu'une boucle de script : à préférer). Angles en radians, sens antihoraire ; une forme fermée répète son premier point.
 
 - Formes : `line(x0, y0, z0, x1, y1, z1, segments)`, `arc(cx, cy, z, r, start, sweep, segments)`, `circle(cx, cy, z, r, start, segments)`, `polygon(cx, cy, z, r, sides, start)`, `rectangle(x0, y0, z, dx, dy)`, `spiral(cx, cy, z, r_start, r_end, start, turns, segments_per_turn)`, `helix(cx, cy, z_start, r_start, r_end, start, turns, pitch, segments_per_turn)` (Z monte de `pitch` par tour : mode vase), `zigzag(x0, y0, z, length, spacing, lines)` (lignes parallèles à X en aller-retour), `sine(x0, y0, z, length, amplitude, period, segments_per_period)`, `points()` puis `pts.push(x, y, z)`.
