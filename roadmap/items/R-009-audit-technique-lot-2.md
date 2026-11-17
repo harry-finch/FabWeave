@@ -2,7 +2,7 @@
 id: R-009
 titre: "Audit technique, lot 2"
 resume: "Budgets de calcul avant allocation, CI à chaque push, sauvegardes locales jamais perdues en silence, identifiants des modèles personnels sans collision, export CLI atomique."
-statut: en-cours
+statut: a-tester
 cree: 2026-11-02
 maj: 2026-11-17
 livree:

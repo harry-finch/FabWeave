@@ -668,3 +668,18 @@ Accès navigateur indisponible ; contrôle natif de Vivaldi refusé par l’outi
 **Vérification.** Tests : trous E27 et E14 au diamètre donné à ±0,05 mm (suspension, pied, platine) ; emboîtements de la lampe et de l'applique qui diffèrent exactement du jeu (0,2 et 0,45 mm, à 0,01 mm). **Non vérifié** : impression et montage d'une douille (A-025, A-026).
 
 **À noter.** Seize libellés de modèles plus anciens dépassent la limite de 14 caractères de WEAVE_FORMAT (défis, mécanique, calibration…) ; non modifiés, à reprendre à part.
+
+
+## 2026-11-17 — R-009 : audit technique, lot 2
+
+**Spécification** validée par l'utilisateur : CI à chaque push, 2 millions de points après préparation, bandeau et export de la bibliothèque, même nom = mise à jour, export CLI atomique (écrasement gardé).
+
+**CI (AUD-011).** `.github/workflows/ci.yml` « Contrôles » : Clippy `-D warnings`, `cargo test --workspace`, `npm ci`, `npm run wasm`, `npm run check` sur Ubuntu, à chaque push et pull request sur main ; builds de bureau toujours manuels.
+
+**Budgets (AUD-005).** `fill_lines_multi` refuse avant d'allouer (deux points par ligne au moins), `fill_rings` estime le nombre d'anneaux (huit points chacun) avant le premier décalage ; refus en quelques millisecondes pour un espacement de 0,000 001 mm. `arrange` refuse au-delà de 2 millions de points (copies, puis adhésion) avant de les construire : `setup.too_many_points`.
+
+**Export CLI (AUD-010).** `write_atomic` : temporaire voisin, `sync_all`, renommage, temporaire retiré en cas d'échec ; test en dossier en lecture seule.
+
+**Stockage du poste (AUD-006, AUD-009).** `storage.svelte.ts` : lectures contrôlées (forme), valeur mal formée recopiée sous une clé `.mise-de-cote-<date>` et signalée, jamais effacée ; écriture qui retient l'échec par clé ; bandeau « Non enregistré sur ce poste » avec « Exporter ma bibliothèque ». Menu Fichier : exporter / importer la bibliothèque (`fabweave.library`, version 1 ; import sans remplacement, doublons au même texte sautés). Modèles personnels : même nom exact = mise à jour avec « Annuler » ; nom différent au même identifiant = suffixe `-2`, `-3`…
+
+**Vérification.** Tests : budgets du remplissage (refus en moins d'une seconde), copies au-delà du budget refusées sans être construites, export CLI atomique ; suite complète et Clippy strict. **Non vérifié** : bandeau, mise de côté, export / import de la bibliothèque et suffixes dans un navigateur (pas de tests de l'interface avant le lot 3 ; navigateur de l'agent indisponible).

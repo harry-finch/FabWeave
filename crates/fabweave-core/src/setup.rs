@@ -115,6 +115,9 @@ fn raft_margin() -> f64 {
 
 /// Copies au plus (produit des deux nombres).
 pub const MAX_COPIES: u32 = 100;
+/// Points au plus du parcours préparé (copies, bordure, radeau), contrôlé
+/// avant de le construire (AUD-005) : le script en a déjà un million au plus.
+pub const MAX_PREPARED_POINTS: usize = 2_000_000;
 
 fn range(out: &mut Vec<Issue>, field: &str, v: f64, lo: f64, hi: f64) {
     if !(v.is_finite() && v >= lo && v <= hi) {
@@ -321,6 +324,16 @@ pub fn arrange(path: &Toolpath, setup: &Setup, printer: &PrinterProfile) -> (Too
                 _ => {}
             }
             let pitch = [size[0] + spacing, size[1] + spacing];
+            let total = out.points.len().saturating_mul((nx * ny) as usize);
+            if total > MAX_PREPARED_POINTS {
+                issues.push(
+                    Issue::error("setup.too_many_points")
+                        .field("placement.copies")
+                        .count(total)
+                        .value(MAX_PREPARED_POINTS as f64),
+                );
+                return (out, issues);
+            }
             let one = out.clone();
             out.points.clear();
             out.notes.clear();
@@ -396,6 +409,16 @@ pub fn arrange(path: &Toolpath, setup: &Setup, printer: &PrinterProfile) -> (Too
                 Adhesion::None => unreachable!(),
             };
             match added {
+                Some((pts, _))
+                    if pts.len().saturating_add(out.points.len()) > MAX_PREPARED_POINTS =>
+                {
+                    issues.push(
+                        Issue::error("setup.too_many_points")
+                            .field("adhesion")
+                            .count(pts.len() + out.points.len())
+                            .value(MAX_PREPARED_POINTS as f64),
+                    );
+                }
                 Some((mut pts, lift)) if !pts.is_empty() => {
                     for w in &mut out.points {
                         w.z += lift;
@@ -425,6 +448,48 @@ pub fn arrange(path: &Toolpath, setup: &Setup, printer: &PrinterProfile) -> (Too
 mod tests {
     use super::*;
     use crate::path::{Speed, WayPoint};
+
+    #[test]
+    fn copies_beyond_the_prepared_budget_are_refused_before_building() {
+        let pts: Vec<WayPoint> = (0..30_000)
+            .map(|i| WayPoint {
+                x: (i % 100) as f64 * 0.1,
+                y: (i / 100 % 100) as f64 * 0.1,
+                z: 0.2,
+                w: 0.45,
+                h: 0.2,
+                kind: MoveKind::Print,
+                speed: Speed::Factor(1.0),
+                fan: None,
+                flow: 1.0,
+                volume: 0.0,
+                duration: 0.0,
+                temp_offset: 0.0,
+                retraction: None,
+            })
+            .collect();
+        let path = Toolpath {
+            points: pts,
+            ..Toolpath::default()
+        };
+        let printer = crate::profile::parse_printer(crate::testing::MK4S).unwrap();
+        let setup = Setup {
+            placement: Placement {
+                copies: [10, 10],
+                spacing: Some(30.0),
+                ..Placement::default()
+            },
+            ..Setup::default()
+        };
+        let t = std::time::Instant::now();
+        let (out, issues) = arrange(&path, &setup, &printer);
+        assert!(
+            issues.iter().any(|i| i.code == "setup.too_many_points"),
+            "{issues:?}"
+        );
+        assert_eq!(out.points.len(), 30_000, "copies non construites");
+        assert!(t.elapsed().as_millis() < 1000);
+    }
     use crate::testing::{filament, printer};
 
     fn wp(x: f64, y: f64, z: f64, kind: MoveKind) -> WayPoint {

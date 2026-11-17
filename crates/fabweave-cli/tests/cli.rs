@@ -62,3 +62,34 @@ fn export_writes_gcode_and_usage_errors_exit_2() {
     assert_eq!(code, 2);
     assert!(out.contains("usage"));
 }
+
+/// AUD-010 : un export qui ne peut pas s'écrire laisse le fichier précédent
+/// intact et aucun fichier partiel ni temporaire ; un export réussi le
+/// remplace d'un coup.
+#[cfg(unix)]
+#[test]
+fn export_never_leaves_a_partial_file() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = std::env::temp_dir().join(format!("fabweave-atomic-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let out = dir.join("vase.gcode");
+    std::fs::write(&out, "ancien").unwrap();
+    let model = "models/vases/ripple_vase.weave";
+    // Dossier en lecture seule : l'écriture échoue.
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o555)).unwrap();
+    let (code, text) = fabweave(&["export", model, "-o", out.to_str().unwrap()]);
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+    assert_ne!(code, 0, "{text}");
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), "ancien");
+    let names: Vec<_> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    assert_eq!(names.len(), 1, "{names:?}");
+    // Écriture possible : remplacé d'un coup, sans temporaire.
+    let (code, text) = fabweave(&["export", model, "-o", out.to_str().unwrap()]);
+    assert_eq!(code, 0, "{text}");
+    assert!(std::fs::read_to_string(&out).unwrap().contains("G1 "));
+    assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1);
+    std::fs::remove_dir_all(&dir).ok();
+}

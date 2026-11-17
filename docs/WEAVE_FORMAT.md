@@ -373,6 +373,7 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `nozzle.custom` | info | Diamètre libre, hors des buses du profil : hauteurs de couche interpolées. |
 | `nozzle.not_abrasive` | avertissement | Filament abrasif dans une buse qui ne l'est pas. |
 | `setup.invalid`, `setup.out_of_range`, `setup.too_many_copies`, `setup.high_flow_unavailable`, `setup.abrasive_unavailable` | erreur | Préparation refusée (valeur hors domaine, buse non proposée par l'imprimante). |
+| `setup.too_many_points` | erreur | Parcours préparé (copies, bordure, radeau) au-delà de 2 millions de points : refusé avant d'être construit (`count` : points demandés). Les remplissages refusent de même, avant d'allouer, un espacement qui demanderait plus de points que la limite (`path.too_many_points`). |
 | `copies.too_close`, `copies.too_tall`, `copies.clearance_unknown` | erreur | Copies pièce par pièce impossibles : écart sous le rayon de dégagement de la tête, pièce plus haute que l'espace libre sous le portique, dégagement absent du profil. |
 | `adhesion.skipped` | avertissement | Bordure ou radeau non ajouté (empreinte de la première couche introuvable). |
 | `profile.control_character` | erreur | Nom, `model`, `plate` ou `type` d'un profil avec un retour à la ligne ou un caractère de contrôle. |

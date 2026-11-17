@@ -187,6 +187,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | DESK-05 | Envoi à l'imprimante (PrusaLink, OctoPrint, Moonraker) | après v1.0 | prévu |
 | DESK-06 | Serveur MCP (stdio) pour un agent IA | après v1.0 | prévu |
 | DESK-07 | CI : workflow « Contrôles » à chaque push et pull request sur main (tests, Clippy sans avertissement, WebAssembly, `npm run check`) ; builds de bureau manuels (R-009, AUD-011) | v0.7 | fait |
+| DESK-08 | Bibliothèque du poste : export et import (`fabweave.library`), bandeau si l'enregistrement échoue, données abîmées mises de côté ; modèles personnels : même nom = mise à jour annulable, sinon suffixe ; export CLI atomique (R-009 ; interface non essayée dans un navigateur) | v0.7 | fait |
 
 ## Habiller un volume (FORM)
 

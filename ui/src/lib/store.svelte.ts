@@ -22,6 +22,7 @@
 
 import { EngineClient } from './engine';
 import { desktop, type FolderFile } from './desktop';
+import { hasStrings, readList, readObject, remove, write } from './storage.svelte';
 import { FILAMENT_FILES, MODEL_FILES, PRINTER_FILES } from './catalog';
 import { storageKey } from './app';
 import { renderThumb } from './thumbs';
@@ -66,11 +67,7 @@ interface UserFile {
 }
 
 function readUserFiles(): UserFile[] {
-  try {
-    return JSON.parse(localStorage.getItem(USER_KEY) ?? '[]') as UserFile[];
-  } catch {
-    return [];
-  }
+  return readList(USER_KEY, hasStrings('id', 'file', 'text'));
 }
 
 /** Identifiant d'un modèle de l'utilisateur d'après son nom de fichier. */
@@ -99,12 +96,14 @@ export interface UserProfile {
   initial: AnyProfile;
 }
 
+const isUserProfile = (x: unknown): x is UserProfile =>
+  hasStrings('id', 'kind', 'text')(x) &&
+  (x.kind === 'printer' || x.kind === 'filament') &&
+  typeof (x as Record<string, unknown>).origin === 'object' &&
+  typeof (x as Record<string, unknown>).initial === 'object';
+
 function readUserProfiles(): UserProfile[] {
-  try {
-    return JSON.parse(localStorage.getItem(PROFILES_KEY) ?? '[]') as UserProfile[];
-  } catch {
-    return [];
-  }
+  return readList(PROFILES_KEY, isUserProfile);
 }
 
 const BUILTIN: Record<ProfileKind, { id: string; text: string }[]> = { printer: PRINTER_FILES, filament: FILAMENT_FILES };
@@ -133,11 +132,7 @@ export const BRIM: Extract<Adhesion, { type: 'brim' }> = { type: 'brim', width: 
 export const RAFT: Extract<Adhesion, { type: 'raft' }> = { type: 'raft', layers: 3, gap: 0.3, margin: 3 };
 
 function readSaved(): Partial<Doc> {
-  try {
-    return JSON.parse(localStorage.getItem(DOC_KEY) ?? '{}') as Partial<Doc>;
-  } catch {
-    return {};
-  }
+  return readObject(DOC_KEY) as Partial<Doc>;
 }
 
 /** Formats d'export : G-code seul, ou paquet Bambu Lab. */
@@ -150,11 +145,7 @@ export interface Recent {
 }
 
 function readRecent(): Recent[] {
-  try {
-    return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Recent[];
-  } catch {
-    return [];
-  }
+  return readList(RECENT_KEY, hasStrings('path', 'name'));
 }
 
 /** Identifiant d'un modèle du dossier surveillé d'après son chemin relatif. */
@@ -422,11 +413,7 @@ class Store {
   #save() {
     clearTimeout(this.#saveTimer);
     this.#saveTimer = setTimeout(() => {
-      try {
-        localStorage.setItem(DOC_KEY, JSON.stringify($state.snapshot(this.doc)));
-      } catch {
-        /* stockage indisponible */
-      }
+      write(DOC_KEY, $state.snapshot(this.doc));
     }, 400);
   }
 
@@ -696,12 +683,8 @@ class Store {
   async setFolder(path: string | null) {
     if (desktop && !path) await desktop.watchFolder(null);
     this.folder = path;
-    try {
-      if (path) localStorage.setItem(FOLDER_KEY, path);
-      else localStorage.removeItem(FOLDER_KEY);
-    } catch {
-      /* stockage indisponible */
-    }
+    if (path) write(FOLDER_KEY, path);
+    else remove(FOLDER_KEY);
     await this.#folderFiles(await this.#watch(path));
   }
 
@@ -744,32 +727,38 @@ class Store {
   }
 
   #saveRecent() {
-    try {
-      localStorage.setItem(RECENT_KEY, JSON.stringify(this.recent));
-    } catch {
-      /* stockage indisponible */
-    }
+    write(RECENT_KEY, this.recent);
   }
 
   #saveUserFiles() {
-    try {
-      localStorage.setItem(USER_KEY, JSON.stringify(this.#userFiles));
-    } catch {
-      /* stockage indisponible ou plein : le modèle reste ouvert pour la session */
-    }
+    write(USER_KEY, this.#userFiles);
   }
 
-  /** Ajoute (ou remplace, même nom de fichier) un modèle dans « Mes modèles » et l'affiche. */
-  async openFile(file: string, text: string) {
+  /**
+   * Ajoute un modèle dans « Mes modèles » et l'affiche. Même nom de fichier
+   * exact : mise à jour, l'ancien texte est rendu (`replaced`) pour l'annuler.
+   */
+  async openFile(file: string, text: string): Promise<CatalogEntry & { replaced?: { file: string; text: string } }> {
     const r = JSON.parse(await this.engine.read(text)) as LoadResult<never>;
-    const entry = this.#addFile(file, text, r);
+    const old = this.#userFiles.find((f) => f.file === file && f.id === userId(file));
+    const entry = this.#addFile(file, text, r, true);
     this.select('model', entry.id);
-    return entry;
+    return old && old.text !== text ? { ...entry, replaced: { file: old.file, text: old.text } } : entry;
   }
 
-  /** Ajoute (ou remplace, même nom de fichier) un modèle lu dans « Mes modèles ». */
-  #addFile(file: string, text: string, r: LoadResult<never>): CatalogEntry {
-    const id = userId(file);
+  /**
+   * Ajoute un modèle lu dans « Mes modèles » (AUD-009) : un nom différent qui
+   * donnerait le même identifiant (`a+b.weave`, `a b.weave`) reçoit un suffixe
+   * (`-2`, `-3`…) ; seul le même nom exact remplace, et seulement si `update`.
+   */
+  #addFile(file: string, text: string, r: LoadResult<never>, update = false): CatalogEntry {
+    const base = userId(file);
+    const taken = (id: string) => this.#userFiles.some((f) => f.id === id) || this.catalog.some((e) => e.id === id);
+    let id = base;
+    const same = this.#userFiles.find((f) => f.id === base);
+    if (!(update && same?.file === file)) {
+      for (let n = 2; taken(id); n++) id = `${base}-${n}`;
+    }
     const entry: CatalogEntry = r.ok ? { id, source: 'user', file, text, info: r.model } : { id, source: 'user', file, text, issues: r.issues };
     this.#userFiles = [...this.#userFiles.filter((f) => f.id !== id), { id, file, text }];
     this.#saveUserFiles();
@@ -793,11 +782,7 @@ class Store {
   }
 
   #saveProfiles() {
-    try {
-      localStorage.setItem(PROFILES_KEY, JSON.stringify(this.#userProfiles));
-    } catch {
-      /* stockage indisponible ou plein : le profil reste pour la session */
-    }
+    write(PROFILES_KEY, this.#userProfiles);
   }
 
   /** Identifiant libre `user/<nom>` (suffixe -2, -3… si besoin). */
@@ -927,6 +912,58 @@ class Store {
       }
     });
     return ids;
+  }
+
+  /** Bibliothèque du poste (modèles et profils personnels), à garder ou à
+   * transporter : `fabweave.library`, version 1. */
+  exportLibrary(): { name: string; text: string } {
+    const lib = {
+      format: 'fabweave.library',
+      version: 1,
+      models: this.#userFiles.map(({ file, text }) => ({ file, text })),
+      profiles: $state.snapshot(this.#userProfiles),
+    };
+    return { name: 'bibliotheque.fabweave-library.json', text: JSON.stringify(lib, null, 2) + '\n' };
+  }
+
+  /**
+   * Relit une bibliothèque : ce qui existe déjà au même texte est sauté, le
+   * reste ajouté sans jamais remplacer (suffixe en cas de nom pris).
+   */
+  async importLibrary(text: string): Promise<{ ok: true; models: number; profiles: number; skipped: number } | { ok: false }> {
+    let lib: { format?: unknown; version?: unknown; models?: unknown; profiles?: unknown };
+    try {
+      lib = JSON.parse(text);
+    } catch {
+      return { ok: false };
+    }
+    if (lib?.format !== 'fabweave.library' || typeof lib.version !== 'number' || lib.version > 1) return { ok: false };
+    const models = (Array.isArray(lib.models) ? lib.models : []).filter(hasStrings('file', 'text'));
+    const profiles = (Array.isArray(lib.profiles) ? lib.profiles : []).filter(isUserProfile);
+    let [m, p, skipped] = [0, 0, 0];
+    for (const f of models) {
+      if (this.#userFiles.some((u) => u.text === f.text)) {
+        skipped++;
+        continue;
+      }
+      const r = JSON.parse(await this.engine.read(f.text)) as LoadResult<never>;
+      this.#addFile(f.file, f.text, r);
+      m++;
+    }
+    for (const u of profiles) {
+      if (this.profileText(u.kind, u.id) === u.text || this.#userProfiles.some((x) => x.kind === u.kind && x.text === u.text)) {
+        skipped++;
+        continue;
+      }
+      const id = this.profileText(u.kind, u.id) === undefined ? u.id : this.#freeId(u.kind, u.id.replace(/^user\//, ''));
+      this.#userProfiles = [...this.#userProfiles, { ...u, id }];
+      p++;
+    }
+    if (p) {
+      this.#saveProfiles();
+      await this.#readProfiles();
+    }
+    return { ok: true, models: m, profiles: p, skipped };
   }
 
   /** Profil en TOML pour l'export (`<identifiant>.toml`). */

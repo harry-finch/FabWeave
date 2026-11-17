@@ -41,9 +41,37 @@ options :
   --at <x>,<y>              centre de la pièce sur le plateau (mm)
   --brim <mm>               bordure de cette largeur
   --raft <couches>          radeau de ce nombre de couches
-  -o <sortie>               export : .gcode, ou .gcode.3mf (paquet Bambu Lab)
+  -o <sortie>               export : .gcode, ou .gcode.3mf (paquet Bambu Lab) ; un fichier
+                            existant est remplacé d'un coup, jamais laissé à moitié écrit
   --json                    sortie JSON
 codes de sortie : 0 aucun message bloquant, 1 erreurs, 2 mauvaise utilisation";
+
+/// Écrit `data` dans `path` sans jamais laisser de fichier à moitié écrit
+/// (AUD-010) : fichier temporaire voisin, données forcées sur le disque, puis
+/// renommage ; en cas d'échec, le fichier précédent reste intact et le
+/// temporaire est retiré.
+fn write_atomic(path: &std::path::Path, data: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    let name = path.file_name().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "nom de fichier manquant")
+    })?;
+    let tmp = path.with_file_name(format!(
+        ".{}.{}.tmp",
+        name.to_string_lossy(),
+        std::process::id()
+    ));
+    let result = (|| {
+        let mut f = std::fs::File::create(&tmp)?;
+        f.write_all(data)?;
+        f.sync_all()?;
+        drop(f);
+        std::fs::rename(&tmp, path)
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    result
+}
 
 struct Args {
     command: String,
@@ -316,7 +344,8 @@ fn run() -> Result<bool, String> {
             };
             match bytes {
                 Ok(g) => {
-                    std::fs::write(out, g).map_err(|e| format!("{out} : {e}"))?;
+                    write_atomic(std::path::Path::new(out), &g)
+                        .map_err(|e| format!("{out} : {e}"))?;
                     if !a.json {
                         for i in &ev.issues {
                             println!("{}", describe(i));

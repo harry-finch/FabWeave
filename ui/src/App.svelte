@@ -26,6 +26,7 @@
   import ImportDialog from './components/ImportDialog.svelte';
   import { store, type ExportFormat, type ProfileEntry } from './lib/store.svelte';
   import { baseName, desktop } from './lib/desktop';
+  import { persist } from './lib/storage.svelte';
   import { ui } from './lib/ui.svelte';
   import { labelled, t } from './lib/i18n.svelte';
   import { text } from './lib/text';
@@ -69,16 +70,28 @@
     return /\.fabweave\.json$/i.test(f.name) || /"format"\s*:\s*"fabweave\.project"/.test(await f.slice(0, 512).text());
   }
 
+  /** Bibliothèque exportée (`fabweave.library`) : reconnue à son en-tête. */
+  async function isLibrary(f: File) {
+    return /"format"\s*:\s*"fabweave\.library"/.test(await f.slice(0, 512).text());
+  }
+
   async function openFiles(files: FileList | File[] | null | undefined) {
     const list = [...(files ?? [])];
     const weave = list.filter((f) => /\.weave$/i.test(f.name));
     const projects: File[] = [];
     const profiles: File[] = [];
+    const libraries: File[] = [];
     for (const f of list) {
-      if (EXPORT_FILE.test(f.name) || (/\.json$/i.test(f.name) && (await isProject(f)))) projects.push(f);
+      if (/\.json$/i.test(f.name) && (await isLibrary(f))) libraries.push(f);
+      else if (EXPORT_FILE.test(f.name) || (/\.json$/i.test(f.name) && (await isProject(f)))) projects.push(f);
       else if (PROFILE_FILE.test(f.name)) profiles.push(f);
     }
+    for (const f of libraries) {
+      const r = await store.importLibrary(await f.text());
+      ui.toast(r.ok ? t('library.imported', { models: r.models, profiles: r.profiles, skipped: r.skipped }) : t('library.invalid', { name: f.name }));
+    }
     if (!weave.length && !profiles.length && !projects.length) {
+      if (libraries.length) return;
       if (list.length) ui.toast(t('catalog.notWeave'));
       return;
     }
@@ -87,7 +100,9 @@
     if (project) await openProject(project);
     for (const f of weave) {
       const entry = await store.openFile(f.name, await f.text());
-      ui.toast(entry.info ? t('catalog.opened', { name: f.name }) : t('catalog.openFailed', { name: f.name }));
+      const back = entry.replaced;
+      if (back) ui.toast(t('catalog.updated', { name: f.name }), { label: t('catalog.undo'), run: () => void store.openFile(back.file, back.text) });
+      else ui.toast(entry.info ? t('catalog.opened', { name: f.name }) : t('catalog.openFailed', { name: f.name }));
     }
     for (const f of profiles) await openProfile(f);
   }
@@ -163,6 +178,12 @@
     store.projectPath = path;
     store.addRecent(path, baseName(path));
     ui.toast(t('file.saved', { name: baseName(path) }));
+  }
+
+  function exportLibrary() {
+    const lib = store.exportLibrary();
+    download(lib.name, lib.text, 'application/json');
+    ui.toast(t('library.exported', { name: lib.name }));
   }
 
   async function chooseFolder() {
@@ -322,7 +343,15 @@
     folder={store.folder}
     onfolder={() => void chooseFolder()}
     onunwatch={() => void store.setFolder(null)}
+    onexportlib={exportLibrary}
+    onimportlib={() => fileInput?.click()}
   />
+  {#if persist.failed || persist.setAside.length}
+    <div class="banner" role="alert">
+      <span>{persist.failed ? t('library.unsaved') : t('library.setAside')}</span>
+      <button class="btn" type="button" onclick={exportLibrary}>{t('library.export')}</button>
+    </div>
+  {/if}
   <div class="main">
     <aside class="panel left">
       <Section id="model" title={t('model.section')} step={1}>
@@ -577,6 +606,22 @@
 
   .deferred {
     color: var(--warning);
+  }
+
+  /* Bandeau persistant : données du poste non enregistrées ou mises de côté. */
+  .banner {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    padding: 6px var(--s3);
+    background: var(--warning-tint);
+    border-bottom: 1px solid var(--border);
+    color: var(--warning);
+    font-size: var(--fs-sm);
+  }
+
+  .banner span {
+    flex: 1;
   }
 
   .tags {

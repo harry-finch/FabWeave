@@ -43,7 +43,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
    Rubrique Luminaires du catalogue : pièces prêtes à monter avec alésage de douille E27 / E14, rosace, platine murale et emboîtement.
 10. **[R-008 v0.9-beta1 — Bêta pour macOS](roadmap/items/R-008-v0-9-beta1-beta-pour-macos.md)** · À tester · jalon v0.9-beta1
    Publier une bêta avec l'application macOS pour tester et valider tout ce qui reste ouvert (v0.3, v0.4, v0.5).
-11. **[R-009 Audit technique, lot 2](roadmap/items/R-009-audit-technique-lot-2.md)** · En cours
+11. **[R-009 Audit technique, lot 2](roadmap/items/R-009-audit-technique-lot-2.md)** · À tester
    Budgets de calcul avant allocation, CI à chaque push, sauvegardes locales jamais perdues en silence, identifiants des modèles personnels sans collision, export CLI atomique.
 12. **[R-010 Audit technique, lot 3](roadmap/items/R-010-audit-technique-lot-3.md)** · Idée
    Moteur relançable, CSP, tests de l'interface, notarisation.
@@ -83,6 +83,9 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-024](roadmap/actions/A-024-essayer-des-svg-et-des-png-du-fablab-dans-le.md) Essayer des SVG et des PNG du fablab dans le paramètre image (tester, R-025)
 - [ ] [A-025](roadmap/actions/A-025-imprimer-la-suspension-et-y-monter-une-douille.md) Imprimer la suspension et y monter une douille E27 (tester, R-022)
 - [ ] [A-026](roadmap/actions/A-026-imprimer-la-lampe-a-poser-et-juger-l-emboitement.md) Imprimer la lampe à poser et juger l'emboîtement (tester, R-022)
+- [ ] [A-027](roadmap/actions/A-027-regarder-un-passage-de-la-ci-controles-sur.md) Regarder un passage de la CI « Contrôles » sur GitHub (tester, R-009)
+- [ ] [A-028](roadmap/actions/A-028-exporter-puis-reimporter-la-bibliotheque-du.md) Exporter puis réimporter la bibliothèque du poste (tester, R-009)
+- [ ] [A-029](roadmap/actions/A-029-deposer-deux-modeles-aux-noms-voisins.md) Déposer deux modèles aux noms voisins (tester, R-009)
 
 ## Livré
 

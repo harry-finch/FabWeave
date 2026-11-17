@@ -31,6 +31,8 @@
     folder = null,
     onfolder,
     onunwatch,
+    onexportlib,
+    onimportlib,
   }: {
     onexport: (format: Format['id']) => void;
     canExport?: boolean;
@@ -49,6 +51,9 @@
     folder?: string | null;
     onfolder?: () => void;
     onunwatch?: () => void;
+    /** Bibliothèque du poste : exporter, importer. */
+    onexportlib: () => void;
+    onimportlib: () => void;
   } = $props();
 
   // Texte en cours de saisie : l'encart suit sa longueur (voir `.sizer`).
@@ -100,6 +105,9 @@
             <button class="row" type="button" onclick={then(close, () => onunwatch?.())}><FolderX size={14} /><span class="rname">{t('file.unwatch')}</span></button>
           {/if}
         {/if}
+        <div class="divider"></div>
+        <button class="row" type="button" use:tip={t('library.exportHint')} onclick={then(close, onexportlib)}><Download size={14} /><span class="rname">{t('library.export')}</span></button>
+        <button class="row" type="button" onclick={then(close, onimportlib)}><FolderOpen size={14} /><span class="rname">{t('library.import')}</span></button>
         <p class="foot">{t('file.dropNote')}</p>
       {/snippet}
     </Popover>

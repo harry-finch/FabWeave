@@ -34,6 +34,9 @@ const LINK_MAX: f64 = 3.0;
 /// `inset / SIN_MIN` (sinon une ligne rasante disparaîtrait).
 const SIN_MIN: f64 = 0.25;
 
+/// Points au moins d'un anneau, pour estimer un remplissage avant de le faire.
+const RING_POINTS: usize = 8;
+
 /// Angle d'un segment des jonctions arrondies (longueur / rayon).
 const ROUND_JOIN: f64 = 0.2;
 /// Écart toléré à la simplification d'un anneau (mm), sous la résolution du
@@ -85,6 +88,22 @@ pub fn fill_rings(
     let area = signed_area(&poly);
     if area.is_nan() || area == 0.0 {
         return Ok(Vec::new());
+    }
+    // Budget avant tout décalage (AUD-005) : au moins `RING_POINTS` points
+    // par anneau, autant d'anneaux que la demi-largeur du contour en contient.
+    let (lo, hi) = poly.iter().fold(
+        ([f64::INFINITY; 2], [f64::NEG_INFINITY; 2]),
+        |(lo, hi), p| {
+            (
+                [lo[0].min(p[0]), lo[1].min(p[1])],
+                [hi[0].max(p[0]), hi[1].max(p[1])],
+            )
+        },
+    );
+    let half = ((hi[0] - lo[0]).min(hi[1] - lo[1]) / 2.0 - inset).max(0.0);
+    let estimate = (half / spacing).ceil() * RING_POINTS as f64;
+    if estimate > max_points as f64 {
+        return Err(estimate.min(usize::MAX as f64) as usize);
     }
     let ccw = area > 0.0;
     if !ccw {
@@ -211,7 +230,7 @@ pub fn fill_lines(
     angle: f64,
     inset: f64,
 ) -> Vec<Vec<[f64; 3]>> {
-    fill_lines_multi(&[contour], spacing, angle, inset)
+    fill_lines_multi(&[contour], spacing, angle, inset, usize::MAX).unwrap_or_default()
 }
 
 /// Lignes de remplissage de plusieurs contours fermés (règle pair-impair :
@@ -221,7 +240,8 @@ pub fn fill_lines_multi(
     spacing: f64,
     angle: f64,
     inset: f64,
-) -> Vec<Vec<[f64; 3]>> {
+    max_points: usize,
+) -> Result<Vec<Vec<[f64; 3]>>, usize> {
     let (c, s) = (libm::cos(angle), libm::sin(angle));
     // Repère tourné : les lignes deviennent horizontales (y' constant).
     let poly: Vec<Vec<[f64; 2]>> = contours
@@ -230,7 +250,7 @@ pub fn fill_lines_multi(
         .filter(|l| l.len() >= 3)
         .collect();
     if poly.is_empty() || spacing.is_nan() || spacing <= 0.0 {
-        return Vec::new();
+        return Ok(Vec::new());
     }
     let z = contours[0].first().map_or(0.0, |p| p[2]);
     let (y0, y1) = poly
@@ -241,10 +261,15 @@ pub fn fill_lines_multi(
         });
     let extent = y1 - y0;
     if extent.is_nan() || extent <= 0.0 {
-        return Vec::new();
+        return Ok(Vec::new());
+    }
+    // Budget avant allocation (AUD-005) : deux points au moins par ligne.
+    let rows = (extent / spacing).floor();
+    if rows * 2.0 > max_points as f64 {
+        return Err((rows * 2.0).min(usize::MAX as f64) as usize);
     }
     // Lignes centrées dans la hauteur du contour.
-    let n = ((extent / spacing).floor() as usize).max(1);
+    let n = (rows as usize).max(1);
     let first = y0 + (extent - (n - 1) as f64 * spacing) / 2.0;
 
     let rows: Vec<(f64, Vec<(f64, f64)>)> = (0..n)
@@ -292,7 +317,7 @@ pub fn fill_lines_multi(
             chains.push(chain);
         }
     }
-    chains
+    Ok(chains)
 }
 
 /// Intervalles intérieurs de la ligne horizontale `y`, raccourcis de `inset`,
@@ -499,7 +524,12 @@ mod tests {
 
     #[test]
     fn rings_respect_the_point_limit_and_degenerate_input() {
-        assert_eq!(fill_rings(&square(20.0), 0.1, 0.0, 50), Err(50));
+        // Refusé d'après l'estimation, avant tout décalage (AUD-005).
+        assert!(matches!(fill_rings(&square(20.0), 0.1, 0.0, 50), Err(n) if n > 50));
+        let t = std::time::Instant::now();
+        assert!(fill_rings(&square(200.0), 1e-6, 0.0, 1_000_000).is_err());
+        assert!(fill_lines_multi(&[&square(200.0)], 1e-6, 0.0, 0.0, 1_000_000).is_err());
+        assert!(t.elapsed().as_millis() < 1000, "refus en {:?}", t.elapsed());
         assert!(fill_rings(&[], 1.0, 0.0, 100).unwrap().is_empty());
         assert!(fill_rings(&square(20.0), 0.0, 0.0, 100).unwrap().is_empty());
         assert!(fill_rings(&square(1.0), 0.4, 1.0, 100).unwrap().is_empty());

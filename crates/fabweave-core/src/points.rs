@@ -571,7 +571,8 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
         if inset < 0.0 {
             return Err(fault("points.invalid_value", format!("inset : {inset}")));
         }
-        let chains = crate::fill::fill_lines(&p.0, spacing, angle, inset);
+        let chains = crate::fill::fill_lines_multi(&[&p.0], spacing, angle, inset, limit)
+            .map_err(|n| fault("path.too_many_points", n.to_string()))?;
         if chains.iter().map(Vec::len).sum::<usize>() > limit {
             return Err(fault("path.too_many_points", limit.to_string()));
         }
@@ -602,7 +603,8 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
             })
             .collect::<R<Vec<Points>>>()?;
         let refs: Vec<&[[f64; 3]]> = loops.iter().map(|p| p.0.as_slice()).collect();
-        let chains = crate::fill::fill_lines_multi(&refs, spacing, angle, inset);
+        let chains = crate::fill::fill_lines_multi(&refs, spacing, angle, inset, limit)
+            .map_err(|n| fault("path.too_many_points", n.to_string()))?;
         if chains.iter().map(Vec::len).sum::<usize>() > limit {
             return Err(fault("path.too_many_points", limit.to_string()));
         }
