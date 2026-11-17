@@ -339,6 +339,7 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `profile.template_temperature` | erreur | Un gabarit rendu écrit une consigne au-dessus des plafonds de l'imprimante (`M104`, `M109`, `M140`, `M190` en `S` ou `R`, `SET_HEATER_TEMPERATURE`), à l'export. |
 | `profile.review_pending` | erreur | Imprimante importée d'un trancheur dont les gabarits n'ont pas été relus (`[printer] review`) : le parcours se montre, le G-code n'est pas exporté. |
 | `import.no_profile`, `import.process_profile`, `import.invalid_json` | erreur | Import : aucun profil d'imprimante ni de filament dans le fichier ; réglages d'impression (sans équivalent) ; JSON illisible (ligne, colonne). |
+| `project.invalid`, `project.wrong_format`, `project.unsupported_version`, `project.not_found`, `project.truncated` | erreur | Projet illisible : JSON ou bloc abîmé, autre format, version trop récente, aucun projet dans le fichier (G-code d'un autre logiciel), bloc du G-code sans sa fin. |
 
 ## 6. Profils
 
@@ -428,7 +429,11 @@ Un parcours FabWeave n'a pas toujours de couches : une couche commence quand l'i
 
 L'export propose alors aussi le **paquet `.gcode.3mf`** (CLI : sortie en `.gcode.3mf`) : archive ZIP qui contient `Metadata/plate_1.gcode`, sa somme MD5, `slice_info.config` (modèle d'imprimante `model`, buse, durée, poids, filament), `model_settings.config`, `plate_1.json` et des vignettes PNG du parcours (512 et 128 px). Choix et essai : [ADR-0005](adr/0005-bambu-lab-x1e-par-la-carte-sd.md).
 
-## 7. Modèle de référence
+## 7. Projet
+
+Un projet (`.fabweave.json`) recopie tout ce qu'il faut pour rouvrir une préparation : `{ "format": "fabweave.project", "version": 1, "name", "model" (source du .weave), "values" (tous les paramètres), "printer", "filament" (TOML), "setup" (buse, placement, adhésion) }`. Il est aussi embarqué à la fin de chaque G-code (bloc `; fabweave.project begin` … `; fabweave.project end`, JSON en deflate puis base64) et rangé à part dans le paquet `.gcode.3mf` (`Metadata/fabweave_project.json`). Décision : [ADR-0009](adr/0009-projet-fabweave-json-embarque-dans-le-g-code.md).
+
+## 8. Modèle de référence
 
 [models/vases/ripple_vase.weave](../models/vases/ripple_vase.weave) : port du « Ripple Texture Demo » de FullControl, commenté ; il montre un en-tête complet (textes par langue, infobulles, paramètres avancés, `choice`) et un script typique (spirale continue, première couche renforcée, vitesse réduite au premier tour, fond plein par `fill_lines` raccordé à la spirale sans couture).
 

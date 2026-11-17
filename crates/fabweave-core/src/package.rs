@@ -1,7 +1,8 @@
 //! Paquet `.gcode.3mf` des imprimantes Bambu Lab (ADR-0005) : archive ZIP
 //! au format 3MF qui porte le G-code de la plaque (`Metadata/plate_1.gcode`),
 //! sa somme MD5 (que le firmware contrôle), les métadonnées de la plaque
-//! (modèle d'imprimante, buse, durée, filament) et des vignettes PNG.
+//! (modèle d'imprimante, buse, durée, filament), des vignettes PNG, et le
+//! projet FabWeave qui permet de rouvrir la préparation (`project.rs`).
 //!
 //! Structure reprise de l'outil `bambox` (estampo, MIT) et des fichiers de
 //! Bambu Studio. Pur et déterministe : dates du ZIP fixées, aucune horloge.
@@ -25,6 +26,7 @@ pub fn bambu_3mf(
     plan: &Plan,
     printer: &PrinterProfile,
     filament: &FilamentProfile,
+    project: Option<&str>,
 ) -> Vec<u8> {
     let s = &plan.stats;
     let md5 = Md5::digest(gcode.as_bytes())
@@ -100,7 +102,52 @@ pub fn bambu_3mf(
     z.add("Metadata/plate_1.png", &big);
     z.add("Metadata/plate_no_light_1.png", &big);
     z.add("Metadata/plate_1_small.png", &small);
+    if let Some(project) = project {
+        z.add(PROJECT_ENTRY, project.as_bytes());
+    }
     z.finish()
+}
+
+/// Projet FabWeave rangé dans le paquet, à côté du G-code qui le porte aussi.
+pub const PROJECT_ENTRY: &str = "Metadata/fabweave_project.json";
+
+/// Contenu d'un fichier d'une archive ZIP (méthode « stockée » ou deflate),
+/// au plus `limit` octets une fois décompressé. `None` si l'archive est
+/// illisible, si le fichier manque, dépasse la limite ou si son CRC est faux :
+/// l'archive vient de l'utilisateur, rien n'y est supposé juste.
+pub fn read_zip_entry(z: &[u8], name: &str, limit: usize) -> Option<Vec<u8>> {
+    let u16_at = |p: usize| Some(u16::from_le_bytes(z.get(p..p + 2)?.try_into().ok()?) as usize);
+    let u32_at = |p: usize| Some(u32::from_le_bytes(z.get(p..p + 4)?.try_into().ok()?));
+    // Fin du répertoire central : cherchée depuis la fin (commentaire possible).
+    let eocd = (0..=z.len().checked_sub(22)?)
+        .rev()
+        .take(22 + u16::MAX as usize)
+        .find(|&p| u32_at(p) == Some(0x0605_4b50))?;
+    let (count, mut p) = (u16_at(eocd + 10)?, u32_at(eocd + 16)? as usize);
+    for _ in 0..count {
+        if u32_at(p)? != 0x0201_4b50 {
+            return None;
+        }
+        let (method, crc) = (u16_at(p + 10)?, u32_at(p + 16)?);
+        let (packed, size) = (u32_at(p + 20)? as usize, u32_at(p + 24)? as usize);
+        let (name_len, extra, comment) = (u16_at(p + 28)?, u16_at(p + 30)?, u16_at(p + 32)?);
+        let local = u32_at(p + 42)? as usize;
+        if z.get(p + 46..p + 46 + name_len)? == name.as_bytes() {
+            if size > limit || u32_at(local)? != 0x0403_4b50 {
+                return None;
+            }
+            let start = local + 30 + u16_at(local + 26)? + u16_at(local + 28)?;
+            let raw = z.get(start..start.checked_add(packed)?)?;
+            let data = match method {
+                0 => raw.to_vec(),
+                8 => miniz_oxide::inflate::decompress_to_vec_with_limit(raw, limit).ok()?,
+                _ => return None,
+            };
+            return (data.len() == size && crc32(&data) == crc).then_some(data);
+        }
+        p += 46 + name_len + extra + comment;
+    }
+    None
 }
 
 /// Identifiant de filament générique de Bambu Studio selon la matière.
@@ -303,8 +350,23 @@ pub(crate) mod tests {
         let mut z = Zip::default();
         z.add("a.txt", b"bonjour");
         z.add("dossier/b.bin", &[0u8; 1000]);
-        let files = unzip(&z.finish());
+        let z = z.finish();
+        let files = unzip(&z);
         assert_eq!(files[0], ("a.txt".into(), b"bonjour".to_vec()));
+        assert_eq!(
+            read_zip_entry(&z, "dossier/b.bin", 1000).unwrap(),
+            vec![0u8; 1000]
+        );
+        assert!(read_zip_entry(&z, "dossier/b.bin", 999).is_none(), "limite");
+        assert!(read_zip_entry(&z, "c.txt", 1000).is_none());
+        // Archive tronquée ou abîmée : jamais de panique.
+        for n in [0, 10, z.len() / 2, z.len() - 1] {
+            assert!(read_zip_entry(&z[..n], "a.txt", 100).is_none());
+        }
+        let mut bad = z.clone();
+        let at = bad.windows(7).position(|w| w == b"dossier").unwrap() + 20;
+        bad[at] ^= 0xFF;
+        assert!(read_zip_entry(&bad, "dossier/b.bin", 1000).is_none());
         assert_eq!(files[1].0, "dossier/b.bin");
         assert_eq!(files[1].1.len(), 1000);
     }

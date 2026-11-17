@@ -27,6 +27,17 @@ pub fn read_model(source: &str) -> String {
     }
 }
 
+/// Projet porté par un fichier (`.fabweave.json`, G-code exporté par
+/// FabWeave ou sa fin, paquet `.gcode.3mf`). JSON : `{ ok, project }` ou
+/// `{ ok, issues }`.
+#[wasm_bindgen]
+pub fn read_project(bytes: &[u8]) -> String {
+    match fabweave_core::project::Project::read(bytes) {
+        Ok(p) => json!({ "ok": true, "project": p }).to_string(),
+        Err(e) => issues_json(&e),
+    }
+}
+
 /// Profil sans le charger (listes des imprimantes et filaments, éditeur) :
 /// `kind` vaut `printer` ou `filament`. JSON : `{ ok, profile, issues }` ;
 /// un profil lisible mais aux valeurs fautives garde `profile` (pour être
@@ -376,14 +387,36 @@ impl Engine {
         }
     }
 
-    /// G-code pour ces valeurs. En cas d'erreur : messages bloquants en JSON.
-    pub fn gcode(&mut self, values_json: &str) -> Result<String, JsError> {
+    /// Nom du projet, repris dans le projet embarqué au G-code.
+    pub fn set_name(&mut self, name: &str) {
+        self.bench.set_name(name);
+    }
+
+    /// Calcul de ces valeurs : le dernier s'il y correspond, sinon un nouveau.
+    fn evaluation(&mut self, values_json: &str) -> &Evaluation {
         let reuse = matches!(&self.last, Some((v, _)) if v == values_json);
         if !reuse {
             let ev = self.bench.evaluate(&values(values_json));
             self.last = Some((values_json.to_string(), ev));
         }
-        let (_, ev) = self.last.as_ref().expect("calcul présent");
+        &self.last.as_ref().expect("calcul présent").1
+    }
+
+    /// Projet `.fabweave.json` des valeurs courantes (même en erreur : les
+    /// valeurs refusées y restent telles quelles).
+    pub fn project(&mut self, values_json: &str) -> Result<String, JsError> {
+        self.evaluation(values_json);
+        let ev = &self.last.as_ref().expect("calcul présent").1;
+        self.bench
+            .project(ev, &values(values_json))
+            .map(|p| p.to_json())
+            .ok_or_else(|| JsError::new("[]"))
+    }
+
+    /// G-code pour ces valeurs. En cas d'erreur : messages bloquants en JSON.
+    pub fn gcode(&mut self, values_json: &str) -> Result<String, JsError> {
+        self.evaluation(values_json);
+        let ev = &self.last.as_ref().expect("calcul présent").1;
         self.bench
             .gcode(ev)
             .map_err(|e| JsError::new(&serde_json::to_string(&e).unwrap_or_default()))
@@ -392,12 +425,8 @@ impl Engine {
     /// Paquet `.gcode.3mf` (Bambu Lab) des valeurs ; en cas de refus,
     /// l'erreur porte le JSON des messages bloquants.
     pub fn gcode_3mf(&mut self, values_json: &str) -> Result<Vec<u8>, JsError> {
-        let reuse = matches!(&self.last, Some((v, _)) if v == values_json);
-        if !reuse {
-            let ev = self.bench.evaluate(&values(values_json));
-            self.last = Some((values_json.to_string(), ev));
-        }
-        let (_, ev) = self.last.as_ref().expect("calcul présent");
+        self.evaluation(values_json);
+        let ev = &self.last.as_ref().expect("calcul présent").1;
         self.bench
             .gcode_3mf(ev)
             .map_err(|e| JsError::new(&serde_json::to_string(&e).unwrap_or_default()))

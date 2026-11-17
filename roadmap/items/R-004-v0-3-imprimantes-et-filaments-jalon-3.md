@@ -5,10 +5,10 @@ resume: "Chaque machine du fablab a un profil fiable, et l'utilisateur peut cré
 statut: a-tester
 jalon: v0.3
 cree: 2026-10-24
-maj: 2026-11-12
+maj: 2026-11-17
 livree:
 ---
-*En cours dans l'ancienne feuille de route ; étapes de code toutes faites, validation de jalon partielle (MK4S validée le 28/10/2026).*
+*En cours dans l'ancienne feuille de route ; étapes de code toutes faites, validation de jalon partielle (MK4S validée le 28/10/2026, CORE One le 13/11/2026).*
 
 **But** : chaque machine du fablab a un profil fiable, et l'utilisateur peut créer le sien.
 
@@ -20,7 +20,7 @@ livree:
 3. **Buse, placement, adhésion** : changer de buse en un clic, position et rotation sur le plateau, copies, bordure et radeau. *Fait le 27/10/2026 : buse mémorisée par imprimante (couches et débit par buse), placement, copies pièce par pièce, bordure et radeau générés par le moteur, plateau rond, pièce hors plateau surlignée.*
 4. **Édition et import des profils** dans l'application ; import depuis PrusaSlicer, OrcaSlicer et Bambu Studio. *Fait le 27/10/2026 : éditeur (copie d'un profil livré, origine de chaque valeur, contrôle en direct), profils de l'utilisateur sur le poste, export TOML, import avec rapport et gabarits traduits, relecture exigée avant l'export (ADR-0006, acceptée). Validé le 28/10/2026.*
 5. **Reports de la v0.2** : remplissage en anneaux concentriques (API-14), extrusion à l'arrêt (API-15), impression par gouttes (CAT-12). *Fait le 28/10/2026 : `fill_rings` (décalages de `i_overlay`), option « Anneaux » du fond du vase à ondulations, `path.blob`, modèle « Tube de gouttes ».*
-6. ⏸ Validation de jalon : une impression validée par machine du fablab. *MK4S validée le 28/10/2026 (plusieurs modèles, vignette à l'écran) ; restent la CORE One et la X1E.*
+6. ⏸ Validation de jalon : une impression validée par machine du fablab. *MK4S validée le 28/10/2026 (plusieurs modèles, vignette à l'écran) ; CORE One validée le 13/11/2026 (A-001) ; reste la X1E (A-002).*
 
 Étapes ajoutées le 28/10/2026 pour terminer la v0.3, menées pendant les impressions de l'étape 6 :
 

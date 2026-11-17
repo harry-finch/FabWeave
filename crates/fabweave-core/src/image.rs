@@ -248,6 +248,40 @@ pub fn base64(data: &[u8]) -> String {
     out
 }
 
+/// Décode du base64 standard (RFC 4648) ; les blancs sont ignorés.
+/// `None` si un caractère est étranger ou si le remplissage est faux.
+pub fn base64_decode(text: &str) -> Option<Vec<u8>> {
+    let digits: Vec<u8> = text.bytes().filter(|b| !b.is_ascii_whitespace()).collect();
+    if digits.len() % 4 != 0 {
+        return None;
+    }
+    let value = |b: u8| -> Option<u32> {
+        Some(match b {
+            b'A'..=b'Z' => b - b'A',
+            b'a'..=b'z' => b - b'a' + 26,
+            b'0'..=b'9' => b - b'0' + 52,
+            b'+' => 62,
+            b'/' => 63,
+            _ => return None,
+        } as u32)
+    };
+    let mut out = Vec::with_capacity(digits.len() / 4 * 3);
+    let last = digits.len() / 4;
+    for (k, c) in digits.chunks(4).enumerate() {
+        let pad = c.iter().rev().take_while(|&&b| b == b'=').count();
+        if pad > 2 || (pad > 0 && k + 1 != last) {
+            return None;
+        }
+        let mut n = 0u32;
+        for &b in &c[..4 - pad] {
+            n = n << 6 | value(b)?;
+        }
+        n <<= 6 * pad as u32;
+        out.extend(&n.to_be_bytes()[1..4 - pad]);
+    }
+    Some(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -355,6 +389,11 @@ mod tests {
             ("foobar", "Zm9vYmFy"),
         ] {
             assert_eq!(base64(i.as_bytes()), o);
+            assert_eq!(base64_decode(o).unwrap(), i.as_bytes());
+        }
+        assert_eq!(base64_decode("Zm9v\nYmFy").unwrap(), b"foobar");
+        for bad in ["Zm9", "Zm9v!A==", "Zg==Zm9v", "Z==="] {
+            assert!(base64_decode(bad).is_none(), "{bad}");
         }
     }
 }

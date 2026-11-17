@@ -24,6 +24,7 @@ pub mod path;
 pub mod plan;
 pub mod points;
 pub mod profile;
+pub mod project;
 pub mod quality;
 pub mod script;
 pub mod setup;

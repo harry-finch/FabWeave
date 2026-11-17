@@ -2,7 +2,8 @@
 //! filament, la préparation choisie par l'utilisateur (buse, placement,
 //! adhésion), et l'enchaînement valeurs → script → préparation → plan →
 //! G-code. Utilisé tel quel par le pont WebAssembly et par l'outil en ligne
-//! de commande.
+//! de commande. Garde aussi les textes chargés, pour le projet embarqué dans
+//! chaque G-code (`project.rs`).
 
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
@@ -14,6 +15,7 @@ use crate::params::{resolve, ParamValue};
 use crate::path::Toolpath;
 use crate::plan::{plan_at, Plan};
 use crate::profile::{parse_filament, parse_printer, FilamentProfile, PrinterProfile};
+use crate::project::Project;
 use crate::script::{Compiled, Limits, PrinterContext, RunOutput, ScriptEngine};
 use crate::setup::{arrange, Setup};
 
@@ -23,6 +25,9 @@ pub struct Workbench {
     printer: Option<PrinterProfile>,
     filament: Option<FilamentProfile>,
     setup: Setup,
+    /// Textes chargés (modèle, imprimante, filament) et nom du projet.
+    sources: [String; 3],
+    name: String,
 }
 
 /// Résultat d'un calcul.
@@ -52,6 +57,8 @@ impl Workbench {
             printer: None,
             filament: None,
             setup: Setup::default(),
+            sources: Default::default(),
+            name: String::new(),
         }
     }
 
@@ -61,16 +68,19 @@ impl Workbench {
         let m = model::parse(source)?;
         let c = self.scripts.compile(&m).map_err(|i| vec![i])?;
         self.model = Some((m, c));
+        self.sources[0] = source.to_string();
         Ok(&self.model.as_ref().expect("modèle chargé").0)
     }
 
     pub fn set_printer(&mut self, source: &str) -> Result<&PrinterProfile, Vec<Issue>> {
         self.printer = Some(parse_printer(source)?);
+        self.sources[1] = source.to_string();
         Ok(self.printer.as_ref().expect("profil chargé"))
     }
 
     pub fn set_filament(&mut self, source: &str) -> Result<&FilamentProfile, Vec<Issue>> {
         self.filament = Some(parse_filament(source)?);
+        self.sources[2] = source.to_string();
         Ok(self.filament.as_ref().expect("profil chargé"))
     }
 
@@ -87,6 +97,42 @@ impl Workbench {
 
     pub fn setup(&self) -> &Setup {
         &self.setup
+    }
+
+    /// Nom du projet, repris dans le projet embarqué.
+    pub fn set_name(&mut self, name: &str) {
+        self.name = name.to_string();
+    }
+
+    /// Projet d'un calcul : textes chargés, valeurs de tous les paramètres,
+    /// préparation. `given` : les valeurs envoyées au calcul ; elles priment,
+    /// pour qu'une valeur refusée (hors bornes) se retrouve telle quelle à la
+    /// réouverture au lieu de la valeur par défaut. `None` s'il manque le
+    /// modèle ou un profil.
+    pub fn project(&self, ev: &Evaluation, given: &Map<String, Value>) -> Option<Project> {
+        if !self.missing().is_empty() {
+            return None;
+        }
+        let values = ev
+            .params
+            .iter()
+            .map(|(k, v)| {
+                let v = match given.get(k) {
+                    Some(g) if !g.is_null() => g.clone(),
+                    _ => serde_json::to_value(v).expect("valeur sérialisable"),
+                };
+                (k.clone(), v)
+            })
+            .collect();
+        let [model, printer, filament] = &self.sources;
+        Some(Project::new(
+            &self.name,
+            model,
+            values,
+            printer,
+            filament,
+            &self.setup,
+        ))
     }
 
     pub fn model(&self) -> Option<&Model> {
@@ -225,8 +271,17 @@ impl Workbench {
         ev
     }
 
-    /// G-code d'un calcul sans erreur bloquante.
+    /// G-code d'un calcul sans erreur bloquante, projet embarqué à la fin.
     pub fn gcode(&self, ev: &Evaluation) -> Result<String, Vec<Issue>> {
+        let mut g = self.gcode_only(ev)?;
+        if let Some(p) = self.project(ev, &Map::new()) {
+            g.push('\n');
+            g.push_str(&p.embed());
+        }
+        Ok(g)
+    }
+
+    fn gcode_only(&self, ev: &Evaluation) -> Result<String, Vec<Issue>> {
         let missing = self.missing();
         if !missing.is_empty() {
             return Err(missing);
@@ -249,7 +304,7 @@ impl Workbench {
 
     /// Paquet `.gcode.3mf` (Bambu Lab) d'un calcul sans erreur bloquante :
     /// le G-code de [`Workbench::gcode`], sa somme MD5, les métadonnées et
-    /// les vignettes de la plaque.
+    /// les vignettes de la plaque, et le projet rangé à part.
     pub fn gcode_3mf(&self, ev: &Evaluation) -> Result<Vec<u8>, Vec<Issue>> {
         let g = self.gcode(ev)?;
         let (path, plan) = (
@@ -262,6 +317,9 @@ impl Workbench {
             plan,
             ev.printer.as_ref().expect("profil"),
             ev.filament.as_ref().expect("profil"),
+            self.project(ev, &Map::new())
+                .map(|p| p.to_json())
+                .as_deref(),
         ))
     }
 }
