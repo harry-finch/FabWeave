@@ -22,7 +22,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Dépendances système de Tauri 2 (WebKitGTK) et des dialogues natifs.
       - name: Dépendances système
@@ -40,7 +40,7 @@ jobs:
         with:
           tool: wasm-pack
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
