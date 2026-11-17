@@ -19,7 +19,7 @@ Ce que FabWeave apporte par rapport à FullControl (site et bibliothèque Python
 
 La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md) (chaque fonction y a son identifiant et son jalon). Les points d'arrêt **⏸** sont les moments où le travail s'interrompt pour une validation par l'utilisateur.
 
-**Avancement : 4 livrés sur 16** (25 %)
+**Avancement : 4 livrés sur 22** (18 %)
 
 ## Restant à faire
 
@@ -29,23 +29,35 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
    Garde-buse, qualité des segments et contrôles du parcours, avec la gravité de l'ADR-0008 à valider.
 3. **[R-007 v0.6 — Bureau et projets (jalon 6)](roadmap/items/R-007-v0-6-bureau-et-projets-jalon-6.md)** · En cours · jalon v0.6
    Application de bureau Tauri 2 avec dossier de modèles surveillé, projet .fabweave.json et CLI complète.
-4. **[R-008 v0.9-beta1 — Bêta pour macOS](roadmap/items/R-008-v0-9-beta1-beta-pour-macos.md)** · À tester · jalon v0.9-beta1
+4. **[R-020 Paramètre courbe : silhouette dessinée](roadmap/items/R-020-parametre-courbe-silhouette-dessinee.md)** · Spécifiée · jalon v0.7
+   Nouveau type de paramètre .weave : une silhouette modifiable en tirant des points, avec une galerie de silhouettes prêtes.
+5. **[R-023 Formes : sections vues de dessus, torsion et cage](roadmap/items/R-023-formes-sections-vues-de-dessus-torsion-et-cage.md)** · Spécifiée · jalon v0.7
+   Fonctions de forme natives (sections pétale, étoile, cannelé…, torsion rythmée, cage de déformation) et un modèle « Forme libre ».
+6. **[R-021 Bibliothèque d'effets de parcours](roadmap/items/R-021-bibliotheque-d-effets-de-parcours.md)** · Spécifiée · jalon v0.7
+   Effets tracés par la buse (trame, grain, vagues, picots, dentelle, colonnes, gros boudin) en fonctions natives de l'API, et un « Vase à effets ».
+7. **[R-024 Débit en porte-à-faux et couches variables](roadmap/items/R-024-debit-en-porte-a-faux-et-couches-variables.md)** · Spécifiée · jalon v0.7
+   Le moteur compense le débit des parois inclinées (compté et signalé) et les modèles choisissent une hauteur de couche selon la pente.
+8. **[R-025 Paramètre image : logo SVG ou PNG](roadmap/items/R-025-parametre-image-logo-svg-ou-png.md)** · Spécifiée · jalon v0.7
+   Nouveau type de paramètre .weave : un dessin SVG ou PNG transformé en contours, en relief ou ajouré, enregistré dans le projet.
+9. **[R-022 Luminaires : suspension, rosace, applique, lampe à poser](roadmap/items/R-022-luminaires-suspension-rosace-applique-lampe-a.md)** · Spécifiée · jalon v0.7
+   Rubrique Luminaires du catalogue : pièces prêtes à monter avec alésage de douille E27 / E14, rosace, platine murale et emboîtement.
+10. **[R-008 v0.9-beta1 — Bêta pour macOS](roadmap/items/R-008-v0-9-beta1-beta-pour-macos.md)** · À tester · jalon v0.9-beta1
    Publier une bêta avec l'application macOS pour tester et valider tout ce qui reste ouvert (v0.3, v0.4, v0.5).
-5. **[R-009 Audit technique, lot 2](roadmap/items/R-009-audit-technique-lot-2.md)** · Idée
+11. **[R-009 Audit technique, lot 2](roadmap/items/R-009-audit-technique-lot-2.md)** · Idée
    Budgets de calcul, CI, sauvegardes, identifiants des modèles personnels, export CLI atomique.
-6. **[R-010 Audit technique, lot 3](roadmap/items/R-010-audit-technique-lot-3.md)** · Idée
+12. **[R-010 Audit technique, lot 3](roadmap/items/R-010-audit-technique-lot-3.md)** · Idée
    Moteur relançable, CSP, tests de l'interface, notarisation.
-7. **[R-011 v1.0 — Publication](roadmap/items/R-011-v1-0-publication.md)** · Idée · jalon v1.0
+13. **[R-011 v1.0 — Publication](roadmap/items/R-011-v1-0-publication.md)** · Idée · jalon v1.0
    Installeurs signés, version web statique, documentation utilisateur FR / EN et catalogue d'au moins 15 modèles imprimés au fablab.
-8. **[R-012 v1.1 — Habiller un volume (jalon 7)](roadmap/items/R-012-v1-1-habiller-un-volume-jalon-7.md)** · Spécifiée · jalon v1.1
+14. **[R-012 v1.1 — Habiller un volume (jalon 7)](roadmap/items/R-012-v1-1-habiller-un-volume-jalon-7.md)** · Spécifiée · jalon v1.1
    Importer un volume 3D (STL, 3MF) et l'habiller d'un motif du catalogue imprimé en une spirale continue.
-9. **[R-013 Envoi à l'imprimante (DESK-05)](roadmap/items/R-013-envoi-a-l-imprimante-desk-05.md)** · Idée
+15. **[R-013 Envoi à l'imprimante (DESK-05)](roadmap/items/R-013-envoi-a-l-imprimante-desk-05.md)** · Idée
    Envoi du G-code à l'imprimante (PrusaLink, OctoPrint, Moonraker), optionnel, après la v1.0.
-10. **[R-014 Serveur MCP (DESK-06)](roadmap/items/R-014-serveur-mcp-desk-06.md)** · Idée
+16. **[R-014 Serveur MCP (DESK-06)](roadmap/items/R-014-serveur-mcp-desk-06.md)** · Idée
    Serveur MCP (stdio) pour qu'un agent IA crée, vérifie, prévisualise et exporte un modèle, après la v1.0.
-11. **[R-015 v2 — Atelier de formes](roadmap/items/R-015-v2-atelier-de-formes.md)** · Idée · jalon v2
+17. **[R-015 v2 — Atelier de formes](roadmap/items/R-015-v2-atelier-de-formes.md)** · Idée · jalon v2
    Espace pour jouer et prototyper de nouvelles formes sur le format .weave, avec éditeur de code intégré.
-12. **[R-019 Afficher la figure de FabWeave dans l’application](roadmap/items/R-019-afficher-la-figure-de-fabweave-dans-l.md)** · Idée
+18. **[R-019 Afficher la figure de FabWeave dans l’application](roadmap/items/R-019-afficher-la-figure-de-fabweave-dans-l.md)** · Idée
    Étudier l’usage du vase ondulé sous une buse dans un état vide, au premier lancement ou dans À propos, puis choisir l’emplacement avec l’utilisateur.
 
 ## Actions à faire
@@ -61,6 +73,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-013](roadmap/actions/A-013-essayer-les-projets-fabweave-enregistrer-rouvrir.md) Essayer les projets FabWeave (enregistrer, rouvrir, G-code) (tester, R-007)
 - [ ] [A-014](roadmap/actions/A-014-essayer-le-dossier-surveille-les-fichiers.md) Essayer le dossier surveillé, les fichiers récents et Enregistrer sous dans l'application macOS (tester, R-007)
 - [ ] [A-015](roadmap/actions/A-015-lancer-le-workflow-linux-et-essayer-l-appimage.md) Lancer le workflow Linux et essayer l'AppImage (tester, R-007)
+- [ ] [A-016](roadmap/actions/A-016-donner-les-cotes-des-douilles-e27-et-e14-du.md) Donner les cotes des douilles E27 et E14 du fablab (fournir, R-022)
 
 ## Livré
 

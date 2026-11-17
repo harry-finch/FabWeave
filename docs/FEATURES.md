@@ -18,6 +18,8 @@ Périmètre fonctionnel de FabWeave, établi à partir de la conversation de rec
 | FMT-08 | Erreurs de lecture et de script avec ligne et colonne, code stable | v0.1 | fait |
 | FMT-09 | Spécification `docs/WEAVE_FORMAT.md` et prompt système pour IA `docs/PROMPT_MODELE_IA.md` | v0.1 / v0.2 | fait |
 | FMT-10 | Versionnement et migration des anciens formats | v0.2 | prévu |
+| FMT-11 | Paramètre `curve` : silhouette en points (bornes, nombre de points, raccord lisse ou droit), galerie de silhouettes nommées (R-020) | v0.7 | prévu |
+| FMT-12 | Paramètre `image` : dessin SVG ou PNG transformé en contours fermés, enregistré dans le projet (R-025) | v0.7 | prévu |
 
 ## API du script (API)
 
@@ -43,6 +45,9 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-16 | `pts.slice(from, to)` ; `floor`, `round`, `ceiling` acceptent un entier | v0.2 | fait |
 | API-18 | Réglages d'essai des modèles d'étalonnage (`[meta] calibration = true`) : décalage de température ±30 °C, longueur et vitesse de rétraction, saut en Z, bornés, signalés (ADR-0007) | v0.3 | fait |
 | API-17 | Bruit de gradient 3D natif `noise(x, y, z)` (−1 à 1, motifs de taille ≈ 1, déterministe, sans couture sur un cylindre pris en 3D) : textures aléatoires continues | v0.3 | fait |
+| API-19 | Effets de parcours natifs : trame, grain, vagues, picots, dentelle, colonnes, gros boudin (R-021) | v0.7 | prévu |
+| API-20 | Formes natives : sections vues de dessus (pétale, étoile, cannelé…), torsion rythmée, révolution d'un profil, cage de déformation (R-023) | v0.7 | prévu |
+| API-21 | Hauteur de couche variable selon la pente (R-024) | v0.7 | prévu |
 
 ## Moteur : physique et G-code (ENG)
 
@@ -69,6 +74,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | ENG-19 | Dialecte Bambu : en-tête `HEADER_BLOCK`, `M73 L` + `M991` à chaque couche (paliers de hauteur pour les parcours continus), progression `M73 P R` | v0.3 | fait, à valider sur la X1E |
 | ENG-18 | Adhésion au plateau générée par le moteur : bordure (*brim*) autour de l'empreinte de la première couche (premier tour entier d'un vase en spirale ; extérieur seulement, boucles de la plus éloignée à la plus proche), ou radeau (*raft*) sous la pièce (base et contact pleins, intermédiaires espacés, écart de décollage) ; empreinte en grille et carte des distances, contours par carrés marchants ; emprise incluse dans le contrôle du volume ; le modèle peut seulement conseiller (`recommended_adhesion`) | v0.3 | fait |
 | ENG-21 | Préparation de l'impression hors du modèle (`Setup`) : position, rotation, copies en grille pièce par pièce (écart ≥ rayon de dégagement de la tête, pièce ≤ hauteur libre sous le portique), rappelée en tête du G-code ; pièce hors plateau montrée, segments en cause surlignés, export refusé | v0.3 | fait |
+| ENG-22 | Compensation du débit en porte-à-faux, réglée par le profil filament, comptée et signalée (R-024) | v0.7 | prévu |
 
 ## Profils imprimante et filament (PRF)
 
@@ -122,6 +128,11 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | CAT-26 | *Ajout* : photophore à vermicelles (paroi fine en spirale d'où la buse sort au hasard en petites boucles, qui retombent dans le vide) | Photo de l'utilisateur (28/10/2026), seconde lecture | Excursions aléatoires reproductibles, affaissement voulu | v0.3 | fait |
 | CAT-25 | *Ajout* : vase à écailles (polygone aux faces creusées, taille resserrée, écailles en quinconce) | Photo de l'utilisateur (28/10/2026) ; texture de FullControl « ripple texture » | Points à pas égal le long du contour, sortie selon la normale | v0.3 | fait |
 | CAT-27 | *Ajout* : lampe à coussins (coussins empilés imprimés à l'envers en une spirale le long de la surface ; chaque tour appuyé sur le précédent, couture qui remonte par-dessus en quinconce, bombée sur les flancs ; ajours facultatifs sur les flancs presque droits ; dessus en pente ; descente sous chaque coussin ; porte-à-faux ralentis ; dégagement du cône de la buse vérifié) | Vidéo de l'utilisateur (29/10/2026) | Méridien par arcs, spirale non planaire en descente, augmentations et diminutions de la couture, appui de chaque point vérifié | v0.4 | fait |
+| CAT-28 | Vase à silhouette libre (R-020) | v0.7 | prévu |
+| CAT-29 | Vase à effets (R-021) | v0.7 | prévu |
+| CAT-30 | Forme libre : section, torsion, cage (R-023) | v0.7 | prévu |
+| CAT-31 | Luminaires : suspension E27 / E14, rosace, applique, lampe à poser (R-022) | v0.7 | prévu |
+| CAT-32 | Dessous de verre au logo, plaque ajourée (R-025) | v0.7 | prévu |
 
 ## Visualisation (VIEW)
 

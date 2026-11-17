@@ -5,7 +5,7 @@ resume: "Importer un volume 3D (STL, 3MF) et l'habiller d'un motif du catalogue 
 statut: specifiee
 jalon: v1.1
 cree: 2026-10-29
-maj: 2026-11-12
+maj: 2026-11-17
 livree:
 ---
 ## But
@@ -15,7 +15,7 @@ Importer un volume 3D (STL, 3MF) et l'habiller d'un motif du catalogue (maille, 
 ## Inclus
 
 1. **Décision** (ADR) : forme et motif dans le format `.weave` (motif = modèle qui reçoit une forme ; forme importée ou paramétrique), frontière avec le tranchage, version du format. ⏸ validation de l'ADR.
-2. **Formes** (FORM-01 à FORM-04) : lecture STL et 3MF dans le moteur (octets donnés par l'interface), tranches, refus nommant la hauteur fautive (anse, branche, îles, maillage ouvert) ; formes paramétriques (révolution d'un profil, polygone extrudé et torsadé) pour les mêmes motifs sans fichier.
+2. **Formes** (FORM-01 à FORM-04) : lecture STL et 3MF dans le moteur (octets donnés par l'interface), tranches, refus nommant la hauteur fautive (anse, branche, îles, maillage ouvert) ; formes paramétriques (révolution d'un profil, polygone extrudé et torsadé) pour les mêmes motifs sans fichier. *Les formes paramétriques (révolution d'un profil, sections, torsion) sont reprises par R-020 et R-023 (v0.7, 17/11/2026) : réutiliser leurs fonctions.*
 3. **Suivre la surface** (FORM-05) : spirale qui avance le long de la paroi et non en Z (porte-à-faux au-delà de 45°, descentes, comme la lampe à coussins), dégagement du cône de la buse vérifié par le garde-buse (SAFE-03).
 4. **Motifs** (FORM-06) : maille, ondulations, écailles, gouttes, vermicelles, abat-jour réécrits en motifs ; fond plein ou maillé, bord plein ; angles vifs respectés.
 5. **Interface** (FORM-07) : mode « Habiller un volume » : import par dépôt ou `⌘O`, aperçu du volume, choix de l'axe, motif et ses curseurs ; panneaux Machine, Plateau, Messages et Export inchangés.

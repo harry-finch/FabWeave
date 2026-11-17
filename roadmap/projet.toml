@@ -52,6 +52,10 @@ id = "v0.6"
 titre = "Bureau et projets"
 
 [[jalons]]
+id = "v0.7"
+titre = "Formes et effets"
+
+[[jalons]]
 id = "v0.9-beta1"
 titre = "Bêta pour macOS"
 

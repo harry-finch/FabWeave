@@ -20,4 +20,4 @@
 
 ## À suivre
 
-Essais et mesures : actions A-002 à A-008 dans [ROADMAP.md](ROADMAP.md). Suite technique : [R-009 — audit, lot 2](roadmap/items/R-009-audit-technique-lot-2.md). Historique détaillé des essais et limites conservé dans [DEVLOG.md](DEVLOG.md).
+Essais et mesures : actions A-002 à A-008 dans [ROADMAP.md](ROADMAP.md). Suite technique : jalon **v0.7 « Formes et effets »**, issu de l'analyse de ColiWorks du 17/11/2026 et spécifié avec l'utilisateur : R-020 (paramètre courbe), R-023 (formes), R-021 (effets de parcours), R-024 (débit en porte-à-faux, couches variables), R-025 (paramètre image), R-022 (luminaires, cotes des douilles attendues : A-016). Puis [R-009 — audit, lot 2](roadmap/items/R-009-audit-technique-lot-2.md). Historique détaillé des essais et limites conservé dans [DEVLOG.md](DEVLOG.md).
