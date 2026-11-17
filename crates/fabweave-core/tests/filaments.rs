@@ -127,3 +127,62 @@ fn the_bridge_factor_scales_bridges_only() {
         .collect();
     assert_eq!(codes, ["profile.out_of_range"]);
 }
+
+/// R-024 : compensation du débit en porte-à-faux, réglée par le filament
+/// (version 3) ; à 0 (et dans les profils v2, sans le champ), rien ne change.
+#[test]
+fn overhang_flow_compensation_is_counted_and_off_by_default() {
+    let pla = read("profiles/filaments/generic_pla.toml");
+    assert_eq!(
+        parse_filament(&pla).unwrap().filament.overhang_flow,
+        0.0,
+        "v2 lu tel quel"
+    );
+    let with = |amount: f64| {
+        let src = pla.replace("version = 2", "version = 3").replace(
+            "[filament]\n",
+            &format!("[filament]\noverhang_flow = {amount}\n"),
+        );
+        let mut w = Workbench::default();
+        w.set_printer(&read("profiles/printers/prusa_mk4s.toml"))
+            .unwrap();
+        w.set_filament(&src).unwrap();
+        w.load_model(&read("models/vases/free_silhouette_vase.weave"))
+            .unwrap();
+        let ev = w.evaluate(&Map::new());
+        let g = w.gcode(&ev).unwrap();
+        (ev, g)
+    };
+    let mut plain = Workbench::default();
+    plain
+        .set_printer(&read("profiles/printers/prusa_mk4s.toml"))
+        .unwrap();
+    plain.set_filament(&pla).unwrap();
+    plain
+        .load_model(&read("models/vases/free_silhouette_vase.weave"))
+        .unwrap();
+    let ev0 = plain.evaluate(&Map::new());
+    let (ev, g) = with(0.0);
+    assert!(!ev
+        .issues
+        .iter()
+        .any(|i| i.code == "flow.overhang_compensated"));
+    // Mêmes mouvements : seuls le profil embarqué et la version diffèrent.
+    let moves = |g: &str| {
+        g.lines()
+            .filter(|l| !l.starts_with(';'))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    assert_eq!(moves(&g), moves(&plain.gcode(&ev0).unwrap()));
+    let (ev, _) = with(1.0);
+    let i = ev
+        .issues
+        .iter()
+        .find(|i| i.code == "flow.overhang_compensated")
+        .unwrap();
+    assert!(i.count.unwrap() > 100 && i.value.unwrap() > 1.0, "{i:?}");
+    let bad = pla.replace("[filament]\n", "[filament]\noverhang_flow = 1.5\n");
+    assert!(parse_filament(&bad)
+        .is_err_and(|e| e[0].field.as_deref() == Some("filament.overhang_flow")));
+}

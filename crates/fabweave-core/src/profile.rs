@@ -23,7 +23,9 @@ pub const PRINTER_FORMAT: &str = "fabweave.printer";
 pub const FILAMENT_FORMAT: &str = "fabweave.filament";
 /// Version du profil imprimante (v1 lue sans changement).
 pub const PRINTER_VERSION: u32 = 2;
-pub const FILAMENT_VERSION: u32 = 2;
+/// Version 3 : `filament.overhang_flow` (compensation du débit en
+/// porte-à-faux, R-024) ; les versions 1 et 2 se lisent telles quelles.
+pub const FILAMENT_VERSION: u32 = 3;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -339,6 +341,10 @@ pub struct FilamentInfo {
     /// pont (`bridge_to`, `bridge_points`), 1 par défaut.
     #[serde(default = "one")]
     pub bridge_flow: f64,
+    /// Compensation du débit des parois inclinées, de 0 (aucune) à 1
+    /// (section gardée perpendiculairement à la paroi), version 3.
+    #[serde(default)]
+    pub overhang_flow: f64,
 }
 
 fn one() -> f64 {
@@ -703,6 +709,13 @@ pub fn check_filament(f: &FilamentProfile) -> Vec<Issue> {
         ],
         &mut out,
     );
+    if !(0.0..=1.0).contains(&f.filament.overhang_flow) {
+        out.push(
+            Issue::error("profile.out_of_range")
+                .field("filament.overhang_flow")
+                .value(f.filament.overhang_flow),
+        );
+    }
     if !(f.filament.bridge_flow > 0.0 && f.filament.bridge_flow <= 2.0) {
         out.push(
             Issue::error("profile.out_of_range")

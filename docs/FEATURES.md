@@ -47,7 +47,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-17 | Bruit de gradient 3D natif `noise(x, y, z)` (−1 à 1, motifs de taille ≈ 1, déterministe, sans couture sur un cylindre pris en 3D) : textures aléatoires continues | v0.3 | fait |
 | API-19 | Effets de parcours natifs : `effect` (vagues, trame, colonnes, picots, grain, dentelle, gros boudin), `with_effect`, `print_effect` ; plage et transition ; 50 000 points + effet en 2,8 ms (R-021) | v0.7 | fait |
 | API-20 | Formes natives : `section` (8 types), `twist_angle` (3 rythmes), `cage` (réglée par curseurs), `revolve` et `revolve_ring` (R-023) | v0.7 | fait |
-| API-21 | Hauteur de couche variable selon la pente (R-024) | v0.7 | prévu |
+| API-21 | Hauteur de couche variable selon la pente : `adaptive_layers`, option `layers` de `revolve` ; option de « Forme libre » (R-024) | v0.7 | fait |
 
 ## Moteur : physique et G-code (ENG)
 
@@ -74,7 +74,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | ENG-19 | Dialecte Bambu : en-tête `HEADER_BLOCK`, `M73 L` + `M991` à chaque couche (paliers de hauteur pour les parcours continus), progression `M73 P R` | v0.3 | fait, à valider sur la X1E |
 | ENG-18 | Adhésion au plateau générée par le moteur : bordure (*brim*) autour de l'empreinte de la première couche (premier tour entier d'un vase en spirale ; extérieur seulement, boucles de la plus éloignée à la plus proche), ou radeau (*raft*) sous la pièce (base et contact pleins, intermédiaires espacés, écart de décollage) ; empreinte en grille et carte des distances, contours par carrés marchants ; emprise incluse dans le contrôle du volume ; le modèle peut seulement conseiller (`recommended_adhesion`) | v0.3 | fait |
 | ENG-21 | Préparation de l'impression hors du modèle (`Setup`) : position, rotation, copies en grille pièce par pièce (écart ≥ rayon de dégagement de la tête, pièce ≤ hauteur libre sous le portique), rappelée en tête du G-code ; pièce hors plateau montrée, segments en cause surlignés, export refusé | v0.3 | fait |
-| ENG-22 | Compensation du débit en porte-à-faux, réglée par le profil filament, comptée et signalée (R-024) | v0.7 | prévu |
+| ENG-22 | Compensation du débit en porte-à-faux, `filament.overhang_flow` (profil filament v3), comptée et signalée (R-024) | v0.7 | fait |
 
 ## Profils imprimante et filament (PRF)
 

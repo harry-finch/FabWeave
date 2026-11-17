@@ -637,3 +637,12 @@ Accès navigateur indisponible ; contrôle natif de Vivaldi refusé par l’outi
 **Mesure.** Banc : hélice native de 50 000 points avec la trame, script en 2,8 ms (critère : moins de 100 ms).
 
 **Vérification.** Tests : amplitude et nombre de motifs par tour (trame, colonnes, picots, vagues), demi-décalage de la trame, crête ralentie de la dentelle, plage, refus. **Non vérifié** : rendu dans l'interface, impression (dentelle surtout).
+
+
+## 2026-11-17 — R-024 : débit en porte-à-faux et couches variables
+
+**Moteur.** `overhang.rs` : inclinaison lue sur le parcours (segment parallèle le plus proche de la couche du dessous, entre 0,4 et 1,6 hauteur de boudin plus bas), débit multiplié par `1 + c · (1/cos θ − 1)` jusqu'à 60° ; remplissages croisés et porte-à-faux plus forts exclus ; plafond volumétrique inchangé ; message `flow.overhang_compensated` (nombre, facteur le plus grand). Réglage `filament.overhang_flow` (0 à 1, 0 par défaut), profil filament version 3, versions 1 et 2 lues telles quelles ; éditeur de filament et textes FR / EN. Choix de méthode : la carte des hauteurs (mailles de 0,25 mm au moins) était trop grossière pour mesurer un décalage de 0,2 mm.
+
+**Couches variables.** `adaptive_layers(profile, start, min, max, nozzle)` (`h = min + (max − min) · cos² θ`, `max` ≤ 0,8 × buse) et option `layers` de `revolve` ; option « Couches var. » de « Forme libre » (de la moitié à 1,5 fois le pas) : 61 min au lieu de 85 aux valeurs par défaut.
+
+**Vérification.** Tests : facteur à 45° (1/cos 45° à 0,01 près, et à 50 %), parois verticales et réglage nul sans effet, rien au-delà de 60° ; couches variables (maximum sur paroi droite, mi-chemin à 45°, bornes) ; filament v2 lu sans compensation, mouvements identiques à 0, compensation comptée à 1, valeur 1,5 refusée. **Non vérifié** : impression comparative (A-022), rendu.

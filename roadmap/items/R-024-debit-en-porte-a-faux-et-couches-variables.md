@@ -2,7 +2,7 @@
 id: R-024
 titre: "Débit en porte-à-faux et couches variables"
 resume: "Le moteur compense le débit des parois inclinées (compté et signalé) et les modèles choisissent une hauteur de couche selon la pente."
-statut: specifiee
+statut: a-tester
 jalon: v0.7
 cree: 2026-11-17
 maj: 2026-11-17

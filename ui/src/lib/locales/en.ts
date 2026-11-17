@@ -260,6 +260,7 @@ const en: Shape<typeof fr> = {
       density: 'Density',
       flow_multiplier: 'Flow factor',
       bridge_flow: 'Bridge factor',
+      overhang_flow: 'Overhang flow',
       pressure_advance: 'Advance (PA)',
       abrasive: 'Abrasive',
     },
@@ -305,6 +306,7 @@ const en: Shape<typeof fr> = {
     filament: {
       density: 'Density (g/cm³), for the filament mass.',
       bridge_flow: 'Multiplies the bridge flow requested by the model: below 1 the strand is pulled tighter. From 0 to 2.',
+      overhang_flow: 'Compensates the flow of leaning walls, which get thinner: 0 = no compensation, 1 = section kept perpendicular to the wall. Up to 60°; tune it with a test print.',
       pressure_advance: 'M572 (Prusa), M900 (Marlin), SET_PRESSURE_ADVANCE (Klipper); 0 if unknown.',
       abrasive: 'Filled material (fibers): hardened nozzle required.',
     },
@@ -488,6 +490,9 @@ const en: Shape<typeof fr> = {
     },
     blob: {
       too_slow: '{count} blobs would feed the filament below {value} mm/min: they take longer than requested.',
+    },
+    flow: {
+      overhang_compensated: 'Leaning walls: flow compensated on {count} moves (factor up to ×{value}).',
     },
     speed: {
       limited_first_layer: 'Speed capped at {value} mm/s on the first layer ({count} segments).',

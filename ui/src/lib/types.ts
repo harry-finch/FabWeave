@@ -123,7 +123,7 @@ export interface PrinterProfile {
 export interface FilamentProfile {
   format?: string;
   version?: number;
-  filament: { id: string; name: Text; type: string; diameter: number; density: number; flow_multiplier: number; pressure_advance: number; abrasive: boolean; bridge_flow?: number };
+  filament: { id: string; name: Text; type: string; diameter: number; density: number; flow_multiplier: number; pressure_advance: number; abrasive: boolean; bridge_flow?: number; overhang_flow?: number };
   temperature: { first_layer: number; nozzle: number; bed_first_layer: number; bed: number; probe: number; idle?: number | null; chamber: number; chamber_min?: number };
   speed: { nominal: number; first_layer: number; max_volumetric: number; by_nozzle?: NozzleFlow[] };
   cooling: { fan: number; first_layer_fan: number; bridge_fan: number };

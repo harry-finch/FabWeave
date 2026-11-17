@@ -132,6 +132,7 @@ export const FILAMENT_GROUPS: Group[] = [
       { path: 'filament.density', key: 'filament.density', type: 'num', unit: 'g/cm³', step: 0.01, decimals: 2, min: 0 },
       { path: 'filament.flow_multiplier', key: 'filament.flow_multiplier', type: 'num', unit: '×', step: 0.01, decimals: 3, min: 0 },
       { path: 'filament.bridge_flow', key: 'filament.bridge_flow', type: 'num', unit: '×', step: 0.05, decimals: 2, min: 0 },
+      { path: 'filament.overhang_flow', key: 'filament.overhang_flow', type: 'num', unit: '×', step: 0.05, decimals: 2, min: 0 },
       { path: 'filament.pressure_advance', key: 'filament.pressure_advance', type: 'num', unit: 's', step: 0.005, decimals: 3, min: 0 },
       { path: 'filament.abrasive', key: 'filament.abrasive', type: 'bool' },
     ],

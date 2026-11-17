@@ -240,8 +240,17 @@ impl Workbench {
         ev.log = out.log;
         ev.issues.extend(out.issues);
         if let Some(path) = out.path {
-            let (path, issues) = arrange(&path, &self.setup, &printer);
+            let (mut path, issues) = arrange(&path, &self.setup, &printer);
             ev.issues.extend(issues);
+            // Parois inclinées : débit compensé selon le filament, compté.
+            let comp = crate::overhang::compensate(&mut path, filament.filament.overhang_flow);
+            if comp.count > 0 {
+                ev.issues.push(
+                    Issue::info("flow.overhang_compensated")
+                        .count(comp.count)
+                        .value((comp.max_factor * 100.0).round() / 100.0),
+                );
+            }
             let pl = &self.setup.placement;
             let target = match (pl.x, pl.y) {
                 (None, None) => None,

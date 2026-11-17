@@ -298,6 +298,13 @@ min = -20
 max = 20
 step = 0.5
 
+[params.variable_layers]
+type = "bool"
+label = { fr = "Couches var.", en = "Variable layers" }
+help = { fr = "Couches épaisses sur les parois droites, plus fines où la silhouette penche : courbes plus nettes, impression plus rapide.", en = "Thick layers on straight walls, thinner where the silhouette leans: crisper curves, faster print." }
+advanced = true
+default = false
+
 [params.bottom_layers]
 type = "int"
 label = { fr = "Fond (couches)", en = "Bottom layers" }
@@ -390,13 +397,30 @@ shape.start = if nb == 0 { 0.8 * eh } else { fh + (nb - 1) * eh };
 if params.silhouette.max_z - shape.start < eh {
     fail(#{ fr: "Silhouette trop basse pour une spirale : monter le dernier point.", en: "Silhouette too low for a spiral: raise the last point." });
 }
-let wall = revolve(shape);
-path.set_speed(params.speed / 2);
-path.travel_to(wall);
-path.note(#{ fr: "Départ de la spirale", en: "Spiral start" });
-// Premier tour au ralenti, le reste à la vitesse demandée.
-let first = wall.slice(0, segs + 1);
-path.print_points(first, ew, eh);
-path.set_speed(params.speed);
-path.print_points(wall.slice(segs, wall.len()), ew, eh);
+if params.variable_layers {
+    // Couches variables : un tour par hauteur de `adaptive_layers`, chacun
+    // imprimé avec sa propre hauteur de boudin.
+    let nz = printer.nozzle_diameter;
+    // De la moitié du pas (courbes) à 1,5 fois le pas (parois droites), 0,8 × buse au plus.
+    let zs = adaptive_layers(params.silhouette, shape.start, eh / 2, min(eh * 1.5, 0.8 * nz), nz);
+    shape.layers = zs;
+    let wall = revolve(shape);
+    path.set_speed(params.speed / 2);
+    path.travel_to(wall);
+    path.note(#{ fr: "Départ de la spirale, couches variables", en: "Spiral start, variable layers" });
+    for k in 0..zs.len() - 1 {
+        if k == 1 { path.set_speed(params.speed); }
+        path.print_points(wall.slice(k * segs, (k + 1) * segs + 1), ew, zs[k + 1] - zs[k]);
+    }
+} else {
+    let wall = revolve(shape);
+    path.set_speed(params.speed / 2);
+    path.travel_to(wall);
+    path.note(#{ fr: "Départ de la spirale", en: "Spiral start" });
+    // Premier tour au ralenti, le reste à la vitesse demandée.
+    let first = wall.slice(0, segs + 1);
+    path.print_points(first, ew, eh);
+    path.set_speed(params.speed);
+    path.print_points(wall.slice(segs, wall.len()), ew, eh);
+}
 path

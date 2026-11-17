@@ -258,6 +258,7 @@ const fr = {
       density: 'Masse vol.',
       flow_multiplier: 'Débit (coef.)',
       bridge_flow: 'Ponts (coef.)',
+      overhang_flow: 'Porte-à-faux',
       pressure_advance: 'Avance (PA)',
       abrasive: 'Abrasif',
     },
@@ -303,6 +304,7 @@ const fr = {
     filament: {
       density: 'Masse volumique (g/cm³), pour la masse de filament.',
       bridge_flow: 'Multiplie le débit des ponts demandé par le modèle : au-dessous de 1, le fil se tend davantage. De 0 à 2.',
+      overhang_flow: 'Compense le débit des parois inclinées, qui s’amincissent : 0 = aucune compensation, 1 = section gardée perpendiculairement à la paroi. Jusqu’à 60° ; à régler par une impression d’essai.',
       pressure_advance: 'M572 (Prusa), M900 (Marlin), SET_PRESSURE_ADVANCE (Klipper) ; 0 si inconnue.',
       abrasive: 'Matière chargée (fibres) : buse dure exigée.',
     },
@@ -486,6 +488,9 @@ const fr = {
     },
     blob: {
       too_slow: '{count} gouttes pousseraient le filament sous {value} mm/min : elles durent plus longtemps que demandé.',
+    },
+    flow: {
+      overhang_compensated: 'Parois inclinées : débit compensé sur {count} mouvements (facteur jusqu’à ×{value}).',
     },
     speed: {
       limited_first_layer: 'Vitesse plafonnée à {value} mm/s sur la première couche ({count} segments).',

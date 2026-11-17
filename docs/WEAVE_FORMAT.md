@@ -256,6 +256,7 @@ Pour composer vases, pots et abat-jour sans boucle de script : une silhouette (`
 | `cage(anneaux, points, déplacements, douceur)` | Grille de déformation : `anneaux` (2 à 8) répartis du bas au haut, `points` (3 à 24) par anneau à angles réguliers depuis 0 ; `déplacements` en mm, anneau du bas d'abord (positif : la paroi sort). `c.at(angle, t)` rend le déplacement radial. `douceur` 0 : la paroi passe par les points ; 1 : plus douce, en deçà des points. |
 | `revolve(opts)` | Spirale continue (liste de points) : `opts` est une table `#{ profile, section, twist, twist_kind, taper, cage, start, pitch, segments, end }`. Obligatoires : `profile` (`Curve`), `start` (hauteur du départ), `pitch` (montée par tour). Facultatifs : `section`, `twist` (degrés), `twist_kind` (`"even"` par défaut), `taper` (−0,9 à 0,9 : rétrécit vers le haut si positif), `cage`, `segments` par tour (120), `end` (haut de la silhouette). La hauteur de la silhouette est celle au-dessus du plateau ; les tours partent devant, au milieu. |
 | `revolve_ring(opts, z)` | Un tour fermé à la hauteur `z`, mêmes réglages (fond d'une pièce : `revolve_ring(shape, z).fill_rings(…)`). |
+| `adaptive_layers(profile, start, min, max, nozzle)` | Couches variables (R-024) : hauteurs successives des tours de `start` au haut de la silhouette, `h = min + (max − min) · cos² θ` (θ : pente de la silhouette) ; refus si `max` dépasse 0,8 × `nozzle`. Donner le tableau à `revolve` par l'option `layers` (au lieu de `start` et `pitch`) ; un tour par intervalle, à imprimer tour par tour avec sa hauteur (`wall.slice(k * segments, (k + 1) * segments + 1)`). |
 
 Erreurs : type ou rythme inconnu (`shape.unknown_section`, `shape.unknown_twist`), cage dont le nombre de déplacements ne correspond pas (`shape.cage_size`), rayon qui descend sous 0,5 mm (`shape.radius_too_small`), départ au-dessus de la fin (`shape.no_turn`), nombres hors domaine (`points.invalid_count`, `points.invalid_value`). Modèle d'exemple : [free_form.weave](../models/vases/free_form.weave).
 
@@ -340,6 +341,7 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `gcode.pause_missing` | erreur | Le modèle fait des pauses mais le profil d'imprimante n'a pas de gabarit `pause` (export refusé). |
 | `points.invalid_count`, `points.invalid_value`, `points.index_out_of_range`, `points.empty` | erreur | Argument invalide d'une fonction de points (nombre de segments, rayon…). |
 | `effect.unknown` | erreur | Type d'effet de parcours inconnu. |
+| `flow.overhang_compensated` | info | Parois inclinées : débit compensé selon `filament.overhang_flow` (`count` : mouvements, `value` : facteur le plus grand). |
 | `shape.unknown_section`, `shape.unknown_twist`, `shape.cage_size`, `shape.radius_too_small`, `shape.no_turn` | erreur | Fonctions de forme : type de section ou rythme inconnu, cage mal dimensionnée, rayon sous 0,5 mm, spirale sans tour. |
 | `model.warning` | avertissement | `warn()` du modèle (son texte, sa ligne). |
 | `model.failure` | erreur | `fail()` du modèle. Aux bornes d'un paramètre, `fabweave check` tolère ce refus (combinaison impossible avec les autres valeurs par défaut, par exemple un trou plus grand que la pièce) ; aux valeurs par défaut, jamais. |
@@ -377,7 +379,7 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 
 ## 6. Profils
 
-Deux fichiers TOML, lus strictement comme l'en-tête des modèles : `profiles/printers/*.toml` (`format = "fabweave.printer"`, `version = 2`) et `profiles/filaments/*.toml` (`format = "fabweave.filament"`, `version = 2`). Exemples commentés : [prusa_mk4s.toml](../profiles/printers/prusa_mk4s.toml), [bambu_x1e.toml](../profiles/printers/bambu_x1e.toml), [marlin_generic.toml](../profiles/printers/marlin_generic.toml), [klipper_generic.toml](../profiles/printers/klipper_generic.toml), [generic_pla.toml](../profiles/filaments/generic_pla.toml).
+Deux fichiers TOML, lus strictement comme l'en-tête des modèles : `profiles/printers/*.toml` (`format = "fabweave.printer"`, `version = 2`) et `profiles/filaments/*.toml` (`format = "fabweave.filament"`, `version = 3` depuis R-024 ; les profils livrés restent en version 2, lue telle quelle). Exemples commentés : [prusa_mk4s.toml](../profiles/printers/prusa_mk4s.toml), [bambu_x1e.toml](../profiles/printers/bambu_x1e.toml), [marlin_generic.toml](../profiles/printers/marlin_generic.toml), [klipper_generic.toml](../profiles/printers/klipper_generic.toml), [generic_pla.toml](../profiles/filaments/generic_pla.toml).
 
 **Version 2 du profil imprimante** (FabWeave 0.3) : zones exclues, accélérations, cône de la buse, vignettes, nom par langue. Tous ces champs sont facultatifs : un profil `version = 1` se lit sans changement (test de lecture : `crates/fabweave-core/tests/fixtures/prusa_mk4s_v1.toml`), sans zone, sans accélération (temps estimé = longueur ÷ vitesse, aucun `M204`) ni vignette.
 
@@ -392,7 +394,9 @@ Deux fichiers TOML, lus strictement comme l'en-tête des modèles : `profiles/pr
 
 | Filament | Contenu |
 | --- | --- |
-| `[filament]` | `id`, `name`, `type` (`PLA`, `PETG`, `FLEX`…), `diameter`, `density` (g/cm³), `flow_multiplier`, `pressure_advance`, `abrasive`, `bridge_flow` (facteur des ponts, multiplie le `flow` des ponts du modèle, de 0 à 2, 1 par défaut) |
+| `[filament]` | `id`, `name`, `type` (`PLA`, `PETG`, `FLEX`…), `diameter`, `density` (g/cm³), `flow_multiplier`, `pressure_advance`, `abrasive`, `bridge_flow` (facteur des ponts, multiplie le `flow` des ponts du modèle, de 0 à 2, 1 par défaut), `overhang_flow` (version 3 : compensation du débit des parois inclinées, de 0 à 1, 0 par défaut ; voir ci-dessous) |
+
+**Compensation du débit en porte-à-faux** (`overhang_flow`, R-024) : quand une paroi penche de θ depuis la verticale, le boudin ne recouvre plus qu'une partie du précédent et la couche s'amincit. Le moteur lit l'inclinaison sur le parcours (segment parallèle le plus proche de la couche du dessous) et multiplie le débit par `1 + c · (1 / cos θ − 1)`, jusqu'à 60° ; les remplissages croisés et les porte-à-faux plus forts ne sont pas compensés. Le débit volumétrique reste plafonné. Chaque compensation est comptée (`flow.overhang_compensated`, facteur le plus grand). Les profils de version 1 et 2 se lisent tels quels, sans compensation.
 | `[temperature]` | `first_layer`, `nozzle`, `bed_first_layer`, `bed`, `probe` (palpage), `idle`, `chamber` (consigne de l'enceinte), `chamber_min` (enceinte attendue avant d'imprimer, facultatif, 0 : pas d'attente) |
 | `[speed]` | `nominal` (pour `set_speed_factor(1)`), `first_layer` (plafond), `max_volumetric` (mm³/s) ; `by_nozzle = [{ diameter?, high_flow?, max_volumetric }, …]` (v2) : débit maximal selon la buse, l'entrée qui correspond le plus précisément l'emporte (diamètre et HF, puis l'un des deux ; à égalité, la première) |
 | `[cooling]` | `fan`, `first_layer_fan`, `bridge_fan` (%) |

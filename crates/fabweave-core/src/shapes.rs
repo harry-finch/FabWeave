@@ -19,6 +19,11 @@
 //!   `start`, `pitch` (montée par tour) et `segments` (par tour) ; `end` : par
 //!   défaut, le haut de la silhouette.
 //!
+//! - `adaptive_layers(profile, start, min, max, nozzle)` (R-024) : hauteurs
+//!   successives des tours, épaisses sur les parois droites, fines où la
+//!   silhouette penche : `h = min + (max − min) · cos² θ` ; `max` au plus
+//!   0,8 × buse. `revolve` les suit avec l'option `layers` (au lieu de `pitch`).
+//!
 //! Angles en radians dans le script, sauf la torsion donnée en degrés comme
 //! un paramètre. Valeur hors domaine : erreur à code stable, jamais corrigée.
 
@@ -203,6 +208,8 @@ struct Revolve {
     cage: Option<Cage>,
     start: f64,
     pitch: f64,
+    /// Hauteurs des tours (couches variables) ; sinon `pitch` constant.
+    layers: Option<Vec<f64>>,
     segments: usize,
     end: f64,
 }
@@ -234,8 +241,28 @@ impl Revolve {
             None => "even".to_string(),
             Some(v) => v.clone().into_string().map_err(|_| bad("twist_kind"))?,
         };
-        let start = opt_num(m, "start")?.ok_or_else(|| bad("start"))?;
-        let pitch = opt_num(m, "pitch")?.ok_or_else(|| bad("pitch"))?;
+        let layers = match m.get("layers") {
+            None => None,
+            Some(v) => {
+                let arr = v.clone().into_array().map_err(|_| bad("layers"))?;
+                let zs = arr
+                    .iter()
+                    .map(|z| num(z, "layers"))
+                    .collect::<R<Vec<f64>>>()?;
+                if zs.len() < 2 || zs.windows(2).any(|w| w[1] <= w[0]) {
+                    return Err(bad("layers"));
+                }
+                Some(zs)
+            }
+        };
+        let start = match &layers {
+            Some(zs) => zs[0],
+            None => opt_num(m, "start")?.ok_or_else(|| bad("start"))?,
+        };
+        let pitch = match &layers {
+            Some(_) => 1.0,
+            None => opt_num(m, "pitch")?.ok_or_else(|| bad("pitch"))?,
+        };
         if !(pitch > 0.0 && pitch.is_finite()) {
             return Err(bad("pitch"));
         }
@@ -259,6 +286,7 @@ impl Revolve {
             cage,
             start,
             pitch,
+            layers,
             segments: segments as usize,
             end,
             profile,
@@ -335,6 +363,18 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
     });
     engine.register_fn("revolve", move |opts: rhai::Map| -> R<Points> {
         let rv = Revolve::read(&opts)?;
+        if let Some(zs) = &rv.layers {
+            // Couches variables : un tour par intervalle, Z interpolé.
+            let n = (zs.len() - 1) * rv.segments;
+            let mut out = Builder::new(limit, n + 1)?;
+            for i in 0..=n {
+                let tv = i as f64 / rv.segments as f64;
+                let k = (i / rv.segments).min(zs.len() - 2);
+                let z = zs[k] + (zs[k + 1] - zs[k]) * (tv - k as f64);
+                out.push(rv.point(START + tv * TAU, z)?)?;
+            }
+            return Ok(out.done());
+        }
         let turns = (rv.end - rv.start) / rv.pitch;
         if turns.is_nan() || turns <= 0.0 {
             return Err(fault(
@@ -351,6 +391,32 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
         Ok(out.done())
     });
     engine.register_fn(
+        "adaptive_layers",
+        move |c: Curve,
+              start: Dynamic,
+              lo: Dynamic,
+              hi: Dynamic,
+              nozzle: Dynamic|
+              -> R<rhai::Array> {
+            let (start, lo, hi, nozzle) = (
+                num(&start, "start")?,
+                num(&lo, "min")?,
+                num(&hi, "max")?,
+                num(&nozzle, "nozzle")?,
+            );
+            if !(lo > 0.0 && lo <= hi && hi <= 0.8 * nozzle) {
+                return Err(fault(
+                    "points.invalid_value",
+                    format!("min {lo}, max {hi}, buse {nozzle}"),
+                ));
+            }
+            Ok(adaptive_layers(&c, start, lo, hi, limit)?
+                .into_iter()
+                .map(Dynamic::from_float)
+                .collect())
+        },
+    );
+    engine.register_fn(
         "revolve_ring",
         move |opts: rhai::Map, z: Dynamic| -> R<Points> {
             let rv = Revolve::read(&opts)?;
@@ -363,6 +429,27 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
             Ok(out.done())
         },
     );
+}
+
+/// Hauteurs des tours de `start` au haut de la silhouette.
+pub fn adaptive_layers(c: &Curve, start: f64, lo: f64, hi: f64, limit: usize) -> R<Vec<f64>> {
+    let top = c.max_z();
+    let mut zs = vec![start];
+    let mut z = start;
+    while z < top {
+        // Pente de la silhouette autour de z (sur ±0,5 mm).
+        let s = (c.at(z + 0.5) - c.at(z - 0.5)).abs();
+        let cos2 = 1.0 / (1.0 + s * s);
+        z += lo + (hi - lo) * cos2;
+        if z > top {
+            break;
+        }
+        zs.push(z);
+        if zs.len() > limit {
+            return Err(fault("path.too_many_points", limit.to_string()));
+        }
+    }
+    Ok(zs)
 }
 
 #[cfg(test)]
@@ -404,6 +491,20 @@ mod tests {
         assert!(Section::new("blob", 3, 0.5).is_err());
         assert!(Section::new("star", 2, 0.5).is_err());
         assert!(Section::new("star", 5, 0.95).is_err());
+    }
+
+    #[test]
+    fn adaptive_layers_follow_the_slope() {
+        // Droit jusqu'à 20 mm, puis penché à 45°.
+        let c = Curve::new(vec![[20.0, 0.0], [20.0, 20.0], [40.0, 40.0]], false);
+        let zs = adaptive_layers(&c, 0.2, 0.1, 0.32, 10_000).unwrap();
+        let steps: Vec<f64> = zs.windows(2).map(|w| w[1] - w[0]).collect();
+        assert!(steps.iter().all(|h| (0.1 - 1e-9..=0.32 + 1e-9).contains(h)));
+        // Paroi droite : couche maximale ; à 45° : à mi-chemin (cos² = ½).
+        let at = |z: f64| steps[zs.iter().position(|&x| x > z).unwrap()];
+        assert!((at(10.0) - 0.32).abs() < 1e-9);
+        assert!((at(30.0) - 0.21).abs() < 1e-9);
+        assert!(*zs.last().unwrap() <= 40.0);
     }
 
     #[test]
