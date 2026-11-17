@@ -43,8 +43,8 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
    Rubrique Luminaires du catalogue : pièces prêtes à monter avec alésage de douille E27 / E14, rosace, platine murale et emboîtement.
 10. **[R-008 v0.9-beta1 — Bêta pour macOS](roadmap/items/R-008-v0-9-beta1-beta-pour-macos.md)** · À tester · jalon v0.9-beta1
    Publier une bêta avec l'application macOS pour tester et valider tout ce qui reste ouvert (v0.3, v0.4, v0.5).
-11. **[R-009 Audit technique, lot 2](roadmap/items/R-009-audit-technique-lot-2.md)** · Idée
-   Budgets de calcul, CI, sauvegardes, identifiants des modèles personnels, export CLI atomique.
+11. **[R-009 Audit technique, lot 2](roadmap/items/R-009-audit-technique-lot-2.md)** · Spécifiée
+   Budgets de calcul avant allocation, CI à chaque push, sauvegardes locales jamais perdues en silence, identifiants des modèles personnels sans collision, export CLI atomique.
 12. **[R-010 Audit technique, lot 3](roadmap/items/R-010-audit-technique-lot-3.md)** · Idée
    Moteur relançable, CSP, tests de l'interface, notarisation.
 13. **[R-011 v1.0 — Publication](roadmap/items/R-011-v1-0-publication.md)** · Idée · jalon v1.0
