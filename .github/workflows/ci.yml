@@ -1,0 +1,61 @@
+# Contrôles à chaque push et pull request sur main (R-009, AUD-011) : tests
+# du workspace, Clippy sans avertissement, construction du WebAssembly et
+# contrôle de l'interface, depuis un clone propre. Les builds de bureau
+# (windows.yml, linux.yml, macOS) restent lancés à la main.
+name: Contrôles
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # La version vient de rust-toolchain.toml.
+      - name: Rust
+        run: |
+          rustup show active-toolchain
+          rustup target add wasm32-unknown-unknown
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Clippy (aucun avertissement)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests du workspace
+        run: cargo test --workspace
+
+      - name: Dépendances de l'interface
+        run: npm ci
+        working-directory: ui
+
+      # L'interface importe le moteur compilé (ui/src/wasm/, hors Git).
+      - name: WebAssembly
+        run: npm run wasm
+        working-directory: ui
+
+      - name: Contrôle de l'interface
+        run: npm run check
+        working-directory: ui

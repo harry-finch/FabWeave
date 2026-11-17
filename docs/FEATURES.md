@@ -186,6 +186,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | DESK-04 | Projet `.fabweave.json` (menu Fichier, ⌘S, nom du projet), projet embarqué dans le G-code et le `.gcode.3mf` ; dépôt d'un projet ou d'un G-code de FabWeave rouvre la préparation (ADR-0009) ; interface non essayée dans un navigateur | v0.6 | en cours |
 | DESK-05 | Envoi à l'imprimante (PrusaLink, OctoPrint, Moonraker) | après v1.0 | prévu |
 | DESK-06 | Serveur MCP (stdio) pour un agent IA | après v1.0 | prévu |
+| DESK-07 | CI : workflow « Contrôles » à chaque push et pull request sur main (tests, Clippy sans avertissement, WebAssembly, `npm run check`) ; builds de bureau manuels (R-009, AUD-011) | v0.7 | fait |
 
 ## Habiller un volume (FORM)
 
