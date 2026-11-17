@@ -2,7 +2,7 @@
 id: R-022
 titre: "Luminaires : suspension, rosace, applique, lampe à poser"
 resume: "Rubrique Luminaires du catalogue : pièces prêtes à monter avec alésage de douille E27 / E14, rosace, platine murale et emboîtement."
-statut: specifiee
+statut: a-tester
 jalon: v0.7
 cree: 2026-11-17
 maj: 2026-11-17

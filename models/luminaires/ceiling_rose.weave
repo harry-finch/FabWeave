@@ -1,0 +1,186 @@
+format = "fabweave.model"
+version = 2
+
+[meta]
+name = { fr = "Rosace", en = "Ceiling rose" }
+category = { fr = "Luminaires", en = "Lighting" }
+description = { fr = "Coupelle qui cache le boîtier du plafond, assortie à la suspension : fond plat percé au centre pour le câble et de deux lumières pour les vis, paroi en spirale au même motif.", en = "Cup that hides the ceiling box, matching the pendant: flat floor with a central cable hole and two slots for the screws, spiral wall with the same motif." }
+author = "FabWeave"
+tags = ["luminaire", "rosace", "plafond", "suspension"]
+license = "GPL-3.0-or-later"
+recommended_nozzle = [0.4, 0.6]
+
+[params.diameter]
+type = "float"
+label = { fr = "Diamètre", en = "Diameter" }
+unit = "mm"
+default = 110
+min = 70
+max = 180
+step = 1
+
+[params.height]
+type = "float"
+label = { fr = "Hauteur", en = "Height" }
+unit = "mm"
+default = 30
+min = 10
+max = 80
+step = 1
+
+[params.cable_hole]
+type = "float"
+label = { fr = "Trou câble", en = "Cable hole" }
+unit = "mm"
+help = { fr = "Diamètre du trou central.", en = "Diameter of the central hole." }
+default = 12
+min = 6
+max = 30
+step = 0.5
+
+[params.screw_spacing]
+type = "float"
+label = { fr = "Entraxe vis", en = "Screw spacing" }
+unit = "mm"
+help = { fr = "Distance entre les centres des deux lumières.", en = "Distance between the centres of the two slots." }
+default = 60
+min = 30
+max = 140
+step = 1
+
+[params.slot_width]
+type = "float"
+label = { fr = "Larg. lumière", en = "Slot width" }
+unit = "mm"
+help = { fr = "Largeur des lumières (diamètre de la vis, plus un peu de jeu) ; longueur : 3 fois la largeur.", en = "Slot width (screw diameter plus a little play); length: 3 times the width." }
+default = 4.5
+min = 3
+max = 8
+step = 0.1
+
+[params.floor_layers]
+type = "int"
+label = { fr = "Couches fond", en = "Floor layers" }
+default = 10
+min = 4
+max = 25
+
+[params.motif]
+type = "choice"
+label = { fr = "Motif", en = "Motif" }
+default = "weave"
+options = [
+    { value = "smooth", label = { fr = "Lisse", en = "Smooth" } },
+    { value = "weave", label = { fr = "Trame", en = "Weave" } },
+    { value = "columns", label = { fr = "Colonnes", en = "Columns" } },
+    { value = "waves", label = { fr = "Vagues", en = "Waves" } },
+    { value = "spikes", label = { fr = "Picots", en = "Spikes" } },
+]
+
+[params.intensity]
+type = "float"
+label = { fr = "Intensité", en = "Intensity" }
+unit = "mm"
+default = 1.2
+min = 0.2
+max = 4
+step = 0.1
+
+[params.repeats]
+type = "int"
+label = { fr = "Répétitions", en = "Repeats" }
+default = 30
+min = 4
+max = 60
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+advanced = true
+default = 2
+min = 1
+max = 3
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+advanced = true
+default = 0.5
+min = 0.2
+max = 0.8
+step = 0.05
+---
+// Rosace (FabWeave, R-022) : fond plat percé (câble, deux lumières), paroi
+// cylindrique en spirale avec le motif de la suspension.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let fh = printer.first_layer_height;
+let fw = printer.nozzle_diameter * 1.125;
+let r = params.diameter / 2;
+let sw = params.slot_width;
+let sl = 3 * sw;
+if params.screw_spacing / 2 + sl / 2 + 3 > r - ew || params.screw_spacing / 2 - sl / 2 < params.cable_hole / 2 + 3 {
+    fail(#{ fr: "Lumières hors du fond ou trop près du trou du câble : revoir l'entraxe des vis.", en: "Slots outside the floor or too close to the cable hole: change the screw spacing." });
+}
+let segs = max(240, params.repeats * 8).to_int();
+
+// Lumière : contour d'un trou oblong (matière à sa limite), le long de X.
+let slot = |cx, z| {
+    let p = points();
+    let a = sw / 2 + fw / 2;
+    let half = sl / 2 - sw / 2;
+    for i in 0..=24 {
+        let t = -PI / 2 + PI * i / 24;
+        p.push(cx + half + a * cos(t), a * sin(t), z);
+    }
+    for i in 0..=24 {
+        let t = PI / 2 + PI * i / 24;
+        p.push(cx - half + a * cos(t), a * sin(t), z);
+    }
+    p.push(cx + half, -a, z);
+    p
+};
+
+let path = new_path();
+let z = fh;
+for k in 0..params.floor_layers {
+    let h = if k == 0 { fh } else { eh };
+    if k > 0 { z += eh; }
+    let edge = circle(0, 0, z, r - ew / 2, -PI / 2, segs);
+    let holes = [
+        circle(0, 0, z, params.cable_hole / 2 + fw / 2, 0, 72),
+        slot.call(params.screw_spacing / 2, z),
+        slot.call(-params.screw_spacing / 2, z),
+    ];
+    path.travel_to(edge);
+    path.print_points(edge, ew, h);
+    for c in holes {
+        path.travel_to(c);
+        path.print_points(c, fw, h);
+    }
+    if k == 0 { path.note(#{ fr: "Fond : trou du câble et lumières", en: "Floor: cable hole and slots" }); }
+    let all = [edge] + holes;
+    for c in all.fill_lines(fw, if k % 2 == 0 { PI / 4 } else { -PI / 4 }, fw * 0.85) {
+        path.travel_to(c);
+        path.print_points(c, fw, h);
+    }
+}
+
+let turns = (params.height - z) / eh;
+if turns < 1 {
+    fail(#{ fr: "Rosace trop basse pour sa paroi : augmenter la hauteur.", en: "Rose too low for its wall: increase the height." });
+}
+let wall = helix(0, 0, z, r - ew / 2, r - ew / 2, -PI / 2, turns, eh, segs);
+path.set_speed(15);
+path.travel_to(wall);
+if params.motif == "smooth" {
+    path.print_points(wall, ew, eh);
+} else {
+    let fx = effect(params.motif, #{ intensity: params.intensity, repeats: params.repeats, from: z + 2, transition: 4 });
+    path.print_effect(wall, fx, ew, eh);
+}
+path

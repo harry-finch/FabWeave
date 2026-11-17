@@ -1,0 +1,214 @@
+format = "fabweave.model"
+version = 2
+
+[meta]
+name = { fr = "Applique", en = "Wall sconce" }
+category = { fr = "Luminaires", en = "Lighting" }
+description = { fr = "Deux pièces (paramètre Pièce). La platine murale : disque percé pour la douille (E27 : 40 mm, E14 : 30 mm), deux trous en serrure pour l'accrocher à deux vis, et un collier. Le diffuseur : manchon en spirale qui s'emboîte sur le collier avec le jeu choisi, puis s'évase selon sa silhouette, au motif choisi. Préférez une ampoule LED et le PETG ; l'installation électrique relève d'un électricien.", en = "Two pieces (Piece parameter). The wall plate: disc with the socket hole (E27: 40 mm, E14: 30 mm), two keyholes to hang it on two screws, and a collar. The diffuser: spiral sleeve that fits onto the collar with the chosen play, then flares along its silhouette, with the chosen motif. Prefer an LED bulb and PETG; the electrical installation is an electrician's job." }
+author = "FabWeave"
+tags = ["luminaire", "applique", "mural", "douille", "emboîtement"]
+license = "GPL-3.0-or-later"
+recommended_nozzle = [0.4, 0.6]
+
+[params.part]
+type = "choice"
+label = { fr = "Pièce", en = "Piece" }
+default = "plate"
+options = [{ value = "plate", label = { fr = "Platine", en = "Plate" } }, { value = "diffuser", label = { fr = "Diffuseur", en = "Diffuser" } }]
+
+[params.socket]
+type = "choice"
+label = { fr = "Douille", en = "Socket" }
+help = { fr = "E27 : trou de 40 mm ; E14 : trou de 30 mm.", en = "E27: 40 mm hole; E14: 30 mm hole." }
+default = "e27"
+options = [{ value = "e27", label = "E27" }, { value = "e14", label = "E14" }]
+
+[params.plate]
+type = "float"
+label = { fr = "Ø platine", en = "Plate Ø" }
+unit = "mm"
+default = 110
+min = 80
+max = 180
+step = 1
+
+[params.plate_layers]
+type = "int"
+label = { fr = "Couches", en = "Plate layers" }
+default = 15
+min = 6
+max = 30
+
+[params.collar_height]
+type = "float"
+label = { fr = "H. collier", en = "Collar height" }
+unit = "mm"
+default = 10
+min = 5
+max = 25
+step = 0.5
+
+[params.clearance]
+type = "float"
+label = { fr = "Jeu", en = "Clearance" }
+unit = "mm"
+help = { fr = "Jeu entre le collier de la platine et le diffuseur : celui de votre imprimante.", en = "Play between the plate collar and the diffuser: your printer's." }
+default = 0.3
+min = 0.1
+max = 0.8
+step = 0.05
+
+[params.silhouette]
+type = "curve"
+label = { fr = "Diffuseur", en = "Diffuser" }
+unit = "mm"
+help = { fr = "Écart du diffuseur au collier selon la hauteur ; il reste à 0 sur la hauteur du collier (emboîtement).", en = "Offset of the diffuser from the collar against height; it stays at 0 over the collar height (fitting)." }
+default = [[0, 0], [0, 10], [15, 45], [22, 90]]
+min = [0, 0]
+max = [80, 200]
+points = [2, 16]
+presets = [
+    { name = { fr = "Évasé", en = "Flared" }, points = [[0, 0], [0, 10], [15, 45], [22, 90]] },
+    { name = { fr = "Droit", en = "Straight" }, points = [[0, 0], [0, 100]] },
+    { name = { fr = "Tulipe", en = "Tulip" }, points = [[0, 0], [0, 10], [5, 40], [30, 80]] },
+]
+
+[params.motif]
+type = "choice"
+label = { fr = "Motif", en = "Motif" }
+default = "weave"
+options = [
+    { value = "smooth", label = { fr = "Lisse", en = "Smooth" } },
+    { value = "weave", label = { fr = "Trame", en = "Weave" } },
+    { value = "columns", label = { fr = "Colonnes", en = "Columns" } },
+    { value = "waves", label = { fr = "Vagues", en = "Waves" } },
+]
+
+[params.intensity]
+type = "float"
+label = { fr = "Intensité", en = "Intensity" }
+unit = "mm"
+default = 1.2
+min = 0.2
+max = 4
+step = 0.1
+
+[params.repeats]
+type = "int"
+label = { fr = "Répétitions", en = "Repeats" }
+default = 30
+min = 4
+max = 60
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+advanced = true
+default = 2
+min = 1
+max = 3
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+advanced = true
+default = 0.5
+min = 0.2
+max = 0.8
+step = 0.05
+---
+// Applique (FabWeave, R-022). Emboîtement : la face extérieure du collier
+// est à `rk` du centre, la face intérieure du diffuseur à `rk + jeu`.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let fh = printer.first_layer_height;
+let fw = printer.nozzle_diameter * 1.125;
+let hole = if params.socket == "e27" { 20.0 } else { 15.0 };
+let rp = params.plate / 2;
+let rk = rp - 4;                                          // collier, en retrait du bord
+let segs = max(240, params.repeats * 8).to_int();
+let kd = (hole + rk) / 2;                                 // centre des serrures
+if kd - 4 < hole + 3 || kd + 4 > rk - ew - 2 {
+    fail(#{ fr: "Platine trop petite pour la douille et les trous en serrure : l'agrandir.", en: "Plate too small for the socket and the keyholes: enlarge it." });
+}
+
+// Trou en serrure : tête de vis Ø 8 en bas, fente de 4 mm vers le haut (+Y),
+// contour à la limite de la matière.
+let keyhole = |cx, z| {
+    let p = points();
+    let rh = 4 + fw / 2;
+    let a = 2 + fw / 2;
+    let len = 10;
+    let y0 = sqrt(rh * rh - a * a);
+    p.push(cx + a, y0, z);
+    p.push(cx + a, len, z);
+    for i in 1..24 { let t = PI * i / 24; p.push(cx + a * cos(t), len + a * sin(t), z); }
+    p.push(cx - a, len, z);
+    p.push(cx - a, y0, z);
+    let t0 = atan2(y0, -a);
+    let t1 = atan2(y0, a) + TAU;
+    for i in 1..48 { let t = t0 + (t1 - t0) * i / 48; p.push(cx + rh * cos(t), rh * sin(t), z); }
+    p.push(cx + a, y0, z);
+    p
+};
+
+let path = new_path();
+if params.part == "plate" {
+    let z = fh;
+    for k in 0..params.plate_layers {
+        let h = if k == 0 { fh } else { eh };
+        if k > 0 { z += eh; }
+        let edge = circle(0, 0, z, rp - ew / 2, -PI / 2, segs);
+        let holes = [circle(0, 0, z, hole + fw / 2, 0, segs), keyhole.call(kd, z), keyhole.call(-kd, z)];
+        path.travel_to(edge);
+        path.print_points(edge, ew, h);
+        for c in holes {
+            path.travel_to(c);
+            path.print_points(c, fw, h);
+        }
+        if k == 0 { path.note(#{ fr: "Platine : douille et trous en serrure", en: "Plate: socket and keyholes" }); }
+        let all = [edge] + holes;
+        for c in all.fill_lines(fw, if k % 2 == 0 { PI / 4 } else { -PI / 4 }, fw * 0.85) {
+            path.travel_to(c);
+            path.print_points(c, fw, h);
+        }
+    }
+    // Collier : face extérieure à rk.
+    let turns = params.collar_height / eh;
+    let collar = helix(0, 0, z, rk - ew / 2, rk - ew / 2, -PI / 2, turns, eh, segs);
+    path.set_speed(15);
+    path.travel_to(collar);
+    path.note(#{ fr: "Collier d'emboîtement", en: "Fitting collar" });
+    path.print_points(collar, ew, eh);
+} else {
+    let s = params.silhouette;
+    for q in s.points() {
+        if q[1] <= params.collar_height && abs(q[0]) > 1e-9 {
+            fail(#{ fr: "Le diffuseur doit rester à 0 sur la hauteur du collier (emboîtement) : redresser le bas de la silhouette.", en: "The diffuser must stay at 0 over the collar height (fitting): straighten the bottom of the silhouette." });
+        }
+    }
+    let r0 = rk + params.clearance + ew / 2;              // centre du boudin au départ
+    let wall = points();
+    let n = floor((s.max_z - fh) / eh * segs).to_int();
+    for i in 0..=n {
+        let tv = i / segs.to_float();
+        let zz = fh + tv * eh;
+        let r = r0 + s.at(zz);
+        let a = tv * TAU - PI / 2;
+        wall.push(r * cos(a), r * sin(a), zz);
+    }
+    path.set_speed(15);
+    path.travel_to(wall);
+    path.note(#{ fr: "Manchon d'emboîtement, puis l'évasement", en: "Fitting sleeve, then the flare" });
+    if params.motif == "smooth" {
+        path.print_points(wall, ew, eh);
+    } else {
+        let fx = effect(params.motif, #{ intensity: params.intensity, repeats: params.repeats, from: params.collar_height + 3, transition: 5 });
+        path.print_effect(wall, fx, ew, eh);
+    }
+}
+path

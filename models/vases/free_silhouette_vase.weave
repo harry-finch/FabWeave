@@ -38,7 +38,7 @@ max = 60
 
 [params.rib_depth]
 type = "float"
-label = { fr = "Profondeur côtes", en = "Rib depth" }
+label = { fr = "Prof. côtes", en = "Rib depth" }
 unit = "mm"
 default = 1.5
 min = 0.2

@@ -1,0 +1,245 @@
+format = "fabweave.model"
+version = 2
+
+[meta]
+name = { fr = "Lampe à poser", en = "Table lamp" }
+category = { fr = "Luminaires", en = "Lighting" }
+description = { fr = "Deux pièces à imprimer l'une après l'autre (paramètre Pièce). Le pied, imprimé la tête en bas : toit percé pour la douille (E27 : 40 mm, E14 : 30 mm), collier d'emboîtement, épaule à 45°, corps qui suit la silhouette et passage du câble au ras de la table. L'abat-jour : anneau d'assise qui se glisse sur le collier avec le jeu choisi, paroi en spirale au motif choisi. Préférez une ampoule LED et le PETG ; l'installation électrique relève d'un électricien.", en = "Two pieces printed one after the other (Piece parameter). The base, printed upside down: roof with the socket hole (E27: 40 mm, E14: 30 mm), fitting collar, 45° shoulder, body following the silhouette and a cable notch at table level. The shade: seat ring that slides over the collar with the chosen play, spiral wall with the chosen motif. Prefer an LED bulb and PETG; the electrical installation is an electrician's job." }
+author = "FabWeave"
+tags = ["luminaire", "lampe", "abat-jour", "douille", "emboîtement"]
+license = "GPL-3.0-or-later"
+recommended_nozzle = [0.4, 0.6]
+
+[params.part]
+type = "choice"
+label = { fr = "Pièce", en = "Piece" }
+default = "base"
+options = [{ value = "base", label = { fr = "Pied", en = "Base" } }, { value = "shade", label = { fr = "Abat-jour", en = "Shade" } }]
+
+[params.socket]
+type = "choice"
+label = { fr = "Douille", en = "Socket" }
+help = { fr = "E27 : trou de 40 mm ; E14 : trou de 30 mm.", en = "E27: 40 mm hole; E14: 30 mm hole." }
+default = "e27"
+options = [{ value = "e27", label = "E27" }, { value = "e14", label = "E14" }]
+
+[params.collar]
+type = "float"
+label = { fr = "Ø collier", en = "Collar Ø" }
+unit = "mm"
+help = { fr = "Diamètre extérieur du collier du pied ; l'abat-jour s'y emboîte. Il doit laisser l'appui de la bague autour du trou.", en = "Outer diameter of the base collar; the shade fits onto it. It must leave the ring seat around the hole." }
+default = 70
+min = 50
+max = 120
+step = 1
+
+[params.collar_height]
+type = "float"
+label = { fr = "H. collier", en = "Collar height" }
+unit = "mm"
+default = 12
+min = 5
+max = 30
+step = 0.5
+
+[params.clearance]
+type = "float"
+label = { fr = "Jeu", en = "Clearance" }
+unit = "mm"
+help = { fr = "Jeu entre le collier et l'anneau de l'abat-jour : celui de votre imprimante.", en = "Play between the collar and the shade ring: your printer's." }
+default = 0.3
+min = 0.1
+max = 0.8
+step = 0.05
+
+[params.base_silhouette]
+type = "curve"
+label = { fr = "Pied", en = "Base" }
+unit = "mm"
+help = { fr = "Rayon du corps selon la distance à l'épaule ; il ne monte jamais plus vite que 45° depuis le collier.", en = "Body radius against the distance from the shoulder; it never widens faster than 45° from the collar." }
+default = [[45, 0], [62, 50], [58, 110], [50, 130]]
+min = [25, 0]
+max = [110, 250]
+points = [2, 16]
+presets = [
+    { name = { fr = "Amphore", en = "Amphora" }, points = [[45, 0], [62, 50], [58, 110], [50, 130]] },
+    { name = { fr = "Colonne", en = "Column" }, points = [[45, 0], [45, 140]] },
+    { name = { fr = "Boule", en = "Ball" }, points = [[45, 0], [75, 50], [45, 100]] },
+]
+
+[params.shade_silhouette]
+type = "curve"
+label = { fr = "Abat-jour", en = "Shade" }
+unit = "mm"
+help = { fr = "Rayon de l'abat-jour selon la hauteur depuis son anneau d'assise.", en = "Shade radius against the height from its seat ring." }
+default = [[70, 0], [98, 110]]
+min = [30, 0]
+max = [140, 250]
+points = [2, 16]
+presets = [
+    { name = { fr = "Cône", en = "Cone" }, points = [[70, 0], [98, 110]] },
+    { name = { fr = "Tambour", en = "Drum" }, points = [[85, 0], [85, 130]] },
+    { name = { fr = "Cloche", en = "Bell" }, points = [[60, 0], [70, 60], [97, 130]] },
+]
+
+[params.notch]
+type = "float"
+label = { fr = "Passage câble", en = "Cable notch" }
+unit = "mm"
+help = { fr = "Largeur de l'encoche du câble au ras de la table (pied) ; sa hauteur est le double.", en = "Width of the cable notch at table level (base); its height is twice that." }
+default = 8
+min = 4
+max = 15
+step = 0.5
+
+[params.roof_layers]
+type = "int"
+label = { fr = "Couches toit", en = "Roof layers" }
+default = 10
+min = 4
+max = 25
+
+[params.motif]
+type = "choice"
+label = { fr = "Motif", en = "Motif" }
+help = { fr = "Texture de l'abat-jour.", en = "Shade texture." }
+default = "columns"
+options = [
+    { value = "smooth", label = { fr = "Lisse", en = "Smooth" } },
+    { value = "weave", label = { fr = "Trame", en = "Weave" } },
+    { value = "columns", label = { fr = "Colonnes", en = "Columns" } },
+    { value = "waves", label = { fr = "Vagues", en = "Waves" } },
+]
+
+[params.intensity]
+type = "float"
+label = { fr = "Intensité", en = "Intensity" }
+unit = "mm"
+default = 1.2
+min = 0.2
+max = 4
+step = 0.1
+
+[params.repeats]
+type = "int"
+label = { fr = "Répétitions", en = "Repeats" }
+default = 30
+min = 4
+max = 60
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+advanced = true
+default = 2
+min = 1
+max = 3
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+advanced = true
+default = 0.5
+min = 0.2
+max = 0.8
+step = 0.05
+---
+// Lampe à poser (FabWeave, R-022). Emboîtement : la face extérieure du
+// collier est à `rc` du centre ; le bord intérieur de l'anneau de
+// l'abat-jour à `rc + jeu`.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let fh = printer.first_layer_height;
+let fw = printer.nozzle_diameter * 1.125;
+let hole = if params.socket == "e27" { 20.0 } else { 15.0 };
+let rc = params.collar / 2;
+let segs = max(240, params.repeats * 8).to_int();
+let base = params.part == "base";
+if rc - ew < hole + 6 {
+    fail(#{ fr: "Collier trop étroit pour le trou de la douille et l'appui de sa bague.", en: "Collar too narrow for the socket hole and its ring seat." });
+}
+let ss = params.shade_silhouette;
+if !base && ss.at(0) < rc + params.clearance + 8 {
+    fail(#{ fr: "Abat-jour trop étroit en bas pour son anneau d'assise : élargir le bas de la silhouette.", en: "Shade too narrow at the bottom for its seat ring: widen the bottom of the silhouette." });
+}
+
+// Disque percé sur le plateau : toit du pied (trou de la douille) ou anneau
+// d'assise de l'abat-jour (trou à rc + jeu) ; bord à `outer`, trou à `inner`.
+let outer = if base { rc } else { ss.at(0) };
+let inner = if base { hole } else { rc + params.clearance };
+let layers = if base { params.roof_layers } else { 4 };
+let path = new_path();
+let z = fh;
+for k in 0..layers {
+    let h = if k == 0 { fh } else { eh };
+    if k > 0 { z += eh; }
+    let edge = circle(0, 0, z, outer - ew / 2, -PI / 2, segs);
+    let bore = circle(0, 0, z, inner + fw / 2, -PI / 2, segs);
+    path.travel_to(edge);
+    path.print_points(edge, ew, h);
+    path.travel_to(bore);
+    path.print_points(bore, fw, h);
+    if k == 0 {
+        if base {
+            path.note(#{ fr: "Toit du pied : trou de la douille", en: "Base roof: socket hole" });
+        } else {
+            path.note(#{ fr: "Anneau d'assise : emboîtement sur le collier", en: "Seat ring: fits onto the collar" });
+        }
+    }
+    for c in [edge, bore].fill_lines(fw, if k % 2 == 0 { PI / 4 } else { -PI / 4 }, (ew + fw) / 2 * 0.85) {
+        path.travel_to(c);
+        path.print_points(c, fw, h);
+    }
+}
+
+if base {
+    // Tête en bas : collier, épaule à 45°, corps, encoche du câble.
+    let s = params.base_silhouette;
+    let zc = z + params.collar_height;                    // fin du collier
+    let top = zc + s.max_z;                                // côté table
+    let notch_a = params.notch / s.at(s.max_z);            // angle de l'encoche (largeur / rayon)
+    path.set_speed(15);
+    let started = false;
+    let skipping = false;
+    let n = floor((top - z) / eh * segs).to_int();
+    for i in 1..=n {
+        let tv = i / segs.to_float();
+        let zz = z + tv * eh;
+        let a = tv * TAU - PI / 2;
+        let r = if zz <= zc { rc - ew / 2 } else { min(rc - ew / 2 + (zz - zc), s.at(zz - zc) - ew / 2) };
+        // Encoche : un secteur sauté sur les derniers `2 × notch` mm, côté +X.
+        let rel = atan2(sin(a), cos(a));
+        if zz > top - 2 * params.notch && abs(rel) < notch_a / 2 {
+            skipping = true;
+            continue;
+        }
+        let x = r * cos(a);
+        let y = r * sin(a);
+        if !started || skipping {
+            path.travel_to(x, y, zz);
+            started = true;
+            skipping = false;
+            continue;
+        }
+        path.print_to(x, y, zz, ew, eh);
+    }
+    path.note(#{ fr: "Encoche du câble, au ras de la table", en: "Cable notch, at table level" });
+} else {
+    if ss.max_z - z < eh {
+        fail(#{ fr: "Abat-jour trop bas : monter le dernier point.", en: "Shade too low: raise the last point." });
+    }
+    let wall = revolve(#{ profile: ss, start: z, pitch: eh, segments: segs });
+    path.set_speed(15);
+    path.travel_to(wall);
+    if params.motif == "smooth" {
+        path.print_points(wall, ew, eh);
+    } else {
+        let fx = effect(params.motif, #{ intensity: params.intensity, repeats: params.repeats, from: z + 3, transition: 5 });
+        path.print_effect(wall, fx, ew, eh);
+    }
+}
+path

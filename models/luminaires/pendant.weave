@@ -1,0 +1,164 @@
+format = "fabweave.model"
+version = 2
+
+[meta]
+name = { fr = "Suspension", en = "Pendant shade" }
+category = { fr = "Luminaires", en = "Lighting" }
+description = { fr = "Abat-jour de suspension imprimé le sommet sur le plateau : un toit plat percé pour la douille (E27 : trou de 40 mm, E14 : 30 mm), serré entre le corps et la bague de la douille, puis la paroi en spirale continue qui suit la silhouette. Préférez une ampoule LED et le PETG au PLA près d'une ampoule ; l'installation électrique relève d'un électricien.", en = "Pendant shade printed top down on the bed: a flat roof with the socket hole (E27: 40 mm hole, E14: 30 mm), clamped between the socket body and its ring, then the wall as one continuous spiral following the silhouette. Prefer an LED bulb and PETG over PLA near a bulb; the electrical installation is an electrician's job." }
+author = "FabWeave"
+tags = ["luminaire", "suspension", "abat-jour", "douille", "E27", "E14"]
+license = "GPL-3.0-or-later"
+recommended_nozzle = [0.4, 0.6]
+
+[params.socket]
+type = "choice"
+label = { fr = "Douille", en = "Socket" }
+help = { fr = "E27 : trou de 40 mm ; E14 : trou de 30 mm.", en = "E27: 40 mm hole; E14: 30 mm hole." }
+default = "e27"
+options = [{ value = "e27", label = "E27" }, { value = "e14", label = "E14" }]
+
+[params.seat]
+type = "float"
+label = { fr = "Appui bague", en = "Ring seat" }
+unit = "mm"
+help = { fr = "Largeur plate au moins autour du trou, où la bague de la douille serre le toit. À mesurer sur la bague.", en = "Flat width at least around the hole, where the socket ring clamps the roof. Measure it on the ring." }
+default = 12
+min = 5
+max = 40
+step = 0.5
+
+[params.roof_layers]
+type = "int"
+label = { fr = "Couches toit", en = "Roof layers" }
+help = { fr = "Épaisseur du toit serré par la bague (couches).", en = "Thickness of the roof clamped by the ring (layers)." }
+default = 10
+min = 4
+max = 25
+
+[params.silhouette]
+type = "curve"
+label = { fr = "Silhouette", en = "Silhouette" }
+unit = "mm"
+help = { fr = "Rayon selon la distance au toit (0 : le toit, imprimé sur le plateau).", en = "Radius against the distance from the roof (0: the roof, printed on the bed)." }
+default = [[40, 0], [70, 60], [95, 130], [100, 160]]
+min = [20, 0]
+max = [130, 250]
+points = [2, 16]
+presets = [
+    { name = { fr = "Cloche", en = "Bell" }, points = [[40, 0], [70, 60], [95, 130], [100, 160]] },
+    { name = { fr = "Cône", en = "Cone" }, points = [[38, 0], [110, 140]] },
+    { name = { fr = "Globe", en = "Globe" }, points = [[38, 0], [85, 50], [95, 100], [70, 170]] },
+    { name = { fr = "Cylindre", en = "Cylinder" }, points = [[60, 0], [60, 180]] },
+]
+
+[params.motif]
+type = "choice"
+label = { fr = "Motif", en = "Motif" }
+help = { fr = "Texture tracée par la buse sur la paroi.", en = "Texture drawn by the nozzle on the wall." }
+default = "weave"
+options = [
+    { value = "smooth", label = { fr = "Lisse", en = "Smooth" } },
+    { value = "weave", label = { fr = "Trame", en = "Weave" } },
+    { value = "columns", label = { fr = "Colonnes", en = "Columns" } },
+    { value = "waves", label = { fr = "Vagues", en = "Waves" } },
+    { value = "spikes", label = { fr = "Picots", en = "Spikes" } },
+]
+
+[params.intensity]
+type = "float"
+label = { fr = "Intensité", en = "Intensity" }
+unit = "mm"
+default = 1.2
+min = 0.2
+max = 4
+step = 0.1
+
+[params.repeats]
+type = "int"
+label = { fr = "Répétitions", en = "Repeats" }
+default = 30
+min = 4
+max = 60
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+advanced = true
+default = 2
+min = 1
+max = 3
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+advanced = true
+default = 0.5
+min = 0.2
+max = 0.8
+step = 0.05
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+advanced = true
+default = 30
+min = 5
+max = 120
+step = 1
+---
+// Suspension (FabWeave, R-022) : toit percé pour la douille sur le plateau,
+// paroi en spirale par `revolve`, motif par `print_effect`.
+
+let ew = printer.nozzle_diameter * params.width_factor;
+let eh = printer.nozzle_diameter * params.height_factor;
+let fh = printer.first_layer_height;
+let fw = printer.nozzle_diameter * 1.125;
+let hole = if params.socket == "e27" { 20.0 } else { 15.0 };   // rayon du trou
+let s = params.silhouette;
+if s.at(0) < hole + params.seat + ew {
+    fail(#{ fr: "Toit trop étroit pour l'appui de la bague : élargir le haut de la silhouette.", en: "Roof too narrow for the ring seat: widen the top of the silhouette." });
+}
+let segs = max(240, params.repeats * 8).to_int();
+
+let path = new_path();
+// Toit : bord de la paroi, bord du trou (matière à `hole` du centre), lignes entre les deux.
+let z = fh;
+for k in 0..params.roof_layers {
+    let h = if k == 0 { fh } else { eh };
+    if k > 0 { z += eh; }
+    let edge = circle(0, 0, z, s.at(0) - ew / 2, -PI / 2, segs);
+    let bore = circle(0, 0, z, hole + fw / 2, -PI / 2, segs);
+    path.travel_to(edge);
+    path.print_points(edge, ew, h);
+    path.travel_to(bore);
+    path.print_points(bore, fw, h);
+    if k == 0 { path.note(#{ fr: "Toit : trou de la douille", en: "Roof: socket hole" }); }
+    for c in [edge, bore].fill_lines(fw, if k % 2 == 0 { PI / 4 } else { -PI / 4 }, (ew + fw) / 2 * 0.85) {
+        path.travel_to(c);
+        path.print_points(c, fw, h);
+    }
+}
+
+let shape = #{ profile: s, start: z, pitch: eh, segments: segs };
+if s.max_z - z < eh {
+    fail(#{ fr: "Silhouette trop basse : monter le dernier point.", en: "Silhouette too low: raise the last point." });
+}
+let wall = revolve(shape);
+path.set_speed(params.speed / 2);
+path.travel_to(wall);
+path.note(#{ fr: "Paroi en spirale", en: "Spiral wall" });
+if params.motif == "smooth" {
+    path.print_points(wall.slice(0, segs + 1), ew, eh);
+    path.set_speed(params.speed);
+    path.print_points(wall.slice(segs, wall.len()), ew, eh);
+} else {
+    let fx = effect(params.motif, #{ intensity: params.intensity, repeats: params.repeats, from: z + 3, transition: 5 });
+    path.print_effect(wall.slice(0, segs + 1), fx, ew, eh);
+    path.set_speed(params.speed);
+    path.print_effect(wall.slice(segs, wall.len()), fx, ew, eh);
+}
+path

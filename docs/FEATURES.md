@@ -131,7 +131,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | CAT-28 | Vase à silhouette libre ; silhouette facultative ajoutée au vase à ondulations, forme d'origine par défaut (R-020) | v0.7 | fait |
 | CAT-29 | Vase à effets : sept effets, plage de hauteur, dentelle réglable (R-021) | v0.7 | fait |
 | CAT-30 | Forme libre : silhouette, section, torsion, resserrement, cage de 3 × 6 points (R-023) | v0.7 | fait |
-| CAT-31 | Luminaires : suspension E27 / E14, rosace, applique, lampe à poser (R-022) | v0.7 | prévu |
+| CAT-31 | Rubrique Luminaires : suspension (toit percé E27 40 mm / E14 30 mm, cotes de l'utilisateur), rosace (trou du câble, lumières de vis), applique (platine à trous en serrure et collier, diffuseur emboîté), lampe à poser (pied tête en bas avec collier et encoche du câble, abat-jour emboîté) ; jeu d'emboîtement réglable (R-022) | v0.7 | fait |
 | CAT-32 | Dessous de verre au logo (pause de changement de couleur), plaque ajourée (R-025) | v0.7 | fait |
 
 ## Visualisation (VIEW)

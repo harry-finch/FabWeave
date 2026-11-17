@@ -39,7 +39,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
    Le moteur compense le débit des parois inclinées (compté et signalé) et les modèles choisissent une hauteur de couche selon la pente.
 8. **[R-025 Paramètre image : logo SVG ou PNG](roadmap/items/R-025-parametre-image-logo-svg-ou-png.md)** · À tester · jalon v0.7
    Nouveau type de paramètre .weave : un dessin SVG ou PNG transformé en contours, en relief ou ajouré, enregistré dans le projet.
-9. **[R-022 Luminaires : suspension, rosace, applique, lampe à poser](roadmap/items/R-022-luminaires-suspension-rosace-applique-lampe-a.md)** · Spécifiée · jalon v0.7
+9. **[R-022 Luminaires : suspension, rosace, applique, lampe à poser](roadmap/items/R-022-luminaires-suspension-rosace-applique-lampe-a.md)** · À tester · jalon v0.7
    Rubrique Luminaires du catalogue : pièces prêtes à monter avec alésage de douille E27 / E14, rosace, platine murale et emboîtement.
 10. **[R-008 v0.9-beta1 — Bêta pour macOS](roadmap/items/R-008-v0-9-beta1-beta-pour-macos.md)** · À tester · jalon v0.9-beta1
    Publier une bêta avec l'application macOS pour tester et valider tout ce qui reste ouvert (v0.3, v0.4, v0.5).
@@ -73,7 +73,6 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-013](roadmap/actions/A-013-essayer-les-projets-fabweave-enregistrer-rouvrir.md) Essayer les projets FabWeave (enregistrer, rouvrir, G-code) (tester, R-007)
 - [ ] [A-014](roadmap/actions/A-014-essayer-le-dossier-surveille-les-fichiers.md) Essayer le dossier surveillé, les fichiers récents et Enregistrer sous dans l'application macOS (tester, R-007)
 - [ ] [A-015](roadmap/actions/A-015-lancer-le-workflow-linux-et-essayer-l-appimage.md) Lancer le workflow Linux et essayer l'AppImage (tester, R-007)
-- [ ] [A-016](roadmap/actions/A-016-donner-les-cotes-des-douilles-e27-et-e14-du.md) Donner les cotes des douilles E27 et E14 du fablab (fournir, R-022)
 - [ ] [A-017](roadmap/actions/A-017-dessiner-une-silhouette-dans-l-editeur-de-courbe.md) Dessiner une silhouette dans l'éditeur de courbe (tester, R-020)
 - [ ] [A-018](roadmap/actions/A-018-imprimer-un-vase-a-silhouette-libre.md) Imprimer un vase à silhouette libre (tester, R-020)
 - [ ] [A-019](roadmap/actions/A-019-composer-trois-pieces-avec-forme-libre.md) Composer trois pièces avec « Forme libre » (tester, R-023)
@@ -82,6 +81,8 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-022](roadmap/actions/A-022-comparer-le-debit-compense-en-porte-a-faux-et.md) Comparer le débit compensé en porte-à-faux et essayer les couches variables (tester, R-024)
 - [ ] [A-023](roadmap/actions/A-023-imprimer-un-dessous-de-verre-au-logo-du-fablab.md) Imprimer un dessous de verre au logo du fablab, en deux couleurs (tester, R-025)
 - [ ] [A-024](roadmap/actions/A-024-essayer-des-svg-et-des-png-du-fablab-dans-le.md) Essayer des SVG et des PNG du fablab dans le paramètre image (tester, R-025)
+- [ ] [A-025](roadmap/actions/A-025-imprimer-la-suspension-et-y-monter-une-douille.md) Imprimer la suspension et y monter une douille E27 (tester, R-022)
+- [ ] [A-026](roadmap/actions/A-026-imprimer-la-lampe-a-poser-et-juger-l-emboitement.md) Imprimer la lampe à poser et juger l'emboîtement (tester, R-022)
 
 ## Livré
 

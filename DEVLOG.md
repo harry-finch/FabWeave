@@ -657,3 +657,14 @@ Accès navigateur indisponible ; contrôle natif de Vivaldi refusé par l’outi
 **Interface.** `ImageField` : choix d'un SVG ou d'un PNG, aperçu de la silhouette par un masque teinté du thème, ↺ ; textes FR / EN.
 
 **Vérification.** Tests : carré percé en SVG (trou à 0,05 mm), même dessin en PNG à 0,25 mm par pixel (0,2 mm), fichiers étrangers ou abîmés refusés sans plantage, lecture du type ; trou du logo vide dans le parcours (anneau à 0,1 mm), refus à code stable, aller-retour par le projet (même G-code). Critère PNG de la spécification précisé : 0,2 mm n'est atteignable qu'à 0,25 mm par pixel ou plus fin. **Non vérifié** : champ et aperçu dans un navigateur, fichiers réels d'Inkscape ou d'Illustrator, impression.
+
+
+## 2026-11-17 — R-022 : luminaires
+
+**Cotes.** Données par l'utilisateur (A-016) : trou de 40 mm pour une douille E27, 30 mm pour une E14. Bague et filetage non fournis : la largeur d'appui de la bague est un paramètre (« Appui bague ») ou découle du collier, sans valeur inventée.
+
+**Catalogue.** Rubrique « Luminaires » : suspension (toit percé imprimé sur le plateau, paroi en spirale par `revolve`, motif par `print_effect`), rosace (fond percé : câble et deux lumières de vis, remplissage multi-contours ; paroi au même motif), lampe à poser (pied tête en bas : toit percé, collier, épaule à 45°, corps selon la silhouette, encoche du câble au ras de la table ; abat-jour : anneau d'assise à collier + jeu, paroi au motif), applique (platine : douille, deux trous en serrure, collier ; diffuseur : manchon à collier + jeu, puis évasement). Tous en version 2 du format, `check` sans message bloquant. Abat-jour par défaut réduit à 200 mm pour tenir sur les plateaux de 220 mm. Leçon : une fermeture Rhai reçoit ses arguments par copie ; un parcours modifié dedans est perdu sans erreur, d'où les boucles dans le corps principal.
+
+**Vérification.** Tests : trous E27 et E14 au diamètre donné à ±0,05 mm (suspension, pied, platine) ; emboîtements de la lampe et de l'applique qui diffèrent exactement du jeu (0,2 et 0,45 mm, à 0,01 mm). **Non vérifié** : impression et montage d'une douille (A-025, A-026).
+
+**À noter.** Seize libellés de modèles plus anciens dépassent la limite de 14 caractères de WEAVE_FORMAT (défis, mécanique, calibration…) ; non modifiés, à reprendre à part.

@@ -300,7 +300,7 @@ step = 0.5
 
 [params.variable_layers]
 type = "bool"
-label = { fr = "Couches var.", en = "Variable layers" }
+label = { fr = "Couches var.", en = "Var. layers" }
 help = { fr = "Couches épaisses sur les parois droites, plus fines où la silhouette penche : courbes plus nettes, impression plus rapide.", en = "Thick layers on straight walls, thinner where the silhouette leans: crisper curves, faster print." }
 advanced = true
 default = false
