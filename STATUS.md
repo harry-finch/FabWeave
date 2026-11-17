@@ -1,15 +1,15 @@
 # État du projet
 
-**Jalon** : bêta **0.9.0-beta.1** publiée le 02/11/2026 pour macOS Apple Silicon ([R-008](roadmap/items/R-008-v0-9-beta1-beta-pour-macos.md)), en attente des essais de l'utilisateur. v0.0, v0.1, v0.2 et v0.4 validées ; v0.3 et v0.5 à tester. Le jalon bureau v0.6 est en cours. Statuts confirmés lors de la migration (A-009, 12/11). Voir [ROADMAP.md](ROADMAP.md).
+**Jalon** : bêta **0.9.0-beta.1** publiée le 02/11/2026 pour macOS Apple Silicon ([R-008](roadmap/items/R-008-v0-9-beta1-beta-pour-macos.md)), en attente des essais de l'utilisateur. v0.0, v0.1, v0.2 et v0.4 validées ; v0.3 et v0.5 à tester. Le jalon bureau v0.6 est en cours : projet `.fabweave.json` et projet embarqué dans le G-code (ADR-0009), dossier de modèles surveillé, fichiers récents et dialogues natifs faits le 17/11, à essayer (A-013, A-014) ; workflow Linux à lancer (A-015). Statuts confirmés lors de la migration (A-009, 12/11). Voir [ROADMAP.md](ROADMAP.md).
 
 | Élément | État |
 | --- | --- |
 | Moteur et catalogue | G-code direct déterministe, profils, préparation du plateau, garde-buse et contrôles de qualité ; 24 modèles, 7 imprimantes, 5 filaments. Inventaire : [FEATURES](docs/FEATURES.md). |
 | Interface | Svelte 5 / WebAssembly ; catalogue et profils personnels, vue 3D en volume, inspection et export PNG, FR / EN, thèmes. |
-| Bureau | Application macOS construite ; workflow Windows présent mais jamais exécuté selon les derniers retours. Linux, dossier surveillé, fichiers récents et projets restent à développer ([R-007](roadmap/items/R-007-v0-6-bureau-et-projets-jalon-6.md)). |
-| Tests | Contrôles du 12/11/2026 : `cargo clippy --workspace --all-targets` sans avertissement ; `npm run check` : 0 erreur, 0 avertissement. `cargo test --workspace` : 127 tests réussis. Le crate bureau est hors workspace. |
-| Vérifié | G-code relu dans PrusaSlicer ; vase imprimé sur CORE One, trois modèles de v0.2 et plusieurs sur MK4S validés par l'utilisateur. Parcours de l'interface vérifiés dans le navigateur jusqu'à v0.5 ; auto-test de la build macOS : moteur, WebGL et exports dans Téléchargements. Détails datés dans [DEVLOG](DEVLOG.md). |
-| Non vérifié | X1E et autres profils sur machine, modèles restants, adhésion et copies, import de fichiers réels (OrcaSlicer notamment), comparaison des temps à PrusaSlicer, seuils du garde-buse et cône des buses. Parcours macOS manuels et installation sur un autre poste ; Windows et Linux. Voir les actions A-001 à A-008. |
+| Bureau | Application macOS construite ; workflow Windows présent mais jamais exécuté selon les derniers retours. Projet, dossier surveillé, fichiers récents et dialogues natifs faits le 17/11, non essayés ; workflow Linux écrit, jamais lancé ([R-007](roadmap/items/R-007-v0-6-bureau-et-projets-jalon-6.md)). |
+| Tests | Contrôles du 17/11/2026 : `cargo clippy --workspace --all-targets` sans avertissement ; `npm run check` : 0 erreur, 0 avertissement. `cargo test --workspace` : 133 tests réussis. Le crate bureau est hors workspace. |
+| Vérifié | G-code relu dans PrusaSlicer ; vase imprimé sur CORE One, trois modèles de v0.2, plusieurs sur MK4S (28/10) et la CORE One pour la v0.3 (A-001, 13/11) validés par l’utilisateur. Parcours de l'interface vérifiés dans le navigateur jusqu'à v0.5 ; auto-test de la build macOS : moteur, WebGL et exports dans Téléchargements. Détails datés dans [DEVLOG](DEVLOG.md). |
+| Non vérifié | X1E et autres profils sur machine, modèles restants, adhésion et copies, import de fichiers réels (OrcaSlicer notamment), comparaison des temps à PrusaSlicer, seuils du garde-buse et cône des buses. Parcours macOS manuels et installation sur un autre poste ; Windows et Linux. Voir les actions A-002 à A-008. |
 
 ## Points ouverts
 
@@ -20,4 +20,4 @@
 
 ## À suivre
 
-Essais et mesures : actions A-001 à A-008 dans [ROADMAP.md](ROADMAP.md). Suite technique : [R-009 — audit, lot 2](roadmap/items/R-009-audit-technique-lot-2.md). Historique détaillé des essais et limites conservé dans [DEVLOG.md](DEVLOG.md).
+Essais et mesures : actions A-002 à A-008 dans [ROADMAP.md](ROADMAP.md). Suite technique : [R-009 — audit, lot 2](roadmap/items/R-009-audit-technique-lot-2.md). Historique détaillé des essais et limites conservé dans [DEVLOG.md](DEVLOG.md).

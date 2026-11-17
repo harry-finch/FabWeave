@@ -206,6 +206,22 @@ export interface Setup {
   adhesion: Adhesion;
 }
 
+/** Projet (`fabweave_core::project::Project`) : modèle et profils recopiés. */
+export interface Project {
+  format: string;
+  version: number;
+  name: string;
+  /** Source du `.weave`. */
+  model: string;
+  /** Valeurs de tous les paramètres. */
+  values: Values;
+  /** Profils en TOML. */
+  printer: string;
+  filament: string;
+  /** Préparation ; les champs absents valent `null`. */
+  setup: Setup;
+}
+
 /** Buse montée et ce qu'elle change (profils effectifs). */
 export interface NozzleReport {
   diameter: number;

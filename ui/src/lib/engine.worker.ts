@@ -1,7 +1,7 @@
 // Web Worker du moteur : charge le WebAssembly de `fabweave-wasm` et répond
 // aux demandes du fil principal. Le calcul ne bloque jamais l'interface.
 
-import init, { Engine, check_profile, engine_version, import_profiles, read_model, read_profile } from '../wasm/fabweave.js';
+import init, { Engine, check_profile, engine_version, import_profiles, read_model, read_profile, read_project } from '../wasm/fabweave.js';
 
 type Request =
   | { kind: 'compute'; id: number; values: string }
@@ -13,6 +13,9 @@ type Request =
   | { kind: 'gcode'; id: number; values: string }
   | { kind: 'setup'; id: number; setup: string }
   | { kind: 'gcode-3mf'; id: number; values: string }
+  | { kind: 'name'; id: number; name: string }
+  | { kind: 'project'; id: number; values: string }
+  | { kind: 'read-project'; id: number; bytes: Uint8Array }
   | { kind: 'thumbnail'; id: number; model: string; printer: string; filament: string };
 
 let engine: Engine | null = null;
@@ -83,6 +86,13 @@ onmessage = async (ev: MessageEvent<Request>) => {
     } else if (req.kind === 'gcode-3mf') {
       const bytes = e.gcode_3mf(req.values);
       post({ kind: 'result', id: req.id, ok: true, value: bytes }, [bytes.buffer as ArrayBuffer]);
+    } else if (req.kind === 'name') {
+      e.set_name(req.name);
+      post({ kind: 'result', id: req.id, ok: true, value: '' });
+    } else if (req.kind === 'project') {
+      post({ kind: 'result', id: req.id, ok: true, value: e.project(req.values) });
+    } else if (req.kind === 'read-project') {
+      post({ kind: 'result', id: req.id, ok: true, value: read_project(req.bytes) });
     } else if (req.kind === 'gcode') {
       post({ kind: 'result', id: req.id, ok: true, value: e.gcode(req.values) });
     }

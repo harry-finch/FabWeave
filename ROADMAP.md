@@ -58,6 +58,9 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-007](roadmap/actions/A-007-essayer-l-application-macos-de-la-beta-v0-9.md) Essayer l'application macOS de la bêta v0.9-beta1 (tester, R-008)
 - [ ] [A-008](roadmap/actions/A-008-essayer-l-installeur-windows-nsis.md) Essayer l'installeur Windows (NSIS) (tester, R-007)
 - [ ] [A-011](roadmap/actions/A-011-examiner-la-figure-buse-sur-piece-tissee-de.md) Examiner la figure du vase ondulé de FabWeave (tester)
+- [ ] [A-013](roadmap/actions/A-013-essayer-les-projets-fabweave-enregistrer-rouvrir.md) Essayer les projets FabWeave (enregistrer, rouvrir, G-code) (tester, R-007)
+- [ ] [A-014](roadmap/actions/A-014-essayer-le-dossier-surveille-les-fichiers.md) Essayer le dossier surveillé, les fichiers récents et Enregistrer sous dans l'application macOS (tester, R-007)
+- [ ] [A-015](roadmap/actions/A-015-lancer-le-workflow-linux-et-essayer-l-appimage.md) Lancer le workflow Linux et essayer l'AppImage (tester, R-007)
 
 ## Livré
 

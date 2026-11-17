@@ -1,0 +1,75 @@
+# Application Linux (AppImage et paquet .deb). Tauri ne compile pas pour
+# Linux depuis macOS : la construction se fait sur un poste Ubuntu de
+# GitHub. Lancer depuis l'onglet Actions en donnant la version publiée
+# (ex. v0.9.0-beta.1) : les paquets sont ajoutés à cette version.
+name: Application Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version publiée où ajouter les paquets (vide : fichiers gardés en artefact seulement)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    # 22.04 : glibc plus ancienne, l'AppImage tourne sur plus de distributions.
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Dépendances système de Tauri 2 (WebKitGTK) et des dialogues natifs.
+      - name: Dépendances système
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      # La version vient de rust-toolchain.toml.
+      - name: Rust
+        run: |
+          rustup show active-toolchain
+          rustup target add wasm32-unknown-unknown
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            crates/fabweave-desktop
+
+      - name: Dépendances de l'interface
+        run: npm ci
+        working-directory: ui
+
+      - name: Paquets
+        run: npm exec --yes --package=@tauri-apps/cli@2.12.3 -- tauri build --bundles appimage,deb
+        working-directory: crates/fabweave-desktop
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FabWeave-linux
+          path: |
+            crates/fabweave-desktop/target/release/bundle/appimage/*.AppImage
+            crates/fabweave-desktop/target/release/bundle/deb/*.deb
+          if-no-files-found: error
+
+      - name: Ajout à la version publiée
+        if: inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ inputs.tag }}" crates/fabweave-desktop/target/release/bundle/appimage/*.AppImage crates/fabweave-desktop/target/release/bundle/deb/*.deb --clobber

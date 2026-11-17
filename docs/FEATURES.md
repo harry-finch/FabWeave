@@ -171,8 +171,8 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | --- | --- | --- | --- |
 | DESK-01 | `fabweave check | stats | export` (calcul aux valeurs par défaut et aux bornes, `--json` ; aux bornes, pièce hors plateau et `fail` du modèle tolérés ; `--set` garde en texte la valeur d'un `choice`) | v0.2 | fait |
 | DESK-02 | Rechargement à chaud de `models/` et `profiles/` en développement (fichier modifié ou ajouté, même dans un nouveau dossier) | v0.2 | fait |
-| DESK-03 | Application Tauri : macOS faite (v0.9-beta1) ; Windows, Linux et dossier de modèles surveillé à faire | v0.6 | en cours |
-| DESK-04 | Projet `.fabweave.json`, projet embarqué dans le G-code | v0.6 | prévu |
+| DESK-03 | Application Tauri : macOS faite (v0.9-beta1) ; dialogues natifs Ouvrir / Enregistrer sous, ⌘S au même endroit, fichiers récents, dossier de modèles surveillé (17/11, non essayés) ; Windows et Linux construits par les workflows `windows.yml` et `linux.yml`, jamais lancés | v0.6 | en cours |
+| DESK-04 | Projet `.fabweave.json` (menu Fichier, ⌘S, nom du projet), projet embarqué dans le G-code et le `.gcode.3mf` ; dépôt d'un projet ou d'un G-code de FabWeave rouvre la préparation (ADR-0009) ; interface non essayée dans un navigateur | v0.6 | en cours |
 | DESK-05 | Envoi à l'imprimante (PrusaLink, OctoPrint, Moonraker) | après v1.0 | prévu |
 | DESK-06 | Serveur MCP (stdio) pour un agent IA | après v1.0 | prévu |
 

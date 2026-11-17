@@ -2,7 +2,8 @@
   // Catalogue des modèles : sélecteur riche (Popover). Déclencheur : vignette
   // et nom du modèle affiché. Panneau : recherche (nom, description,
   // catégorie, étiquettes), modèles groupés par catégorie, puis « Mes
-  // modèles » (fichiers ouverts, retirables) ; pied : ouvrir un fichier
+  // modèles » (fichiers ouverts, retirables), puis le dossier surveillé
+  // (bureau ; modifiés sur le disque, pas ici) ; pied : ouvrir un fichier
   // `.weave` (⌘O) ou le déposer dans la fenêtre. Un modèle illisible reste
   // listé, marqué, pour que ses erreurs s'affichent avec leur ligne.
   import { Check, ChevronDown, CircleX, FolderOpen, Search, Trash2 } from '@lucide/svelte';
@@ -14,6 +15,7 @@
   import { tip } from '../lib/tip';
   import { theme } from '../lib/theme.svelte';
   import { untrack } from 'svelte';
+  import { baseName } from '../lib/desktop';
 
   let { onopen }: { onopen: () => void } = $props();
 
@@ -62,6 +64,8 @@
     const mine = store.catalog.filter((e) => e.source === 'user' && matches(e, q));
     const list = [...out.entries()];
     if (mine.length) list.push([t('catalog.mine'), mine]);
+    const folder = store.catalog.filter((e) => e.source === 'folder' && matches(e, q));
+    if (folder.length && store.folder) list.push([t('catalog.folder', { name: baseName(store.folder) }), folder]);
     return list;
   });
   const empty = $derived(groups.length === 0);

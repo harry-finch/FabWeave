@@ -112,6 +112,21 @@ export class EngineClient {
     return this.#call<Uint8Array>({ kind: 'gcode-3mf', values });
   }
 
+  /** Nom du projet, repris dans le projet embarqué au G-code. */
+  setName(name: string): Promise<string> {
+    return this.#call({ kind: 'name', name });
+  }
+
+  /** Projet `.fabweave.json` des valeurs courantes. */
+  project(values: string): Promise<string> {
+    return this.#call({ kind: 'project', values });
+  }
+
+  /** Projet porté par un fichier (`.fabweave.json`, fin d'un G-code, `.gcode.3mf`) ; réponse `{ ok, project | issues }`. */
+  readProject(bytes: Uint8Array): Promise<string> {
+    return this.#call({ kind: 'read-project', bytes });
+  }
+
   /** G-code ; en cas de refus, l'erreur porte le JSON des messages bloquants. */
   gcode(values: string): Promise<string> {
     return this.#call({ kind: 'gcode', values });

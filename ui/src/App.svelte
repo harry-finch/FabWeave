@@ -5,7 +5,10 @@
   // modification ; l'action principale exporte le G-code. Les profils se
   // modifient et s'importent depuis le menu « ⋯ » de leur liste, ou en
   // déposant un fichier (.toml, .ini de PrusaSlicer, .json de Bambu Studio
-  // ou d'OrcaSlicer).
+  // ou d'OrcaSlicer). Un projet s'enregistre (⌘S, .fabweave.json) et se
+  // rouvre depuis ce fichier ou depuis un G-code exporté par FabWeave. Dans
+  // l'application de bureau : dialogues natifs, ⌘S au même endroit, fichiers
+  // récents et dossier de modèles surveillé.
   import { RotateCcw } from '@lucide/svelte';
   import AppBar from './components/AppBar.svelte';
   import StatusBar from './components/StatusBar.svelte';
@@ -22,6 +25,7 @@
   import ProfileEditor from './components/ProfileEditor.svelte';
   import ImportDialog from './components/ImportDialog.svelte';
   import { store, type ExportFormat, type ProfileEntry } from './lib/store.svelte';
+  import { baseName, desktop } from './lib/desktop';
   import { ui } from './lib/ui.svelte';
   import { labelled, t } from './lib/i18n.svelte';
   import { text } from './lib/text';
@@ -55,20 +59,123 @@
   let importing = $state<{ file: string; items: ImportedItem[] } | null>(null);
   let profileInput = $state<HTMLInputElement>();
   const PROFILE_FILE = /\.(toml|ini|json)$/i;
+  /** G-code et paquet Bambu Lab : le projet embarqué rouvre la préparation. */
+  const EXPORT_FILE = /\.(gcode|3mf)$/i;
+  /** Le projet est à la fin du G-code : inutile de lire un gros fichier en entier. */
+  const GCODE_TAIL = 8 * 1024 * 1024;
 
-  async function openFiles(files: FileList | null | undefined) {
+  /** Un `.json` est un projet s'il le dit dans son en-tête, sinon un profil de trancheur. */
+  async function isProject(f: File) {
+    return /\.fabweave\.json$/i.test(f.name) || /"format"\s*:\s*"fabweave\.project"/.test(await f.slice(0, 512).text());
+  }
+
+  async function openFiles(files: FileList | File[] | null | undefined) {
     const list = [...(files ?? [])];
     const weave = list.filter((f) => /\.weave$/i.test(f.name));
-    const profiles = list.filter((f) => PROFILE_FILE.test(f.name));
-    if (!weave.length && !profiles.length) {
+    const projects: File[] = [];
+    const profiles: File[] = [];
+    for (const f of list) {
+      if (EXPORT_FILE.test(f.name) || (/\.json$/i.test(f.name) && (await isProject(f)))) projects.push(f);
+      else if (PROFILE_FILE.test(f.name)) profiles.push(f);
+    }
+    if (!weave.length && !profiles.length && !projects.length) {
       if (list.length) ui.toast(t('catalog.notWeave'));
       return;
     }
+    // Un seul projet ouvert à la fois : le dernier déposé.
+    const project = projects.at(-1);
+    if (project) await openProject(project);
     for (const f of weave) {
       const entry = await store.openFile(f.name, await f.text());
       ui.toast(entry.info ? t('catalog.opened', { name: f.name }) : t('catalog.openFailed', { name: f.name }));
     }
     for (const f of profiles) await openProfile(f);
+  }
+
+  /** Ouvre un projet (fichier sans emplacement connu : ⌘S demandera où l'enregistrer). */
+  async function openProject(f: File): Promise<boolean> {
+    const bytes = new Uint8Array(await (/\.gcode$/i.test(f.name) ? f.slice(Math.max(0, f.size - GCODE_TAIL)) : f).arrayBuffer());
+    const read = await store.readProject(bytes);
+    const r = read.ok ? await store.openProject(read.project, f.name) : read;
+    if (r.ok) {
+      store.projectPath = null;
+      ui.toast(t('file.opened', { name: f.name }), { label: t('catalog.undo'), run: () => store.undo() });
+    } else ui.toast(`${f.name} : ${r.issues[0] ? issueText(r.issues[0], null) : t('file.openFailed')}`);
+    return r.ok;
+  }
+
+  /** Bureau : ouvre un fichier par son chemin (dialogue, fichiers récents). */
+  async function openPath(path: string) {
+    if (!desktop) return;
+    const name = baseName(path);
+    let bytes: Uint8Array;
+    try {
+      bytes = await desktop.readFile(path, /\.gcode$/i.test(name) ? GCODE_TAIL : undefined);
+    } catch {
+      store.forgetRecent(path);
+      ui.toast(t('file.missing', { name }));
+      return;
+    }
+    const f = new File([bytes as BlobPart], name);
+    if (EXPORT_FILE.test(name) || (/\.json$/i.test(name) && (await isProject(f)))) {
+      if (!(await openProject(f))) return;
+      store.addRecent(path, name);
+      // Seul un projet se réenregistre à sa place, jamais un G-code.
+      if (/\.json$/i.test(name)) store.projectPath = path;
+    } else await openFiles([f]);
+  }
+
+  async function open() {
+    if (!desktop) return fileInput?.click();
+    const path = await desktop.pickOpen();
+    if (path) await openPath(path);
+  }
+
+  function download(name: string, data: BlobPart, type: string) {
+    const url = URL.createObjectURL(new Blob([data], { type }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /** Enregistre le projet : au même endroit (bureau, ⌘S), ailleurs (`as`), ou en téléchargement (web). */
+  async function saveProject(as = false) {
+    const r = await store.saveProject();
+    if (!r.ok) {
+      ui.toast(t('file.saveFailed'));
+      return;
+    }
+    if (!desktop) {
+      download(r.name, r.text, 'application/json');
+      ui.toast(t('file.saved', { name: r.name }));
+      return;
+    }
+    const path = (!as && store.projectPath) || (await desktop.pickSave(r.name));
+    if (!path) return;
+    try {
+      await desktop.writeFile(path, r.text);
+    } catch (e) {
+      ui.toast(`${baseName(path)} : ${String(e)}`);
+      return;
+    }
+    store.projectPath = path;
+    store.addRecent(path, baseName(path));
+    ui.toast(t('file.saved', { name: baseName(path) }));
+  }
+
+  async function chooseFolder() {
+    const path = await desktop?.pickFolder();
+    if (!path) return;
+    await store.setFolder(path);
+    ui.toast(store.folderError ? t('file.folderFailed', { name: baseName(path) }) : t('file.folderWatched', { name: baseName(path) }));
+  }
+
+  function newProject() {
+    store.projectPath = null;
+    store.newProject();
+    ui.toast(t('file.created'), { label: t('catalog.undo'), run: () => store.undo() });
   }
 
   async function openProfile(f: File) {
@@ -103,15 +210,8 @@
       ui.toast(t('export.blocked'));
       return;
     }
-    const base = store.modelId.split('/').pop() ?? 'fabweave';
-    const name = `${base}_${store.printer?.printer.id ?? 'printer'}_${store.filament?.filament.type ?? 'filament'}.${format === '3mf' ? 'gcode.3mf' : 'gcode'}`;
-    const blob = new Blob([r.data as BlobPart], { type: format === '3mf' ? 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml' : 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const name = `${store.fileBase}_${store.printer?.printer.id ?? 'printer'}_${store.filament?.filament.type ?? 'filament'}.${format === '3mf' ? 'gcode.3mf' : 'gcode'}`;
+    download(name, r.data as BlobPart, format === '3mf' ? 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml' : 'text/plain');
     ui.toast(t('export.done', { name }));
   }
 
@@ -128,7 +228,12 @@
     }
     if (mod && e.key.toLowerCase() === 'o') {
       e.preventDefault();
-      fileInput?.click();
+      void open();
+      return;
+    }
+    if (mod && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      void saveProject(e.shiftKey && !!desktop);
       return;
     }
     if (mod && e.key.toLowerCase() === 'y') {
@@ -186,7 +291,7 @@
   bind:this={fileInput}
   class="sr-only"
   type="file"
-  accept=".weave"
+  accept=".weave,.json,.gcode,.3mf"
   multiple
   tabindex="-1"
   aria-hidden="true"
@@ -201,14 +306,30 @@
 {/if}
 
 <div class="app">
-  <AppBar onexport={exportGcode} {canExport} {formats} />
+  <AppBar
+    onexport={exportGcode}
+    {canExport}
+    {formats}
+    name={store.doc.name}
+    onrename={(n) => store.setName(n)}
+    onnew={newProject}
+    onopen={() => void open()}
+    onsave={(as) => void saveProject(as)}
+    desktop={!!desktop}
+    recent={store.recent}
+    onrecent={(path) => void openPath(path)}
+    onforget={() => store.forgetRecent()}
+    folder={store.folder}
+    onfolder={() => void chooseFolder()}
+    onunwatch={() => void store.setFolder(null)}
+  />
   <div class="main">
     <aside class="panel left">
       <Section id="model" title={t('model.section')} step={1}>
         {#if store.catalog.length === 0 && store.status === 'ready'}
           <p class="note">{t('model.none')}</p>
         {:else}
-          <CatalogPicker onopen={() => fileInput?.click()} />
+          <CatalogPicker onopen={() => void open()} />
         {/if}
         {#if store.model}
           {@const meta = store.model.meta}
@@ -381,6 +502,12 @@
       <dd>{t('help.keys.fit')}</dd>
       <dt><kbd>⌘O</kbd></dt>
       <dd>{t('help.keys.open')}</dd>
+      <dt><kbd>⌘S</kbd></dt>
+      <dd>{t('help.keys.save')}</dd>
+      {#if desktop}
+        <dt><kbd>⇧⌘S</kbd></dt>
+        <dd>{t('help.keys.saveAs')}</dd>
+      {/if}
       <dt><kbd>⌘Z / ⇧⌘Z</kbd></dt>
       <dd>{t('help.keys.undo')}</dd>
       <dt><kbd>🖱</kbd></dt>

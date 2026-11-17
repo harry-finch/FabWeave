@@ -582,3 +582,29 @@ Les paragraphes suivants proviennent de STATUS.md avant son allègement. Ils con
 Le travail précédent est présent dans le commit `1175867` sur `main`. L’utilisateur autorise la poursuite en conservant hors de nos commits les deux modifications préexistantes de fab-roadmap (registre et référence equerre.md). Création de la branche `fabboard/mise-d-equerre` refusée (`cannot lock ref`) ; mise à jour déjà approuvée de professional-workshop-ui et project-documentation refusée (`Operation not permitted` dans `.agents/skills/`). Aucun nouveau commit ni push. A-010 et A-012 actualisées pour tenir compte du commit existant.
 
 Accès navigateur indisponible ; contrôle natif de Vivaldi refusé par l’outil. Aucun contrôle visuel réalisé, figure toujours provisoire et A-011 maintenue. Validation statique Hairline relancée : moteur et page intacts, figure conforme. Doctor ne relève que les trois différences de skills, dont fab-design-system conservée volontairement ; lint roadmap conforme. Aucun changement de code, nouveau test Rust/Svelte, build bureau ou essai d’impression.
+
+
+## 2026-11-17 — v0.6, étape 1 : projet `.fabweave.json` embarqué dans le G-code
+
+**Reprise.** A-001 faite par l'utilisateur le 13/11 sans commentaire : CORE One validée pour la v0.3, reportée dans R-004 et STATUS ; reste la X1E (A-002).
+
+**Choix de l'utilisateur.** Projet tout embarqué (modèle et profils recopiés), toujours embarqué dans le G-code, ordre de R-007 : projet, puis bureau (fichiers récents, dossier surveillé), puis Linux. Décision consignée dans l'ADR-0009.
+
+**Moteur.** `project.rs` : format `fabweave.project` v1, lecture stricte, bloc deflate + base64 à la fin du G-code, lecture depuis un `.fabweave.json`, un G-code (ou sa fin) ou un `.gcode.3mf` (`Metadata/fabweave_project.json`, lecteur ZIP borné ajouté à `package.rs`) ; décodeur base64 dans `image.rs`. `Workbench` garde les textes chargés et le nom du projet ; `gcode()` et `gcode_3mf()` embarquent le projet. Une valeur refusée reste telle quelle dans le projet. Pont WebAssembly : `read_project`, `Engine::project`, `Engine::set_name`. Bloc de 15 Ko pour la lampe à coussins (G-code de 6,4 Mo).
+
+**Interface.** Menu Fichier et encart du projet repris du kit `fab-design-system` ; ⌘S ; dépôt ou ⌘O d'un `.fabweave.json`, d'un `.gcode` (8 derniers Mio lus) ou d'un `.gcode.3mf` ; modèle et profils repris s'ils existent au même texte, sinon ajoutés sans remplacer ; une étape d'annulation ; noms des fichiers exportés d'après le nom du projet. Textes FR / EN, codes `project.*`.
+
+**Vérification.** Tests du moteur : aller-retour JSON et bloc, fichiers étrangers ou abîmés, archive tronquée ; G-code exporté → projet relu → même G-code octet pour octet (Prusa et paquet X1E) ; valeur refusée conservée. `cargo clippy` sans avertissement, `npm run check` 0 erreur. **Non vérifié** : l'interface dans un navigateur (extension Chrome non connectée) ; essai confié à l'utilisateur.
+
+
+## 2026-11-17 — v0.6, étapes 2 et 3 : bureau (dossier surveillé, récents, dialogues) et Linux
+
+**Choix de l'utilisateur.** Un seul dossier de modèles, choisi dans le menu Fichier (aucun par défaut) ; fichiers récents et Enregistrer sous dans le menu Fichier de l'application, sans menu natif macOS. L'utilisateur a demandé de passer à cette étape avant d'essayer l'étape 1 (A-013).
+
+**Bureau.** Commandes Tauri dans `crates/fabweave-desktop/src/main.rs` : dialogues natifs (`tauri-plugin-dialog`, appelé depuis nos commandes, sans permission côté interface), lecture d'un fichier ou de sa fin en octets bruts, écriture atomique (temporaire puis renommage), surveillance récursive du dossier (`notify`, rafales regroupées en 250 ms, 500 modèles de 2 Mio au plus, dossiers cachés exclus), envoi à l'interface par un événement de fenêtre. `ui/src/lib/desktop.ts` appelle l'IPC de Tauri directement, sans dépendance ; dans un navigateur il vaut `null`.
+
+**Interface.** Groupe « Dossier … » du catalogue (relu seulement si le texte change ; modèle affiché relu, ou remplacé s'il disparaît) ; menu Fichier : Enregistrer sous (⇧⌘S), Récents (10), Effacer la liste, Choisir le dossier / Ne plus surveiller ; ⌘S réenregistre un projet ouvert ou déjà enregistré sans dialogue, jamais un G-code ; ⌘O par le dialogue natif. Dossier et récents mémorisés par poste.
+
+**Linux.** `.github/workflows/linux.yml` : AppImage et .deb sur Ubuntu 22.04, lancement manuel comme Windows.
+
+**Vérification.** Crate bureau : `cargo check` et `cargo clippy` sans avertissement ; `npm run check` 0 erreur ; application macOS reconstruite le 17/11 (`npm run desktop` : FabWeave.app de 8,2 Mio, DMG de 4,1 Mio, signature ad hoc, non notarisée). **Non vérifié** : aucun geste dans l'application (pas d'accès à l'écran), workflow Linux jamais lancé. Essais : A-014, A-015.

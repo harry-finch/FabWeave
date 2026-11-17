@@ -1,10 +1,12 @@
 <script lang="ts">
-  // Barre d'application : identité (logo, nom, sous-titre), réglages
-  // d'affichage (unités, langue, thème), aide, et l'unique action principale
-  // de l'application : Exporter le G-code — un bouton, ou un menu d'une ligne
-  // par format quand l'imprimante en propose plusieurs (Bambu Lab). (Menu
-  // Fichier et encart du projet du kit : à la v0.6, avec les projets.)
-  import { ChevronDown, CircleHelp, Download, FileArchive, FileCode, Monitor, Moon, Sun } from '@lucide/svelte';
+  // Barre d'application : identité (logo, nom, sous-titre), menu Fichier et
+  // encart du projet, réglages d'affichage (unités, langue, thème), aide, et
+  // l'unique action principale de l'application : Exporter le G-code — un
+  // bouton, ou un menu d'une ligne par format quand l'imprimante en propose
+  // plusieurs (Bambu Lab).
+  import { ChevronDown, CircleHelp, Clock, Download, FileArchive, FileCode, FilePlus, FileText, Folder, FolderOpen, FolderX, Monitor, Moon, Save, Sun } from '@lucide/svelte';
+  import { baseName } from '../lib/desktop';
+  import type { Recent } from '../lib/store.svelte';
   import Popover from './Popover.svelte';
   import { theme, THEMES } from '../lib/theme.svelte';
   import { ui } from '../lib/ui.svelte';
@@ -17,7 +19,47 @@
     onexport,
     canExport = true,
     formats,
-  }: { onexport: (format: Format['id']) => void; canExport?: boolean; formats: Format[] } = $props();
+    name,
+    onrename,
+    onnew,
+    onopen,
+    onsave,
+    desktop = false,
+    recent = [],
+    onrecent,
+    onforget,
+    folder = null,
+    onfolder,
+    onunwatch,
+  }: {
+    onexport: (format: Format['id']) => void;
+    canExport?: boolean;
+    formats: Format[];
+    name: string;
+    onrename: (name: string) => void;
+    onnew: () => void;
+    onopen: () => void;
+    /** `true` : Enregistrer sous (bureau). */
+    onsave: (as: boolean) => void;
+    /** Bureau : Enregistrer sous, fichiers récents, dossier de modèles surveillé. */
+    desktop?: boolean;
+    recent?: Recent[];
+    onrecent?: (path: string) => void;
+    onforget?: () => void;
+    folder?: string | null;
+    onfolder?: () => void;
+    onunwatch?: () => void;
+  } = $props();
+
+  // Texte en cours de saisie : l'encart suit sa longueur (voir `.sizer`).
+  let draft = $state<string | null>(null);
+  const shown = $derived(draft ?? name);
+
+  /** Ligne de menu : ferme le menu, puis agit. */
+  const then = (close: () => void, fn: () => void) => () => {
+    close();
+    fn();
+  };
 </script>
 
 <header class="bar">
@@ -25,6 +67,64 @@
     <img class="logo" src="/logo.svg" alt="" width="24" height="24" />
     <span class="name">{APP_NAME}</span>
     <span class="tag">{t('app.tagline')}</span>
+  </div>
+
+  <div class="project">
+    <Popover label={t('file.menu')} width={260}>
+      {#snippet trigger({ open, toggle })}
+        <button class="fbtn" class:open type="button" onclick={toggle} aria-haspopup="menu" aria-expanded={open}>
+          {t('file.menu')}
+          <ChevronDown size={13} />
+        </button>
+      {/snippet}
+      {#snippet content({ close })}
+        <button class="row" type="button" onclick={then(close, onnew)}><FilePlus size={14} /><span class="rname">{t('file.new')}</span></button>
+        <div class="divider"></div>
+        <button class="row" type="button" onclick={then(close, onopen)}><FolderOpen size={14} /><span class="rname">{t('file.open')}</span><span class="kbd">⌘O</span></button>
+        <button class="row" type="button" onclick={then(close, () => onsave(false))}><Save size={14} /><span class="rname">{t('file.save')}</span><span class="kbd">⌘S</span></button>
+        {#if desktop}
+          <button class="row" type="button" onclick={then(close, () => onsave(true))}><Save size={14} /><span class="rname">{t('file.saveAs')}</span><span class="kbd">⇧⌘S</span></button>
+          {#if recent.length}
+            <div class="divider"></div>
+            <div class="head">{t('file.recent')}</div>
+            {#each recent as r (r.path)}
+              <button class="row" type="button" use:tip={r.path} onclick={then(close, () => onrecent?.(r.path))}><Clock size={14} /><span class="rname">{r.name}</span></button>
+            {/each}
+            <button class="row quiet" type="button" onclick={then(close, () => onforget?.())}><span class="rname muted">{t('file.forget')}</span></button>
+          {/if}
+          <div class="divider"></div>
+          <button class="row" type="button" use:tip={folder ?? t('file.folderHint')} onclick={then(close, () => onfolder?.())}>
+            <Folder size={14} /><span class="rname">{folder ? t('file.folderNamed', { name: baseName(folder) }) : t('file.folder')}</span>
+          </button>
+          {#if folder}
+            <button class="row" type="button" onclick={then(close, () => onunwatch?.())}><FolderX size={14} /><span class="rname">{t('file.unwatch')}</span></button>
+          {/if}
+        {/if}
+        <p class="foot">{t('file.dropNote')}</p>
+      {/snippet}
+    </Popover>
+    <!-- Encart du document : icône, libellé discret, nom en gras modifiable, largeur au texte. -->
+    <label class="pbox" use:tip={t('file.nameHint')}>
+      <FileText size={14} />
+      <span class="plabel">{t('file.project')}</span>
+      <span class="pfield">
+        <span class="sizer" aria-hidden="true">{shown || t('file.untitled')}</span>
+        <input
+          class="pname"
+          type="text"
+          size="1"
+          placeholder={t('file.untitled')}
+          aria-label={t('file.name')}
+          value={name}
+          oninput={(e) => (draft = (e.currentTarget as HTMLInputElement).value)}
+          onchange={(e) => {
+            onrename((e.currentTarget as HTMLInputElement).value);
+            draft = null;
+          }}
+          onkeydown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
+        />
+      </span>
+    </label>
   </div>
 
   <div class="right">
@@ -134,6 +234,112 @@
     }
   }
 
+  .project {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+    min-width: 0;
+  }
+
+  .project :global(.pop) {
+    width: auto;
+  }
+
+  .fbtn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 26px;
+    padding: 0 var(--s2);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    font-size: var(--fs-md);
+    white-space: nowrap;
+  }
+
+  .fbtn:hover,
+  .fbtn.open {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .pbox {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    min-width: 0;
+    max-width: 460px;
+    height: var(--control-h);
+    padding: 0 var(--s2);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    cursor: text;
+  }
+
+  .pbox:hover {
+    border-color: var(--border-strong);
+  }
+
+  .pbox:focus-within {
+    border-color: var(--accent);
+  }
+
+  .plabel {
+    font-size: var(--fs-sm);
+    white-space: nowrap;
+  }
+
+  /* Champ à la largeur de son texte : le texte invisible du `.sizer` et le
+     champ partagent la même case de grille. */
+  .pfield {
+    display: inline-grid;
+    min-width: 0;
+    height: 100%;
+    align-items: center;
+  }
+
+  .sizer,
+  .pname {
+    grid-area: 1 / 1;
+    font: inherit;
+    font-weight: 600;
+    white-space: pre;
+  }
+
+  .sizer {
+    visibility: hidden;
+    min-width: 40px;
+    padding-right: 2px;
+    overflow: hidden;
+  }
+
+  .pname {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--text-primary);
+    text-overflow: ellipsis;
+  }
+
+  .pname::placeholder {
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 1100px) {
+    .pbox {
+      max-width: 280px;
+    }
+  }
+
   .right {
     margin-left: auto;
     display: flex;
@@ -200,8 +406,41 @@
   }
 
   .rname {
+    flex: 1;
     color: var(--text-primary);
     font-weight: 500;
+  }
+
+  .kbd {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+  }
+
+  .divider {
+    height: 1px;
+    margin: var(--s1) 0;
+    background: var(--divider);
+  }
+
+  /* Titre de groupe dans le menu (fichiers récents). */
+  .head {
+    padding: 4px var(--s2) 2px;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+  }
+
+  .rname.muted {
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  /* Note en pied de menu. */
+  .foot {
+    margin: var(--s1) 0 0;
+    padding: var(--s1) var(--s2) 2px;
+    border-top: 1px solid var(--divider);
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
   }
 
   .desc {

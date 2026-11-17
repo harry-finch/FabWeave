@@ -12,8 +12,16 @@
 //   adhésion dans le document (annulables comme le reste).
 // - Profils de l'utilisateur (copies modifiées, imports) mémorisés sur le
 //   poste à côté des profils livrés, jamais écrasés.
+// - Projet (`.fabweave.json`, aussi embarqué dans chaque G-code) : nom,
+//   modèle et profils recopiés, valeurs, préparation. À l'ouverture, un modèle
+//   ou un profil au même texte qu'un existant est repris, sinon il est ajouté
+//   à « Mes modèles » ou aux profils de l'utilisateur.
+// - Bureau seulement : dossier de modèles surveillé (ses `.weave` forment un
+//   groupe du catalogue, mis à jour à chaque modification), fichiers récents
+//   et emplacement du projet ouvert (⌘S y réenregistre).
 
 import { EngineClient } from './engine';
+import { desktop, type FolderFile } from './desktop';
 import { FILAMENT_FILES, MODEL_FILES, PRINTER_FILES } from './catalog';
 import { storageKey } from './app';
 import { renderThumb } from './thumbs';
@@ -33,6 +41,7 @@ import type {
   Placement,
   PrinterProfile,
   ProfileKind,
+  Project,
   Setup,
   Values,
 } from './types';
@@ -42,6 +51,10 @@ const DOC_KEY = storageKey('document.v1');
 const USER_KEY = storageKey('user-models.v1');
 /** Profils de l'utilisateur (TOML), mémorisés sur le poste. */
 const PROFILES_KEY = storageKey('user-profiles.v1');
+/** Dossier de modèles surveillé et fichiers récents (bureau), par poste. */
+const FOLDER_KEY = storageKey('models-folder.v1');
+const RECENT_KEY = storageKey('recent.v1');
+const MAX_RECENT = 10;
 /** Taille des vignettes (px CSS). */
 const THUMB = 44;
 
@@ -99,6 +112,8 @@ const SLOW_MS = 60;
 const MAX_HISTORY = 100;
 
 interface Doc {
+  /** Nom du projet (vide : sans titre). */
+  name: string;
   model: string;
   printer: string;
   filament: string;
@@ -127,11 +142,36 @@ function readSaved(): Partial<Doc> {
 /** Formats d'export : G-code seul, ou paquet Bambu Lab. */
 export type ExportFormat = 'gcode' | '3mf';
 
+/** Fichier récent (bureau) : projet ou G-code ouvert, projet enregistré. */
+export interface Recent {
+  path: string;
+  name: string;
+}
+
+function readRecent(): Recent[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Recent[];
+  } catch {
+    return [];
+  }
+}
+
+/** Identifiant d'un modèle du dossier surveillé d'après son chemin relatif. */
+const folderId = (path: string) =>
+  'folder/' +
+  path
+    .replace(/\.weave$/i, '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9/]+/g, '-')
+    .replace(/(^|\/)-|-($|\/)/g, '$1$2');
+
 export interface CatalogEntry {
   id: string;
-  /** Livré avec FabWeave, ou ouvert par l'utilisateur (« Mes modèles »). */
-  source: 'builtin' | 'user';
-  /** Nom du fichier d'origine (modèles de l'utilisateur). */
+  /** Livré avec FabWeave, ouvert par l'utilisateur (« Mes modèles »), ou du dossier surveillé. */
+  source: 'builtin' | 'user' | 'folder';
+  /** Nom du fichier d'origine (modèles de l'utilisateur), chemin relatif (dossier surveillé). */
   file?: string;
   text: string;
   info?: ModelInfo;
@@ -158,7 +198,7 @@ class Store {
   printers = $state<ProfileEntry<PrinterProfile>[]>([]);
   filaments = $state<ProfileEntry<FilamentProfile>[]>([]);
 
-  doc = $state<Doc>({ model: '', printer: 'prusa_mk4s', filament: 'generic_pla', values: {}, nozzles: {}, placement: DEFAULT_PLACEMENT, adhesion: { type: 'none' } });
+  doc = $state<Doc>({ name: '', model: '', printer: 'prusa_mk4s', filament: 'generic_pla', values: {}, nozzles: {}, placement: DEFAULT_PLACEMENT, adhesion: { type: 'none' } });
 
   model = $state<ModelInfo | null>(null);
   printer = $state<PrinterProfile | null>(null);
@@ -173,6 +213,13 @@ class Store {
   #thumbAgain = false;
   #userFiles: UserFile[] = readUserFiles();
   #userProfiles: UserProfile[] = readUserProfiles();
+
+  /** Bureau : dossier de modèles surveillé, son erreur éventuelle, fichiers
+   * récents, emplacement du projet ouvert ou enregistré. */
+  folder = $state<string | null>(desktop ? localStorage.getItem(FOLDER_KEY) : null);
+  folderError = $state<string | null>(null);
+  recent = $state<Recent[]>(desktop ? readRecent() : []);
+  projectPath = $state<string | null>(null);
 
   frame = $state.raw<FrameData | null>(null);
   computing = $state(false);
@@ -190,13 +237,14 @@ class Store {
   #dirty = false;
   #saveTimer: ReturnType<typeof setTimeout> | undefined;
   /** Ce qui est chargé dans le moteur : identifiant du modèle, texte des profils. */
-  #loaded = { model: '', printer: '', filament: '', setup: '' };
+  #loaded = { model: '', printer: '', filament: '', setup: '', name: '' };
   /** Messages de la préparation refusée par le moteur. */
   #setupIssues: Issue[] = [];
 
   constructor() {
     const s = readSaved();
     this.doc = {
+      name: s.name ?? '',
       model: s.model ?? '',
       printer: s.printer ?? 'prusa_mk4s',
       filament: s.filament ?? 'generic_pla',
@@ -220,6 +268,10 @@ class Store {
       }
     };
     this.engine.onFrameError = () => (this.computing = false);
+    desktop?.onFolder((u) => {
+      if ('error' in u) this.folderError = u.error;
+      else void this.#folderFiles(u.files);
+    });
   }
 
   get modelId() {
@@ -254,10 +306,12 @@ class Store {
       const r = JSON.parse(await this.engine.read(text)) as LoadResult<never>;
       return r.ok ? { id, info: r.model } : { id, issues: r.issues };
     };
+    const folder = await this.#watch(this.folder);
     const [models] = await Promise.all([
       Promise.all([
         ...MODEL_FILES.map(async (f) => ({ ...(await read(f.id, f.text)), source: 'builtin' as const, text: f.text })),
         ...this.#userFiles.map(async (f) => ({ ...(await read(f.id, f.text)), source: 'user' as const, file: f.file, text: f.text })),
+        ...folder.map(async (f) => ({ ...(await read(folderId(f.path), f.text)), source: 'folder' as const, file: f.path, text: f.text })),
       ]),
       this.#readProfiles(),
     ]);
@@ -339,6 +393,10 @@ class Store {
       // Un profil dont le chargement échoue garde ses messages jusqu'au suivant.
       const kept = todo.length ? [] : this.loadIssues.filter((i) => !this.#setupIssues.includes(i) && i.code !== 'profile.not_found');
       this.loadIssues = [...kept, ...issues, ...this.#setupIssues];
+    }
+    if (d.name !== this.#loaded.name) {
+      this.#loaded.name = d.name;
+      await this.engine.setName(d.name);
     }
     const setup = JSON.stringify($state.snapshot(this.setup));
     if (setup !== this.#loaded.setup) {
@@ -482,6 +540,110 @@ class Store {
     }, key && `adhesion.${key}`);
   }
 
+  /** Nom du projet ; une saisie fait une étape d'annulation. */
+  setName(name: string) {
+    this.edit((d) => {
+      d.name = name.trim();
+    }, 'name');
+  }
+
+  /** Nouveau projet : sans titre, valeurs des modèles, placement et adhésion
+   * par défaut ; modèle, profils et buses gardés. Annulable. */
+  newProject() {
+    this.edit((d) => {
+      d.name = '';
+      d.values = {};
+      d.placement = DEFAULT_PLACEMENT;
+      d.adhesion = { type: 'none' };
+    });
+  }
+
+  /** Base des noms de fichiers : le nom du projet (minuscules, tirets), sinon le modèle. */
+  get fileBase(): string {
+    const slug = this.doc.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    return slug || (this.doc.model.split('/').pop() ?? 'fabweave');
+  }
+
+  /** Projet `.fabweave.json` des valeurs courantes. */
+  async saveProject(): Promise<{ ok: true; name: string; text: string } | { ok: false }> {
+    try {
+      const text = await this.engine.project(JSON.stringify(this.current));
+      return { ok: true, name: `${this.fileBase}.fabweave.json`, text };
+    } catch {
+      return { ok: false };
+    }
+  }
+
+  /** Projet porté par un fichier (`.fabweave.json`, fin d'un G-code, `.gcode.3mf`). */
+  async readProject(bytes: Uint8Array): Promise<{ ok: true; project: Project } | { ok: false; issues: Issue[] }> {
+    return JSON.parse(await this.engine.readProject(bytes));
+  }
+
+  /**
+   * Ouvre un projet en une étape d'annulation. Modèle et profils au même
+   * texte qu'un existant sont repris ; sinon ajoutés (« Mes modèles », profils
+   * de l'utilisateur, origine : le fichier du projet).
+   */
+  async openProject(p: Project, file: string): Promise<{ ok: true } | { ok: false; issues: Issue[] }> {
+    // Profils d'abord : un profil illisible arrête tout, rien n'est ajouté.
+    const found: Partial<Record<ProfileKind, string | { text: string; profile: AnyProfile }>> = {};
+    for (const kind of ['printer', 'filament'] as const) {
+      const text = p[kind];
+      const same = BUILTIN[kind].find((f) => f.text === text)?.id ?? this.#userProfiles.find((u) => u.kind === kind && u.text === text)?.id;
+      if (same) {
+        found[kind] = same;
+        continue;
+      }
+      const r = JSON.parse(await this.engine.readProfile(kind, text)) as LoadResult<AnyProfile>;
+      if (!r.profile) return { ok: false, issues: r.issues ?? [] };
+      found[kind] = { text, profile: r.profile };
+    }
+    let model = this.catalog.find((e) => e.text === p.model);
+    if (!model) {
+      const r = JSON.parse(await this.engine.read(p.model)) as LoadResult<never>;
+      if (!r.ok || !r.model) return { ok: false, issues: r.issues ?? [] };
+      // Nom de fichier libre d'après le nom du modèle : un modèle de
+      // l'utilisateur au même nom mais à un autre texte n'est pas remplacé.
+      const base = profileSlug(textOf(r.model.meta.name)) || 'model';
+      let name = `${base}.weave`;
+      for (let n = 2; this.catalog.some((e) => e.id === userId(name)); n++) name = `${base}-${n}.weave`;
+      model = this.#addFile(name, p.model, { ok: true, model: r.model });
+    }
+    const ids = {} as Record<ProfileKind, string>;
+    for (const kind of ['printer', 'filament'] as const) {
+      const f = found[kind]!;
+      if (typeof f === 'string') {
+        ids[kind] = f;
+        continue;
+      }
+      const info = kind === 'printer' ? (f.profile as PrinterProfile).printer : (f.profile as FilamentProfile).filament;
+      ids[kind] = this.#freeId(kind, info.id || textOf(info.name));
+      await this.#addUser({ id: ids[kind], kind, text: f.text, origin: { type: 'file', file }, initial: f.profile });
+    }
+    // Valeurs : seules celles qui diffèrent du modèle (chacune a son ↺).
+    const defs = model.info?.params ?? {};
+    const values: Values = {};
+    for (const [k, v] of Object.entries(p.values)) if (k in defs && defs[k].default !== v) values[k] = v;
+    const clean = <T extends object>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== null && v !== undefined)) as T;
+    const id = model.id;
+    this.edit((d) => {
+      d.name = p.name;
+      d.model = id;
+      d.printer = ids.printer;
+      d.filament = ids.filament;
+      d.values = { ...d.values, [id]: values };
+      d.nozzles = { ...d.nozzles, [ids.printer]: clean(p.setup.nozzle ?? {}) };
+      d.placement = { ...DEFAULT_PLACEMENT, ...clean(p.setup.placement ?? {}) };
+      d.adhesion = p.setup.adhesion ?? { type: 'none' };
+    });
+    return { ok: true };
+  }
+
   select(kind: 'model' | 'printer' | 'filament', id: string) {
     this.edit((d) => {
       d[kind] = id;
@@ -516,6 +678,78 @@ class Store {
     return this.#thumbRun;
   }
 
+  /** Surveille un dossier (bureau) ; rend ses modèles, vide en cas d'erreur (`folderError`). */
+  async #watch(path: string | null): Promise<FolderFile[]> {
+    if (!desktop || !path) return [];
+    try {
+      const files = await desktop.watchFolder(path);
+      this.folderError = null;
+      return files;
+    } catch (e) {
+      this.folderError = String(e);
+      return [];
+    }
+  }
+
+  /** Change le dossier de modèles surveillé (`null` : plus aucun). */
+  async setFolder(path: string | null) {
+    if (desktop && !path) await desktop.watchFolder(null);
+    this.folder = path;
+    try {
+      if (path) localStorage.setItem(FOLDER_KEY, path);
+      else localStorage.removeItem(FOLDER_KEY);
+    } catch {
+      /* stockage indisponible */
+    }
+    await this.#folderFiles(await this.#watch(path));
+  }
+
+  /** Remplace les modèles du dossier ; ne relit que les textes changés. */
+  async #folderFiles(files: FolderFile[]) {
+    const old = new Map(this.catalog.filter((e) => e.source === 'folder').map((e) => [e.id, e]));
+    const entries = await Promise.all(
+      files.map(async (f): Promise<CatalogEntry> => {
+        const id = folderId(f.path);
+        const prev = old.get(id);
+        if (prev && prev.text === f.text) return prev;
+        const r = JSON.parse(await this.engine.read(f.text)) as LoadResult<never>;
+        return r.ok ? { id, source: 'folder', file: f.path, text: f.text, info: r.model } : { id, source: 'folder', file: f.path, text: f.text, issues: r.issues };
+      }),
+    );
+    const changed = new Set([...old.keys(), ...entries.map((e) => e.id)].filter((id) => old.get(id) !== entries.find((e) => e.id === id)));
+    if (!changed.size) return;
+    this.catalog = [...this.catalog.filter((e) => e.source !== 'folder'), ...entries];
+    this.thumbs = Object.fromEntries(Object.entries(this.thumbs).filter(([id]) => !changed.has(id)));
+    const d = this.doc;
+    if (changed.has(d.model)) {
+      // Modèle affiché modifié sur le disque : relu ; retiré : premier du catalogue.
+      this.#loaded.model = '';
+      if (!entries.some((e) => e.id === d.model)) d.model = MODEL_FILES[0]?.id ?? '';
+      void this.#sync();
+    }
+    void this.loadThumbs();
+  }
+
+  /** Ajoute un fichier en tête des récents (bureau). */
+  addRecent(path: string, name: string) {
+    this.recent = [{ path, name }, ...this.recent.filter((r) => r.path !== path)].slice(0, MAX_RECENT);
+    this.#saveRecent();
+  }
+
+  /** Retire un fichier des récents (introuvable), ou vide la liste. */
+  forgetRecent(path?: string) {
+    this.recent = path ? this.recent.filter((r) => r.path !== path) : [];
+    this.#saveRecent();
+  }
+
+  #saveRecent() {
+    try {
+      localStorage.setItem(RECENT_KEY, JSON.stringify(this.recent));
+    } catch {
+      /* stockage indisponible */
+    }
+  }
+
   #saveUserFiles() {
     try {
       localStorage.setItem(USER_KEY, JSON.stringify(this.#userFiles));
@@ -526,8 +760,15 @@ class Store {
 
   /** Ajoute (ou remplace, même nom de fichier) un modèle dans « Mes modèles » et l'affiche. */
   async openFile(file: string, text: string) {
-    const id = userId(file);
     const r = JSON.parse(await this.engine.read(text)) as LoadResult<never>;
+    const entry = this.#addFile(file, text, r);
+    this.select('model', entry.id);
+    return entry;
+  }
+
+  /** Ajoute (ou remplace, même nom de fichier) un modèle lu dans « Mes modèles ». */
+  #addFile(file: string, text: string, r: LoadResult<never>): CatalogEntry {
+    const id = userId(file);
     const entry: CatalogEntry = r.ok ? { id, source: 'user', file, text, info: r.model } : { id, source: 'user', file, text, issues: r.issues };
     this.#userFiles = [...this.#userFiles.filter((f) => f.id !== id), { id, file, text }];
     this.#saveUserFiles();
@@ -536,7 +777,6 @@ class Store {
     this.thumbs = rest;
     // Forcer la relecture si c'est le modèle affiché (fichier modifié puis redéposé).
     if (this.#loaded.model === id) this.#loaded.model = '';
-    this.select('model', id);
     void this.loadThumbs();
     return entry;
   }
