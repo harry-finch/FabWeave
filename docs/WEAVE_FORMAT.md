@@ -1,6 +1,6 @@
 # Format `.weave` et profils — spécification
 
-> **v0.2 (27/10/2026)** : premier jet validé à la v0.1 ; ajouts de la v0.2 (paramètres `choice`, messages du modèle, annotations, ponts, listes de points natives) validés le 24/10 ; ajoutés à l'étape 4 : remplissage d'un contour (`fill_lines`), `slice`, arrondis acceptant un entier. Format `fabweave.model`, version 1 (les ajouts sont compatibles) ; **version 2 (17/11/2026)** : paramètre `curve` (R-020), seul ajout qui demande de déclarer la version. Décisions : [ADR-0002](adr/0002-format-weave-toml-et-rhai.md) (format), [ADR-0004](adr/0004-gabarits-g-code-en-expressions-rhai.md) (gabarits des profils).
+> **v0.2 (27/10/2026)** : premier jet validé à la v0.1 ; ajouts de la v0.2 (paramètres `choice`, messages du modèle, annotations, ponts, listes de points natives) validés le 24/10 ; ajoutés à l'étape 4 : remplissage d'un contour (`fill_lines`), `slice`, arrondis acceptant un entier. Format `fabweave.model`, version 1 (les ajouts sont compatibles) ; **version 2 (17/11/2026)** : paramètres `curve` (R-020) et `image` (R-025), seuls ajouts qui demandent de déclarer la version. Décisions : [ADR-0002](adr/0002-format-weave-toml-et-rhai.md) (format), [ADR-0004](adr/0004-gabarits-g-code-en-expressions-rhai.md) (gabarits des profils).
 
 Un modèle FabWeave est un fichier texte `.weave` qui décrit **où passe la buse** et **quelle section de matière elle dépose**. Il ne parle jamais de G-code, de valeur `E`, de températures, de rétraction ni de coordonnées du plateau : tout cela vient des profils imprimante et filament choisis dans l'application. Le même modèle s'imprime donc sur une Prusa MK4S en PLA comme sur une CORE One en PETG, sans retouche.
 
@@ -68,7 +68,7 @@ path
 | Clé | Type | Rôle |
 | --- | --- | --- |
 | `format` | texte | `"fabweave.model"` ; autre valeur : erreur `model.wrong_format`. Facultatif. |
-| `version` | entier | Version du format ; absent = 1. **2** : paramètres `curve` (un modèle qui en a un déclare `version = 2`, sinon `param.requires_version`) ; les modèles de version 1 se lisent tels quels. Une version plus récente que le moteur : `model.unsupported_version`. |
+| `version` | entier | Version du format ; absent = 1. **2** : paramètres `curve` et `image` (un modèle qui en a un déclare `version = 2`, sinon `param.requires_version`) ; les modèles de version 1 se lisent tels quels. Une version plus récente que le moteur : `model.unsupported_version`. |
 
 ### `[meta]`
 
@@ -93,7 +93,7 @@ path
 
 | Clé | Types | Obligatoire | Rôle |
 | --- | --- | --- | --- |
-| `type` | — | oui | `"float"`, `"int"`, `"bool"`, `"choice"` ou `"curve"` (version 2) |
+| `type` | — | oui | `"float"`, `"int"`, `"bool"`, `"choice"`, `"curve"` ou `"image"` (version 2) |
 | `label` | texte | oui | Libellé **court : 14 caractères au plus** (la colonne fait 100 px et accueille aussi ⓘ et ↺). Le détail va dans `help`. |
 | `unit` | chaîne | non | Unité affichée. `"mm"` : longueur (affichée en pouces si l'utilisateur le demande) ; `"°"` : angle ; sinon texte libre court (`"%"`, `"mm/s"`, `"×"`). |
 | `help` | texte | non | Infobulle : une ou deux phrases concrètes, vocabulaire d'atelier. |
@@ -103,12 +103,15 @@ path
 | `step` | nombre | non (float, int) | Pas des flèches et nombre de décimales affichées (`0.05` → 2 décimales). |
 | `points` | `[min, max]` | non (curve) | Nombre de points permis (1 à 64 ; défaut `[2, 32]`). |
 | `smooth` | booléen | non (curve) | Raccord lisse (défaut `true`) ou droit entre les points. |
+| `size` | nombre | oui (image) | Plus grand côté du dessin, en mm. |
+| `threshold` | nombre | non (image) | Seuil d'encre d'un PNG sans transparence (luminance de 0 à 255, défaut 128 : plus sombre = encre). |
 | `presets` | liste | non (curve) | Galerie : `[{ name = { fr = "Boule", en = "Moon jar" }, points = [[28, 0], [48, 45], [24, 100]] }, …]`, chaque silhouette dans les bornes. |
 | `options` | liste | oui (choice) | Options : `["zigzag", "onde"]` ou `[{ value = "zigzag", label = { fr = "Zigzag", en = "Zigzag" } }, …]`. Deux options : sélecteur à côté du libellé ; trois : sélecteur pleine largeur ; davantage : liste déroulante. |
 
 - `float` accepte des valeurs entières (`default = 15`) ; `int` refuse `6.5`. `bool` et `choice` n'ont ni `min`, ni `max`, ni `step`.
 - `choice` : le script reçoit la chaîne `value` (`if params.pattern == "onde" { … }`) ; options uniques, non vides ; une valeur hors liste est l'erreur `param.unknown_option`.
 - `curve` : une silhouette `[rayon, hauteur]` en mm. `default` est la liste des points (hauteurs strictement croissantes) ; `min` et `max` sont des paires `[rayon, hauteur]` (le cadre de l'éditeur, à la même échelle dans les deux sens). Le rayon peut être un écart à un autre rayon (bornes négatives permises), si l'aide le dit. Le script reçoit un objet `Curve` : `c.at(z)` (rayon à la hauteur `z` ; raccord lisse par interpolation cubique monotone, qui ne dépasse jamais les points voisins ; hors des points, la courbe se prolonge à la verticale), `c.points()` (tableau de `[r, z]`), `c.len()`, `c.min_z`, `c.max_z`, `c.max_r`. Valeur refusée : nombre de points hors limites (`param.curve_point_count`), point hors cadre (`param.out_of_range`), hauteurs qui ne montent pas (`param.curve_not_increasing`). Dans l'interface : tracé à points déplaçables, saisie chiffrée du point choisi, galerie. En ligne de commande : `--set profil='[[30,0],[40,80]]'`.
+- `image` : un dessin SVG ou PNG. `default` est le texte SVG (entre apostrophes TOML : `default = '<svg …>…</svg>'`), un PNG en `data:image/png;base64,…`, ou `""` (aucun dessin). Le moteur lit le SVG (`path` avec toutes ses commandes, `polygon`, `rect`, `circle`, `ellipse`, transformations des éléments et des groupes ; `defs`, `clipPath`, `mask` ignorés) ou le PNG (8 bits par canal, non entrelacé ; encre : les pixels opaques s'il y a de la transparence, sinon ceux plus sombres que `threshold`, contours suivis le long des pixels puis simplifiés), centre le dessin sur (0, 0) et met son plus grand côté à `size` mm. Le script reçoit un objet `Drawing` : `d.contours()` (tableau de listes de points fermées à z = 0 ; un contour dans un autre est un trou), `d.width`, `d.height`, `d.empty`. Les contours se remplissent ensemble, trous compris : `d.contours().fill_lines(w, angle, inset)` (règle pair-impair ; les contours déplacés en hauteur par `translate` d'abord). Précision d'un PNG : à quelques dixièmes de pixel près (0,2 mm pour 0,25 mm par pixel). Limites : 2 Mo, 2 048 px de côté, 2 000 contours. Dans l'interface : choix du fichier, aperçu de la silhouette ; le fichier est enregistré dans le projet.
 - Une valeur hors bornes envoyée au moteur n'est **jamais ramenée** dans l'intervalle : erreur `param.out_of_range`, parcours non calculé.
 - Les angles des paramètres sont en **degrés** ; convertir avec `rad()` dans le script.
 
@@ -341,6 +344,7 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `gcode.pause_missing` | erreur | Le modèle fait des pauses mais le profil d'imprimante n'a pas de gabarit `pause` (export refusé). |
 | `points.invalid_count`, `points.invalid_value`, `points.index_out_of_range`, `points.empty` | erreur | Argument invalide d'une fonction de points (nombre de segments, rayon…). |
 | `effect.unknown` | erreur | Type d'effet de parcours inconnu. |
+| `image.invalid`, `image.empty`, `image.too_large`, `image.unsupported` | erreur | Paramètre `image` : fichier ni SVG ni PNG ou abîmé, aucune forme, dessin trop lourd, PNG non pris en charge (16 bits, entrelacé). |
 | `flow.overhang_compensated` | info | Parois inclinées : débit compensé selon `filament.overhang_flow` (`count` : mouvements, `value` : facteur le plus grand). |
 | `shape.unknown_section`, `shape.unknown_twist`, `shape.cage_size`, `shape.radius_too_small`, `shape.no_turn` | erreur | Fonctions de forme : type de section ou rythme inconnu, cage mal dimensionnée, rayon sous 0,5 mm, spirale sans tour. |
 | `model.warning` | avertissement | `warn()` du modèle (son texte, sa ligne). |

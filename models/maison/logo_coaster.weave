@@ -1,0 +1,104 @@
+format = "fabweave.model"
+version = 2
+
+[meta]
+name = { fr = "Dessous de verre au logo", en = "Logo coaster" }
+category = { fr = "Maison", en = "Home" }
+description = { fr = "Un disque plein surmonté d'un dessin en relief : déposez un SVG ou un PNG (le logo du fablab, un prénom vectorisé). Une pause au sommet du disque permet de changer de filament pour un logo d'une autre couleur.", en = "A solid disc topped with a raised drawing: drop an SVG or a PNG (the fablab logo, a vectorised name). A pause at the top of the disc lets you change filament for a logo in another colour." }
+author = "FabWeave"
+tags = ["dessous de verre", "logo", "image", "deux couleurs"]
+license = "GPL-3.0-or-later"
+recommended_nozzle = [0.4]
+
+[params.logo]
+type = "image"
+label = { fr = "Logo", en = "Logo" }
+help = { fr = "SVG (chemins, formes) ou PNG à fond transparent ou clair. Un contour dans un autre fait un trou.", en = "SVG (paths, shapes) or PNG with a transparent or light background. A contour inside another makes a hole." }
+size = 60
+default = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 5 L61 38 L95 38 L67 58 L78 92 L50 71 L22 92 L33 58 L5 38 L39 38 Z"/><circle cx="50" cy="52" r="10"/></svg>'
+
+[params.diameter]
+type = "float"
+label = { fr = "Diamètre", en = "Diameter" }
+unit = "mm"
+default = 95
+min = 70
+max = 150
+step = 1
+
+[params.base_layers]
+type = "int"
+label = { fr = "Couches disque", en = "Disc layers" }
+default = 10
+min = 3
+max = 30
+
+[params.relief_layers]
+type = "int"
+label = { fr = "Couches relief", en = "Relief layers" }
+default = 6
+min = 1
+max = 30
+
+[params.color_change]
+type = "bool"
+label = { fr = "Pause couleur", en = "Colour pause" }
+help = { fr = "Pause au sommet du disque pour changer de filament.", en = "Pause at the top of the disc to change filament." }
+default = true
+---
+// Dessous de verre au logo (FabWeave, R-025) : disque plein, puis le dessin
+// du paramètre `logo` en relief, rempli de lignes croisées.
+
+let w = printer.nozzle_diameter * 1.125;
+let fh = printer.first_layer_height;
+let lh = printer.layer_height;
+let r = params.diameter / 2;
+let logo = params.logo;
+if logo.empty {
+    fail(#{ fr: "Déposez un dessin (SVG ou PNG) dans le paramètre Logo.", en: "Drop a drawing (SVG or PNG) in the Logo parameter." });
+}
+let reach = 0.0;
+for c in logo.contours() {
+    for i in 0..c.len() {
+        let p = c.point(i);
+        reach = max(reach, hypot(p[0], p[1]));
+    }
+}
+if reach > r - 3 {
+    fail(#{ fr: "Logo trop grand pour le disque : augmenter le diamètre.", en: "Logo too large for the disc: increase the diameter." });
+}
+
+let path = new_path();
+let z = fh;
+for k in 0..params.base_layers {
+    let h = if k == 0 { fh } else { lh };
+    if k > 0 { z += lh; }
+    let edge = circle(0, 0, z, r - w / 2, 0, 180);
+    path.travel_to(edge);
+    path.print_points(edge, w, h);
+    for c in edge.fill_lines(w, if k % 2 == 0 { PI / 4 } else { -PI / 4 }, w * 0.85) {
+        path.travel_to(c);
+        path.print_points(c, w, h);
+    }
+}
+if params.color_change {
+    path.pause(#{ fr: "Changer de filament pour le logo", en: "Change filament for the logo" });
+}
+for k in 0..params.relief_layers {
+    z += lh;
+    let cs = [];
+    for c in logo.contours() {
+        let at = c.translate(0, 0, z);
+        cs.push(at);
+        path.travel_to(at);
+        path.print_points(at, w, lh);
+    }
+    if k == 0 {
+        path.note(#{ fr: "Logo : contours, puis remplissage", en: "Logo: outlines, then infill" });
+    }
+    for c in cs.fill_lines(w, if k % 2 == 0 { PI / 4 } else { -PI / 4 }, w * 0.85) {
+        path.travel_to(c);
+        path.print_points(c, w, lh);
+    }
+}
+path

@@ -628,6 +628,7 @@ impl ScriptEngine {
         );
         crate::points::register(&mut engine, limits.max_points);
         crate::curve::register(&mut engine);
+        crate::drawing::register(&mut engine);
         crate::effects::register(&mut engine);
         crate::shapes::register(&mut engine, limits.max_points);
         let sink = |log: Rc<RefCell<Log>>| {
@@ -707,6 +708,7 @@ impl ScriptEngine {
                 ParamValue::Bool(b) => Dynamic::from_bool(*b),
                 ParamValue::Choice(s) => Dynamic::from(s.clone()),
                 ParamValue::Curve(c) => Dynamic::from(c.clone()),
+                ParamValue::Image(i) => Dynamic::from(i.drawing.clone()),
             };
             p.insert(k.as_str().into(), d);
         }

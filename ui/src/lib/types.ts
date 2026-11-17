@@ -16,6 +16,14 @@ export type ParamDef = {
   | { type: 'bool'; default: boolean }
   | { type: 'choice'; default: string; options: { value: string; label?: Text }[] }
   | {
+      type: 'image';
+      /** Texte SVG, ou PNG en `data:image/png;base64,…` ; vide : aucun dessin. */
+      default: string;
+      /** Plus grand côté du dessin (mm). */
+      size: number;
+      threshold: number;
+    }
+  | {
       type: 'curve';
       /** Points `[rayon, hauteur]` en mm. */
       default: [number, number][];

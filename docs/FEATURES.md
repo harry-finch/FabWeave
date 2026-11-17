@@ -19,7 +19,7 @@ Périmètre fonctionnel de FabWeave, établi à partir de la conversation de rec
 | FMT-09 | Spécification `docs/WEAVE_FORMAT.md` et prompt système pour IA `docs/PROMPT_MODELE_IA.md` | v0.1 / v0.2 | fait |
 | FMT-10 | Versionnement et migration des anciens formats | v0.2 | prévu |
 | FMT-11 | Paramètre `curve` (format version 2) : silhouette en points (bornes, nombre de points, raccord lisse ou droit), galerie de silhouettes nommées ; objet `Curve` dans le script (`at`, `points`, `max_z`…) ; éditeur à points dans le panneau Paramètres (R-020 ; éditeur non essayé dans un navigateur) | v0.7 | fait |
-| FMT-12 | Paramètre `image` : dessin SVG ou PNG transformé en contours fermés, enregistré dans le projet (R-025) | v0.7 | prévu |
+| FMT-12 | Paramètre `image` : dessin SVG ou PNG lu par le moteur (chemins, formes, transformations ; PNG 8 bits), contours fermés centrés à la taille voulue, objet `Drawing` ; `fill_lines` sur plusieurs contours (trous) ; champ de l'interface avec aperçu ; enregistré dans le projet (R-025 ; champ non essayé dans un navigateur) | v0.7 | fait |
 
 ## API du script (API)
 
@@ -132,7 +132,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | CAT-29 | Vase à effets : sept effets, plage de hauteur, dentelle réglable (R-021) | v0.7 | fait |
 | CAT-30 | Forme libre : silhouette, section, torsion, resserrement, cage de 3 × 6 points (R-023) | v0.7 | fait |
 | CAT-31 | Luminaires : suspension E27 / E14, rosace, applique, lampe à poser (R-022) | v0.7 | prévu |
-| CAT-32 | Dessous de verre au logo, plaque ajourée (R-025) | v0.7 | prévu |
+| CAT-32 | Dessous de verre au logo (pause de changement de couleur), plaque ajourée (R-025) | v0.7 | fait |
 
 ## Visualisation (VIEW)
 

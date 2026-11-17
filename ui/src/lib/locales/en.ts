@@ -72,6 +72,12 @@ const en: Shape<typeof fr> = {
     on: 'Yes',
     off: 'No',
   },
+  image: {
+    choose: 'File…',
+    reset: 'Back to the model’s drawing',
+    none: 'No drawing.',
+    size: 'SVG or PNG; longest side: {size} mm.',
+  },
   curve: {
     gallery: 'Gallery…',
     reset: 'Back to the model’s silhouette',
@@ -388,7 +394,7 @@ const en: Shape<typeof fr> = {
       not_an_integer: '{field}: an integer is expected.',
       not_a_boolean: '{field}: true or false is expected.',
       unexpected_field: '{field}: field not used by this type.',
-      unknown_type: '{field}: unknown type (float, int, bool, choice or curve).',
+      unknown_type: '{field}: unknown type (float, int, bool, choice, curve or image).',
       invalid_bounds: '{field}: the minimum must be lower than the maximum.',
       default_out_of_range: '{field}: default value {value} is out of bounds.',
       invalid_step: '{field}: the step must be positive.',
@@ -445,6 +451,12 @@ const en: Shape<typeof fr> = {
       too_many_pauses: 'Too many pauses (at most {detail}).',
       blob_without_position: 'Blob without a position: move the nozzle (travel_to, print_to…) before blob().',
       invalid_blob: 'Invalid blob ({detail}): volume from 0 to 1,000 mm³, duration from 0 to 60 s.',
+    },
+    image: {
+      invalid: '{field}: unreadable file (neither SVG nor PNG, or damaged).',
+      empty: '{field}: no shape found in the drawing.',
+      too_large: '{field}: drawing too heavy (2 MB, 2,048 px per side, 2,000 contours at most).',
+      unsupported: '{field}: unsupported PNG (8 bits per channel, not interlaced): save it again.',
     },
     effect: {
       unknown: 'Unknown path effect type.',

@@ -20,6 +20,21 @@ pub enum ParamValue {
     Choice(String),
     /// Silhouette d'un paramètre `curve` (écrite comme sa liste de points).
     Curve(Curve),
+    /// Dessin d'un paramètre `image` (écrit comme son texte source).
+    Image(Image),
+}
+
+/// Valeur d'un paramètre `image` : le fichier tel que donné, et son dessin.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Image {
+    pub source: String,
+    pub drawing: crate::drawing::Drawing,
+}
+
+impl Serialize for Image {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        self.source.serialize(s)
+    }
 }
 
 impl ParamDef {
@@ -34,6 +49,14 @@ impl ParamDef {
                 smooth,
                 ..
             } => ParamValue::Curve(Curve::new(default.clone(), smooth)),
+            ParamKind::Image {
+                ref default,
+                ref parsed,
+                ..
+            } => ParamValue::Image(Image {
+                source: default.clone(),
+                drawing: parsed.clone(),
+            }),
         }
     }
 }
@@ -98,6 +121,17 @@ fn check(kind: &ParamKind, v: &Value) -> Result<ParamValue, Issue> {
                 return Err(Issue::error("param.unknown_option").detail(s.to_string()));
             }
             Ok(ParamValue::Choice(s.to_string()))
+        }
+        ParamKind::Image {
+            size, threshold, ..
+        } => {
+            let s = v.as_str().ok_or_else(wrong)?;
+            let drawing = crate::drawing::read(s, size, threshold)
+                .map_err(|(code, d)| Issue::error(code).detail(d))?;
+            Ok(ParamValue::Image(Image {
+                source: s.to_string(),
+                drawing,
+            }))
         }
         ParamKind::Curve { smooth, .. } => {
             let points = curve::points_from_json(v).ok_or_else(wrong)?;

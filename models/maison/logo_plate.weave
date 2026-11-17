@@ -1,0 +1,79 @@
+format = "fabweave.model"
+version = 2
+
+[meta]
+name = { fr = "Plaque ajourée", en = "Cut-out plate" }
+category = { fr = "Maison", en = "Home" }
+description = { fr = "Une plaque rectangulaire dont le dessin est découpé de part en part : pochoir, enseigne, cache de lampe. Les îles du dessin (l'intérieur d'un O) tombent : préférez un dessin de pochoir.", en = "A rectangular plate with the drawing cut right through: stencil, sign, lamp cover. Islands of the drawing (the inside of an O) fall out: prefer a stencil drawing." }
+author = "FabWeave"
+tags = ["plaque", "pochoir", "logo", "image"]
+license = "GPL-3.0-or-later"
+recommended_nozzle = [0.4]
+
+[params.logo]
+type = "image"
+label = { fr = "Dessin", en = "Drawing" }
+help = { fr = "SVG ou PNG à fond transparent ou clair ; il est découpé dans la plaque.", en = "SVG or PNG with a transparent or light background; it is cut out of the plate." }
+size = 50
+default = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 5 L61 38 L95 38 L67 58 L78 92 L50 71 L22 92 L33 58 L5 38 L39 38 Z"/></svg>'
+
+[params.width]
+type = "float"
+label = { fr = "Largeur", en = "Width" }
+unit = "mm"
+default = 80
+min = 55
+max = 200
+step = 1
+
+[params.depth]
+type = "float"
+label = { fr = "Profondeur", en = "Depth" }
+unit = "mm"
+default = 70
+min = 55
+max = 200
+step = 1
+
+[params.layers]
+type = "int"
+label = { fr = "Couches", en = "Layers" }
+default = 8
+min = 3
+max = 40
+---
+// Plaque ajourée (FabWeave, R-025) : rectangle plein, dessin découpé
+// (règle pair-impair : les contours du dessin sont des trous de la plaque).
+
+let w = printer.nozzle_diameter * 1.125;
+let fh = printer.first_layer_height;
+let lh = printer.layer_height;
+let logo = params.logo;
+if logo.empty {
+    fail(#{ fr: "Déposez un dessin (SVG ou PNG) dans le paramètre Dessin.", en: "Drop a drawing (SVG or PNG) in the Drawing parameter." });
+}
+if logo.width > params.width - 6 || logo.height > params.depth - 6 {
+    fail(#{ fr: "Dessin trop grand pour la plaque : l'agrandir.", en: "Drawing too large for the plate: enlarge it." });
+}
+
+let path = new_path();
+let z = fh;
+for k in 0..params.layers {
+    let h = if k == 0 { fh } else { lh };
+    if k > 0 { z += lh; }
+    let edge = rectangle(-params.width / 2 + w / 2, -params.depth / 2 + w / 2, z, params.width - w, params.depth - w);
+    let cs = [edge];
+    path.travel_to(edge);
+    path.print_points(edge, w, h);
+    for c in logo.contours() {
+        let at = c.translate(0, 0, z);
+        cs.push(at);
+        path.travel_to(at);
+        path.print_points(at, w, h);
+    }
+    for c in cs.fill_lines(w, if k % 2 == 0 { PI / 4 } else { -PI / 4 }, w * 0.85) {
+        path.travel_to(c);
+        path.print_points(c, w, h);
+    }
+}
+path

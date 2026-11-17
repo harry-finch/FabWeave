@@ -373,6 +373,8 @@ fn run() -> Result<bool, String> {
                     ParamKind::Curve { presets, .. } => {
                         presets.iter().map(|p| json!(p.points)).collect()
                     }
+                    // Dessin : celui du modèle seulement.
+                    ParamKind::Image { .. } => Vec::new(),
                 };
                 for v in ends {
                     let mut values = a.values.clone();

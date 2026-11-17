@@ -211,15 +211,31 @@ pub fn fill_lines(
     angle: f64,
     inset: f64,
 ) -> Vec<Vec<[f64; 3]>> {
+    fill_lines_multi(&[contour], spacing, angle, inset)
+}
+
+/// Lignes de remplissage de plusieurs contours fermés (règle pair-impair :
+/// un contour dans un autre est un trou), à la hauteur du premier.
+pub fn fill_lines_multi(
+    contours: &[&[[f64; 3]]],
+    spacing: f64,
+    angle: f64,
+    inset: f64,
+) -> Vec<Vec<[f64; 3]>> {
     let (c, s) = (libm::cos(angle), libm::sin(angle));
     // Repère tourné : les lignes deviennent horizontales (y' constant).
-    let poly = polygon(contour, |p| [p[0] * c + p[1] * s, -p[0] * s + p[1] * c]);
-    if poly.len() < 3 || spacing.is_nan() || spacing <= 0.0 {
+    let poly: Vec<Vec<[f64; 2]>> = contours
+        .iter()
+        .map(|k| polygon(k, |p| [p[0] * c + p[1] * s, -p[0] * s + p[1] * c]))
+        .filter(|l| l.len() >= 3)
+        .collect();
+    if poly.is_empty() || spacing.is_nan() || spacing <= 0.0 {
         return Vec::new();
     }
-    let z = contour[0][2];
+    let z = contours[0].first().map_or(0.0, |p| p[2]);
     let (y0, y1) = poly
         .iter()
+        .flatten()
         .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), p| {
             (a.min(p[1]), b.max(p[1]))
         });
@@ -281,10 +297,16 @@ pub fn fill_lines(
 
 /// Intervalles intérieurs de la ligne horizontale `y`, raccourcis de `inset`,
 /// triés ; ceux plus courts que `min_len` sont écartés.
-fn row_intervals(poly: &[[f64; 2]], y: f64, inset: f64, min_len: f64) -> Vec<(f64, f64)> {
+/// Bords de toutes les boucles fermées.
+fn edges(loops: &[Vec<[f64; 2]>]) -> impl Iterator<Item = ([f64; 2], [f64; 2])> + '_ {
+    loops
+        .iter()
+        .flat_map(|l| (0..l.len()).map(move |i| (l[i], l[(i + 1) % l.len()])))
+}
+
+fn row_intervals(poly: &[Vec<[f64; 2]>], y: f64, inset: f64, min_len: f64) -> Vec<(f64, f64)> {
     let mut hits: Vec<(f64, f64)> = Vec::new();
-    for i in 0..poly.len() {
-        let (a, b) = (poly[i], poly[(i + 1) % poly.len()]);
+    for (a, b) in edges(poly) {
         if (a[1] > y) != (b[1] > y) {
             let x = a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
             let len = (b[0] - a[0]).hypot(b[1] - a[1]);
@@ -299,13 +321,12 @@ fn row_intervals(poly: &[[f64; 2]], y: f64, inset: f64, min_len: f64) -> Vec<(f6
         .collect()
 }
 
-/// Le segment `p`–`q` coupe-t-il un bord du polygone ?
-fn crosses(poly: &[[f64; 2]], p: [f64; 2], q: [f64; 2]) -> bool {
+/// Le segment `p`–`q` coupe-t-il un bord des contours ?
+fn crosses(poly: &[Vec<[f64; 2]>], p: [f64; 2], q: [f64; 2]) -> bool {
     let cross = |o: [f64; 2], a: [f64; 2], b: [f64; 2]| {
         (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
     };
-    (0..poly.len()).any(|i| {
-        let (a, b) = (poly[i], poly[(i + 1) % poly.len()]);
+    edges(poly).any(|(a, b)| {
         let (d1, d2) = (cross(a, b, p), cross(a, b, q));
         let (d3, d4) = (cross(p, q, a), cross(p, q, b));
         (d1 > 0.0) != (d2 > 0.0) && (d3 > 0.0) != (d4 > 0.0)

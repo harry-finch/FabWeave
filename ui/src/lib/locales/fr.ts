@@ -70,6 +70,12 @@ const fr = {
     on: 'Oui',
     off: 'Non',
   },
+  image: {
+    choose: 'Fichier…',
+    reset: 'Revenir au dessin du modèle',
+    none: 'Aucun dessin.',
+    size: 'SVG ou PNG ; plus grand côté : {size} mm.',
+  },
   curve: {
     gallery: 'Galerie…',
     reset: 'Revenir à la silhouette du modèle',
@@ -386,7 +392,7 @@ const fr = {
       not_an_integer: '{field} : un entier est attendu.',
       not_a_boolean: '{field} : true ou false est attendu.',
       unexpected_field: '{field} : champ sans objet pour ce type.',
-      unknown_type: '{field} : type inconnu (float, int, bool, choice ou curve).',
+      unknown_type: '{field} : type inconnu (float, int, bool, choice, curve ou image).',
       invalid_bounds: '{field} : le minimum doit être inférieur au maximum.',
       default_out_of_range: '{field} : la valeur par défaut {value} sort des bornes.',
       invalid_step: '{field} : le pas doit être positif.',
@@ -443,6 +449,12 @@ const fr = {
       too_many_pauses: 'Trop de pauses (au plus {detail}).',
       blob_without_position: 'Goutte sans position : placer la buse (travel_to, print_to…) avant blob().',
       invalid_blob: 'Goutte invalide ({detail}) : volume de 0 à 1 000 mm³, durée de 0 à 60 s.',
+    },
+    image: {
+      invalid: '{field} : fichier illisible (ni SVG ni PNG, ou abîmé).',
+      empty: '{field} : aucune forme trouvée dans le dessin.',
+      too_large: '{field} : dessin trop lourd (2 Mo, 2 048 px de côté, 2 000 contours au plus).',
+      unsupported: '{field} : PNG non pris en charge (8 bits par canal, non entrelacé) : réenregistrez-le.',
     },
     effect: {
       unknown: 'Type d’effet de parcours inconnu.',

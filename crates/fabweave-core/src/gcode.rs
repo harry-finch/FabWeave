@@ -295,6 +295,7 @@ fn param_text(v: &ParamValue) -> String {
         ParamValue::Int(i) => i.to_string(),
         ParamValue::Bool(b) => b.to_string(),
         ParamValue::Choice(s) => one_line(s),
+        ParamValue::Image(i) => format!("image, {} contours", i.drawing.contours.len()),
         ParamValue::Curve(c) => c
             .points
             .iter()

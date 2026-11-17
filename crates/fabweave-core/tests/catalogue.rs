@@ -135,6 +135,7 @@ fn every_model_survives_its_parameter_bounds() {
                 ParamKind::Curve { ref presets, .. } => {
                     presets.iter().map(|p| json!(p.points)).collect()
                 }
+                ParamKind::Image { .. } => Vec::new(),
             };
             for v in ends {
                 let mut values = Map::new();

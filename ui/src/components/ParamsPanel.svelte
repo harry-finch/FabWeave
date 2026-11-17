@@ -10,6 +10,7 @@
   // défilement du libellé est un geste (une étape d'annulation).
   import NumField from './NumField.svelte';
   import CurveField from './CurveField.svelte';
+  import ImageField from './ImageField.svelte';
   import { sameCurve } from '../lib/curve';
   import Field from './Field.svelte';
   import Segmented from './Segmented.svelte';
@@ -49,7 +50,7 @@
   /** Valeur du modèle, telle qu'affichée (« 15 mm », « 0,6 in », « 10 % »). */
   function shownDefault(def: ParamDef): string {
     if (def.type === 'bool') return def.default ? t('model.on') : t('model.off');
-    if (def.type === 'curve') return '';
+    if (def.type === 'curve' || def.type === 'image') return '';
     if (def.type === 'choice') return text(def.options.find((o) => o.value === def.default)?.label) || def.default;
     if (def.unit === 'mm' && def.type === 'float') return fmtLen(def.default, ui.units, decimalsOf(def.step));
     return `${numTrim(def.default, decimalsOf(def.step))}${def.unit ? ` ${def.unit}` : ''}`;
@@ -57,7 +58,10 @@
 </script>
 
 {#snippet row(id: string, def: ParamDef)}
-  {#if def.type === 'curve'}
+  {#if def.type === 'image'}
+    {@const v = (values[id] as string | undefined) ?? def.default}
+    <ImageField {def} value={v} invalid={invalid.has(id)} modified={v !== def.default} onchange={(s) => onchange(id, s)} onreset={() => onreset(id)} />
+  {:else if def.type === 'curve'}
     {@const v = (values[id] as [number, number][] | undefined) ?? def.default}
     <CurveField {def} value={v} invalid={invalid.has(id)} modified={!sameCurve(v, def.default)} onchange={(p) => onchange(id, p)} onreset={() => onreset(id)} {onbegin} {onend} />
   {:else if def.type === 'bool'}

@@ -2,7 +2,7 @@
 id: R-025
 titre: "Paramètre image : logo SVG ou PNG"
 resume: "Nouveau type de paramètre .weave : un dessin SVG ou PNG transformé en contours, en relief ou ajouré, enregistré dans le projet."
-statut: specifiee
+statut: a-tester
 jalon: v0.7
 cree: 2026-11-17
 maj: 2026-11-17
@@ -35,7 +35,7 @@ Aucune. Le contour obtenu peut servir de section aux formes de R-023.
 ## Critères d'acceptation
 
 - Un SVG d'un carré avec un trou rond rend deux contours de bonne taille (±0,05 mm) et le trou reste vide dans le parcours (test).
-- Un PNG du même dessin rend des contours équivalents à 0,2 mm près (test).
+- Un PNG du même dessin rend des contours équivalents à 0,2 mm près (test), à une résolution de 0,25 mm par pixel ou plus fine (précision corrigée le 17/11/2026 : à 0,4 mm par pixel, 0,2 mm n'est pas atteignable).
 - Fichier corrompu, SVG sans forme, PNG entièrement vide : refus avec leur code, sans plantage.
 - Projet enregistré avec un logo puis rouvert : même G-code, octet pour octet.
 - `cargo test --workspace`, Clippy et `npm run check` sans erreur.

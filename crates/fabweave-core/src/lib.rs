@@ -10,6 +10,7 @@
 
 pub mod adhesion;
 pub mod curve;
+pub mod drawing;
 pub mod effects;
 pub mod fill;
 pub mod format;

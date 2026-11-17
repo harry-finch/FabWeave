@@ -34,7 +34,7 @@ fn to_chord(p: [f64; 3], a: [f64; 3], b: [f64; 3]) -> f64 {
 
 /// Douglas–Peucker, sans récursion : une forme fermée garde son départ et son
 /// arrivée confondus, et le point le plus éloigné de cette corde nulle.
-fn simplify(pts: &[[f64; 3]], tolerance: f64) -> Vec<[f64; 3]> {
+pub(crate) fn simplify(pts: &[[f64; 3]], tolerance: f64) -> Vec<[f64; 3]> {
     if pts.len() < 3 {
         return pts.to_vec();
     }
@@ -584,6 +584,40 @@ pub(crate) fn register(engine: &mut Engine, limit: usize) {
     engine.register_fn("fill_lines", move |p: &mut Points, spacing: D, angle: D| {
         fill(p, spacing, angle, Dynamic::from_float(0.0))
     });
+    // contours.fill_lines(spacing, angle[, inset]) : remplissage de plusieurs
+    // contours (tableau de listes de points, un dessin), règle pair-impair :
+    // un contour dans un autre est un trou.
+    let fill_many = move |a: &mut rhai::Array, spacing: D, angle: D, inset: D| -> R<rhai::Array> {
+        let spacing = positive(&spacing, "spacing")?;
+        let (angle, inset) = (num(&angle, "angle")?, num(&inset, "inset")?);
+        if inset < 0.0 {
+            return Err(fault("points.invalid_value", format!("inset : {inset}")));
+        }
+        let loops = a
+            .iter()
+            .map(|c| {
+                c.clone()
+                    .try_cast::<Points>()
+                    .ok_or_else(|| fault("points.invalid_value", "contours"))
+            })
+            .collect::<R<Vec<Points>>>()?;
+        let refs: Vec<&[[f64; 3]]> = loops.iter().map(|p| p.0.as_slice()).collect();
+        let chains = crate::fill::fill_lines_multi(&refs, spacing, angle, inset);
+        if chains.iter().map(Vec::len).sum::<usize>() > limit {
+            return Err(fault("path.too_many_points", limit.to_string()));
+        }
+        Ok(chains
+            .into_iter()
+            .map(|c| Dynamic::from(Points(c)))
+            .collect())
+    };
+    engine.register_fn("fill_lines", fill_many);
+    engine.register_fn(
+        "fill_lines",
+        move |a: &mut rhai::Array, spacing: D, angle: D| {
+            fill_many(a, spacing, angle, Dynamic::from_float(0.0))
+        },
+    );
     // fill_rings(spacing[, inset]) : anneaux concentriques du contour, du bord
     // vers le centre, chacun fermé (tableau de listes de points).
     let rings = move |p: &mut Points, spacing: D, inset: D| -> R<rhai::Array> {

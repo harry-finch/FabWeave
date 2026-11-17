@@ -37,7 +37,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
    Effets tracés par la buse (trame, grain, vagues, picots, dentelle, colonnes, gros boudin) en fonctions natives de l'API, et un « Vase à effets ».
 7. **[R-024 Débit en porte-à-faux et couches variables](roadmap/items/R-024-debit-en-porte-a-faux-et-couches-variables.md)** · À tester · jalon v0.7
    Le moteur compense le débit des parois inclinées (compté et signalé) et les modèles choisissent une hauteur de couche selon la pente.
-8. **[R-025 Paramètre image : logo SVG ou PNG](roadmap/items/R-025-parametre-image-logo-svg-ou-png.md)** · Spécifiée · jalon v0.7
+8. **[R-025 Paramètre image : logo SVG ou PNG](roadmap/items/R-025-parametre-image-logo-svg-ou-png.md)** · À tester · jalon v0.7
    Nouveau type de paramètre .weave : un dessin SVG ou PNG transformé en contours, en relief ou ajouré, enregistré dans le projet.
 9. **[R-022 Luminaires : suspension, rosace, applique, lampe à poser](roadmap/items/R-022-luminaires-suspension-rosace-applique-lampe-a.md)** · Spécifiée · jalon v0.7
    Rubrique Luminaires du catalogue : pièces prêtes à monter avec alésage de douille E27 / E14, rosace, platine murale et emboîtement.
@@ -80,6 +80,8 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-020](roadmap/actions/A-020-imprimer-une-piece-torsadee-et-deformee-par-la.md) Imprimer une pièce torsadée et déformée par la cage (tester, R-023)
 - [ ] [A-021](roadmap/actions/A-021-imprimer-le-vase-a-effets-avec-trois-effets-dont.md) Imprimer le « Vase à effets » avec trois effets, dont la dentelle (tester, R-021)
 - [ ] [A-022](roadmap/actions/A-022-comparer-le-debit-compense-en-porte-a-faux-et.md) Comparer le débit compensé en porte-à-faux et essayer les couches variables (tester, R-024)
+- [ ] [A-023](roadmap/actions/A-023-imprimer-un-dessous-de-verre-au-logo-du-fablab.md) Imprimer un dessous de verre au logo du fablab, en deux couleurs (tester, R-025)
+- [ ] [A-024](roadmap/actions/A-024-essayer-des-svg-et-des-png-du-fablab-dans-le.md) Essayer des SVG et des PNG du fablab dans le paramètre image (tester, R-025)
 
 ## Livré
 

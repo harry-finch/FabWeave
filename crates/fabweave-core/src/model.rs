@@ -14,8 +14,9 @@ use crate::issue::{line_col, Issue};
 /// Identifiant du format, facultatif dans le fichier.
 pub const FORMAT: &str = "fabweave.model";
 /// Version du format lue et écrite par ce moteur.
-/// Version 2 : paramètre `curve` (une silhouette en points). Un modèle qui
-/// s'en sert déclare `version = 2` ; les modèles de version 1 se lisent tels quels.
+/// Version 2 : paramètres `curve` (une silhouette en points) et `image` (un
+/// dessin SVG ou PNG). Un modèle qui s'en sert déclare `version = 2` ; les
+/// modèles de version 1 se lisent tels quels.
 pub const VERSION: u32 = 2;
 
 /// Texte affiché : une chaîne, ou une table par langue (`{ fr = "…", en = "…" }`).
@@ -123,6 +124,18 @@ pub enum ParamKind {
         #[serde(skip_serializing_if = "Vec::is_empty")]
         presets: Vec<CurvePreset>,
     },
+    /// Dessin SVG ou PNG (version 2, `drawing.rs`) : `default` est le texte
+    /// SVG ou le PNG en `data:image/png;base64,…`, vide pour aucun dessin.
+    Image {
+        default: String,
+        /// Plus grand côté du dessin (mm).
+        size: f64,
+        /// Seuil d'encre d'un PNG sans transparence (luminance 0–255).
+        threshold: f64,
+        /// Dessin par défaut lu une fois.
+        #[serde(skip)]
+        parsed: crate::drawing::Drawing,
+    },
 }
 
 impl ParamKind {
@@ -229,6 +242,9 @@ struct RawParam {
     points: Option<Spanned<toml::Value>>,
     smooth: Option<Spanned<bool>>,
     presets: Option<Spanned<Vec<CurvePreset>>>,
+    /// `image` : taille (mm) et seuil d'encre.
+    size: Option<Spanned<toml::Value>>,
+    threshold: Option<Spanned<toml::Value>>,
 }
 
 /// Option d'un paramètre `choice` : `"zigzag"` ou `{ value = "zigzag", label = … }`.
@@ -424,7 +440,74 @@ fn convert_param(
             issues.push(err("param.unexpected_field", span).detail(name.to_string()));
         }
     }
+    if p.kind.get_ref() != "image" {
+        for (v, name) in [(&p.size, "size"), (&p.threshold, "threshold")] {
+            if let Some(v) = v {
+                issues.push(err("param.unexpected_field", v.span()).detail(name.to_string()));
+            }
+        }
+    }
     let kind = match p.kind.get_ref().as_str() {
+        "image" => {
+            if version < 2 {
+                issues.push(err("param.requires_version", p.kind.span()).value(2.0));
+                return Err(issues);
+            }
+            for (v, name) in [(&p.min, "min"), (&p.max, "max"), (&p.step, "step")] {
+                if let Some(v) = v {
+                    issues.push(err("param.unexpected_field", v.span()).detail(name.to_string()));
+                }
+            }
+            let size = match &p.size {
+                None => {
+                    issues
+                        .push(err("param.missing_field", p.kind.span()).detail("size".to_string()));
+                    0.0
+                }
+                Some(v) => number(v.get_ref())
+                    .filter(|s| *s > 0.0 && *s <= 1000.0)
+                    .unwrap_or_else(|| {
+                        issues
+                            .push(err("param.invalid_bounds", v.span()).detail("size".to_string()));
+                        0.0
+                    }),
+            };
+            let threshold = match &p.threshold {
+                None => 128.0,
+                Some(v) => number(v.get_ref())
+                    .filter(|t| (0.0..=255.0).contains(t))
+                    .unwrap_or_else(|| {
+                        issues.push(
+                            err("param.invalid_bounds", v.span()).detail("threshold".to_string()),
+                        );
+                        128.0
+                    }),
+            };
+            let default = match p.default.get_ref() {
+                toml::Value::String(s) => s.clone(),
+                _ => {
+                    issues.push(err("param.wrong_type", p.default.span()));
+                    String::new()
+                }
+            };
+            let parsed = if issues.is_empty() {
+                crate::drawing::read(&default, size, threshold).unwrap_or_else(|(code, d)| {
+                    issues.push(
+                        err("param.default_out_of_range", p.default.span())
+                            .detail(format!("{code} {d}")),
+                    );
+                    crate::drawing::Drawing::default()
+                })
+            } else {
+                crate::drawing::Drawing::default()
+            };
+            ParamKind::Image {
+                default,
+                size,
+                threshold,
+                parsed,
+            }
+        }
         "curve" => {
             if version < 2 {
                 issues.push(err("param.requires_version", p.kind.span()).value(2.0));
@@ -863,5 +946,30 @@ p
         // Champs d'une courbe sur un autre type : refusés.
         let e = parse(&MINIMAL.replace("default = 15", "default = 15\nsmooth = true")).unwrap_err();
         assert_eq!(e[0].code, "param.unexpected_field");
+    }
+
+    #[test]
+    fn image_parameters() {
+        let img = "[params.logo]\ntype = \"image\"\nlabel = \"Logo\"\nsize = 40\ndefault = '<svg><rect x=\"0\" y=\"0\" width=\"10\" height=\"5\"/></svg>'\n\n[params.closed]";
+        let src = MINIMAL.replace("[params.closed]", img);
+        assert_eq!(parse(&src).unwrap_err()[0].code, "param.requires_version");
+        let m = parse(&format!("version = 2\n{src}")).unwrap();
+        match &m.params["logo"].kind {
+            ParamKind::Image { size, parsed, .. } => {
+                assert_eq!(*size, 40.0);
+                assert!((parsed.width - 40.0).abs() < 1e-9 && (parsed.height - 20.0).abs() < 1e-9);
+            }
+            k => panic!("{k:?}"),
+        }
+        let v2 = |a: &str, b: &str| {
+            parse(&format!("version = 2\n{}", src.replace(a, b))).unwrap_err()[0].code
+        };
+        assert_eq!(v2("size = 40\n", ""), "param.missing_field");
+        assert_eq!(v2("size = 40", "size = 0"), "param.invalid_bounds");
+        assert_eq!(v2("<rect", "<blob"), "param.default_out_of_range");
+        assert_eq!(
+            v2("size = 40", "size = 40\nmin = 1"),
+            "param.unexpected_field"
+        );
     }
 }

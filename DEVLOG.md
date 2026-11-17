@@ -646,3 +646,14 @@ Accès navigateur indisponible ; contrôle natif de Vivaldi refusé par l’outi
 **Couches variables.** `adaptive_layers(profile, start, min, max, nozzle)` (`h = min + (max − min) · cos² θ`, `max` ≤ 0,8 × buse) et option `layers` de `revolve` ; option « Couches var. » de « Forme libre » (de la moitié à 1,5 fois le pas) : 61 min au lieu de 85 aux valeurs par défaut.
 
 **Vérification.** Tests : facteur à 45° (1/cos 45° à 0,01 près, et à 50 %), parois verticales et réglage nul sans effet, rien au-delà de 60° ; couches variables (maximum sur paroi droite, mi-chemin à 45°, bornes) ; filament v2 lu sans compensation, mouvements identiques à 0, compensation comptée à 1, valeur 1,5 refusée. **Non vérifié** : impression comparative (A-022), rendu.
+
+
+## 2026-11-17 — R-025 : paramètre image (logo SVG ou PNG)
+
+**Moteur.** `drawing.rs` : lecture pure et déterministe d'un SVG (chemins avec toutes leurs commandes, courbes et arcs aplatis, polygones, rectangles, cercles, ellipses, transformations des éléments et des groupes ; `defs`, masques ignorés) ou d'un PNG 8 bits non entrelacé (filtres, palette, transparence ; encre : opaque s'il y a de la transparence, sinon sombre sous le seuil ; contours le long des pixels par les milieux des arêtes, simplifiés à 0,35 pixel) ; dessin centré, plus grand côté à `size` mm ; codes `image.*`, limites (2 Mo, 2 048 px, 2 000 contours). Type de paramètre `image` (format version 2), objet `Drawing` dans le script ; `fill_lines` sur un tableau de contours (`fill_lines_multi`, règle pair-impair) : les fonctions internes du remplissage gèrent désormais plusieurs boucles, un contour seul donne le même résultat.
+
+**Catalogue.** « Dessous de verre au logo » (disque, pause de changement de couleur, logo en relief) et « Plaque ajourée » (dessin découpé), rubrique Maison, étoile par défaut.
+
+**Interface.** `ImageField` : choix d'un SVG ou d'un PNG, aperçu de la silhouette par un masque teinté du thème, ↺ ; textes FR / EN.
+
+**Vérification.** Tests : carré percé en SVG (trou à 0,05 mm), même dessin en PNG à 0,25 mm par pixel (0,2 mm), fichiers étrangers ou abîmés refusés sans plantage, lecture du type ; trou du logo vide dans le parcours (anneau à 0,1 mm), refus à code stable, aller-retour par le projet (même G-code). Critère PNG de la spécification précisé : 0,2 mm n'est atteignable qu'à 0,25 mm par pixel ou plus fin. **Non vérifié** : champ et aperçu dans un navigateur, fichiers réels d'Inkscape ou d'Illustrator, impression.

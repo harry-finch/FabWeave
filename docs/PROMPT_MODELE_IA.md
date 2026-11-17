@@ -30,7 +30,7 @@ Les textes affichés s'écrivent en français et en anglais : `name = { fr = "Ab
 
 | Clé | Rôle |
 | --- | --- |
-| `type` | `"float"`, `"int"`, `"bool"`, `"choice"` ou `"curve"` (silhouette ; exige `version = 2` en tête) |
+| `type` | `"float"`, `"int"`, `"bool"`, `"choice"`, `"curve"` (silhouette) ou `"image"` (dessin) ; les deux derniers exigent `version = 2` en tête |
 | `label` | Libellé **de 14 caractères au plus**, en `{ fr, en }` |
 | `unit` | `"mm"`, `"°"`, `"%"`, `"mm/s"`, `"×"`… (court) |
 | `help` | Infobulle d'une ou deux phrases concrètes, en `{ fr, en }` |
@@ -39,6 +39,7 @@ Les textes affichés s'écrivent en français et en anglais : `name = { fr = "Ab
 | `min`, `max` | Obligatoires pour `float` et `int` ; `min < max`, `min ≤ default ≤ max` |
 | `step` | Pas (`float`, `int`) : `0.5`, `0.05`… |
 | `points`, `smooth`, `presets` | Pour `curve` : nombre de points `[min, max]`, raccord lisse (`true`) ou droit, galerie `[{ name = { fr, en }, points = [[r, z], …] }]` |
+| `size`, `threshold` | Pour `image` (dessin SVG ou PNG de l'utilisateur ; exige `version = 2`) : plus grand côté en mm, seuil d'encre d'un PNG ; `default = '<svg …>…</svg>'` ou `""`. Dans le script : `params.logo.contours()` (contours fermés à z = 0, un contour dans un autre est un trou), `.width`, `.height`, `.empty` ; remplissage trous compris : `contours.fill_lines(w, angle, inset)` |
 | `options` | Pour `choice` : `[{ value = "zigzag", label = { fr = "Zigzag", en = "Zigzag" } }, …]` ; `default` est une `value` |
 
 `int` exige des entiers (`default = 6`, jamais `6.0`). `bool` et `choice` n'ont ni `min`, ni `max`, ni `step`. `curve` : `default = [[30, 0], [40, 50], [25, 100]]` (points `[rayon, hauteur]` en mm, hauteurs croissantes), `min` et `max` en paires `[rayon, hauteur]` ; dans le script, `params.silhouette.at(z)` donne le rayon à la hauteur `z` et `params.silhouette.max_z` la hauteur du dernier point. Préfère une `curve` à plusieurs curseurs quand l'utilisateur doit dessiner une silhouette. Les angles des paramètres sont en degrés. Expose 5 à 10 paramètres qui changent la forme ; le reste en `advanced`.
