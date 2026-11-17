@@ -193,6 +193,19 @@ impl ScriptPath {
         Ok(())
     }
 
+    /// Point imprimé à la vitesse courante multipliée par `scale` (effets de
+    /// parcours : crête de la dentelle ralentie) ; la vitesse courante reste.
+    pub(crate) fn push_scaled(&mut self, xyz: [f64; 3], w: f64, h: f64, scale: f64) -> R<()> {
+        let keep = self.speed;
+        self.speed = match keep {
+            Speed::Factor(f) => Speed::Factor(f * scale),
+            Speed::Absolute(v) => Speed::Absolute(v * scale),
+        };
+        let r = self.push(xyz, w, h, MoveKind::Print);
+        self.speed = keep;
+        r
+    }
+
     /// Essuyage : retour sur le dernier tracé imprimé sur `length` mm, à la
     /// hauteur courante (la buse ne redescend pas dans la matière).
     pub(crate) fn push_wipe(&mut self, length: f64) -> R<()> {
@@ -615,6 +628,7 @@ impl ScriptEngine {
         );
         crate::points::register(&mut engine, limits.max_points);
         crate::curve::register(&mut engine);
+        crate::effects::register(&mut engine);
         crate::shapes::register(&mut engine, limits.max_points);
         let sink = |log: Rc<RefCell<Log>>| {
             move |s: &str| {

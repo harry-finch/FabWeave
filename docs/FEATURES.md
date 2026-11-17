@@ -45,7 +45,7 @@ Variables injectées : `params` (valeurs des curseurs), `printer` (diamètre de 
 | API-16 | `pts.slice(from, to)` ; `floor`, `round`, `ceiling` acceptent un entier | v0.2 | fait |
 | API-18 | Réglages d'essai des modèles d'étalonnage (`[meta] calibration = true`) : décalage de température ±30 °C, longueur et vitesse de rétraction, saut en Z, bornés, signalés (ADR-0007) | v0.3 | fait |
 | API-17 | Bruit de gradient 3D natif `noise(x, y, z)` (−1 à 1, motifs de taille ≈ 1, déterministe, sans couture sur un cylindre pris en 3D) : textures aléatoires continues | v0.3 | fait |
-| API-19 | Effets de parcours natifs : trame, grain, vagues, picots, dentelle, colonnes, gros boudin (R-021) | v0.7 | prévu |
+| API-19 | Effets de parcours natifs : `effect` (vagues, trame, colonnes, picots, grain, dentelle, gros boudin), `with_effect`, `print_effect` ; plage et transition ; 50 000 points + effet en 2,8 ms (R-021) | v0.7 | fait |
 | API-20 | Formes natives : `section` (8 types), `twist_angle` (3 rythmes), `cage` (réglée par curseurs), `revolve` et `revolve_ring` (R-023) | v0.7 | fait |
 | API-21 | Hauteur de couche variable selon la pente (R-024) | v0.7 | prévu |
 
@@ -129,7 +129,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | CAT-25 | *Ajout* : vase à écailles (polygone aux faces creusées, taille resserrée, écailles en quinconce) | Photo de l'utilisateur (28/10/2026) ; texture de FullControl « ripple texture » | Points à pas égal le long du contour, sortie selon la normale | v0.3 | fait |
 | CAT-27 | *Ajout* : lampe à coussins (coussins empilés imprimés à l'envers en une spirale le long de la surface ; chaque tour appuyé sur le précédent, couture qui remonte par-dessus en quinconce, bombée sur les flancs ; ajours facultatifs sur les flancs presque droits ; dessus en pente ; descente sous chaque coussin ; porte-à-faux ralentis ; dégagement du cône de la buse vérifié) | Vidéo de l'utilisateur (29/10/2026) | Méridien par arcs, spirale non planaire en descente, augmentations et diminutions de la couture, appui de chaque point vérifié | v0.4 | fait |
 | CAT-28 | Vase à silhouette libre ; silhouette facultative ajoutée au vase à ondulations, forme d'origine par défaut (R-020) | v0.7 | fait |
-| CAT-29 | Vase à effets (R-021) | v0.7 | prévu |
+| CAT-29 | Vase à effets : sept effets, plage de hauteur, dentelle réglable (R-021) | v0.7 | fait |
 | CAT-30 | Forme libre : silhouette, section, torsion, resserrement, cage de 3 × 6 points (R-023) | v0.7 | fait |
 | CAT-31 | Luminaires : suspension E27 / E14, rosace, applique, lampe à poser (R-022) | v0.7 | prévu |
 | CAT-32 | Dessous de verre au logo, plaque ajourée (R-025) | v0.7 | prévu |

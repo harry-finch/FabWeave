@@ -444,6 +444,9 @@ const en: Shape<typeof fr> = {
       blob_without_position: 'Blob without a position: move the nozzle (travel_to, print_to…) before blob().',
       invalid_blob: 'Invalid blob ({detail}): volume from 0 to 1,000 mm³, duration from 0 to 60 s.',
     },
+    effect: {
+      unknown: 'Unknown path effect type.',
+    },
     shape: {
       unknown_section: 'Unknown section type.',
       unknown_twist: 'Unknown twist rhythm.',

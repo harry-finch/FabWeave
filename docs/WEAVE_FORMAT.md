@@ -259,6 +259,18 @@ Pour composer vases, pots et abat-jour sans boucle de script : une silhouette (`
 
 Erreurs : type ou rythme inconnu (`shape.unknown_section`, `shape.unknown_twist`), cage dont le nombre de déplacements ne correspond pas (`shape.cage_size`), rayon qui descend sous 0,5 mm (`shape.radius_too_small`), départ au-dessus de la fin (`shape.no_turn`), nombres hors domaine (`points.invalid_count`, `points.invalid_value`). Modèle d'exemple : [free_form.weave](../models/vases/free_form.weave).
 
+### Effets de parcours (calcul natif, R-021)
+
+Textures tracées par la buse elle-même, sur une liste de points qui tourne autour de l'axe Z (une spirale de `revolve` ou d'`helix`). L'effet ne parle que de géométrie, de section de matière et de facteur de vitesse.
+
+| Fonction | Rôle |
+| --- | --- |
+| `effect(type)`, `effect(type, opts)` | Crée un effet. Types : `"waves"` (vagues : la buse monte et descend), `"weave"` (trame : bosses décalées d'un demi-motif à chaque tour), `"columns"` (colonnes alignées), `"spikes"` (picots), `"grain"` (relief irrégulier), `"lace"` (dentelle : arches ajourées, chaque fil ne touche la rangée du dessous qu'à son pied), `"bead"` (gros boudin). `opts` : `intensity` (amplitude en mm, 0 à 30 ; dentelle : hauteur des arches), `repeats` (motifs par tour), `from`, `to` (plage de hauteur), `transition` (entrée douce, mm), `crest_speed` (dentelle : facteur de vitesse à la crête, 0,1 à 1), `foot_shift` (dentelle : recul du pied vers l'intérieur, 0 à 3 mm), `bead_width`, `bead_height` (section du boudin, mm). |
+| `pts.with_effect(e)` | Les points déplacés (géométrie seule). |
+| `path.print_effect(pts, e, w, h)` | Imprime les points déplacés, avec le ralentissement de crête de la dentelle et la section `bead_width` × `bead_height` si elle est donnée (sinon `w`, `h`). |
+
+Pour la dentelle, la spirale monte de la hauteur des arches par tour (`pitch` de `revolve` égal à `intensity`). Le garde-buse et les contrôles de qualité s'appliquent au parcours obtenu. Erreurs : type inconnu (`effect.unknown`), réglage hors domaine (`points.invalid_value`), rayon sous 0,5 mm (`shape.radius_too_small`). Modèle d'exemple : [effects_vase.weave](../models/vases/effects_vase.weave).
+
 ### Fonctions mathématiques
 
 `sin cos tan asin acos atan sinh cosh tanh exp ln log sqrt` (un argument), `atan(y, x)` et `atan2(y, x)`, `pow(x, y)`, `hypot(x, y)`, `min(a, b)`, `max(a, b)`, `clamp(x, lo, hi)`, `lerp(a, b, t)`, `rad(degrés)`, `deg(radians)`. `noise(x, y, z)` : bruit de gradient 3D (calcul natif), valeur de −1 à 1, continue, nulle sur les points entiers, motifs d'une taille d'environ 1 ; diviser les coordonnées par la taille du motif voulue, les décaler pour un autre tirage. Sur un cylindre, le prendre en `(cos(a) × r, sin(a) × r, z)` : pas de couture (voir le photophore vermiculé du catalogue). Les fonctions de Rhai restent disponibles : `floor(x)`, `ceiling(x)`, `round(x)`, `abs(x)`, `x.to_int()`, `x.to_float()`…
@@ -327,6 +339,7 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `temperature.limit_unknown` | info | Le profil d'imprimante ne donne pas ses plafonds : 300 °C pour la buse, 120 °C pour le plateau. |
 | `gcode.pause_missing` | erreur | Le modèle fait des pauses mais le profil d'imprimante n'a pas de gabarit `pause` (export refusé). |
 | `points.invalid_count`, `points.invalid_value`, `points.index_out_of_range`, `points.empty` | erreur | Argument invalide d'une fonction de points (nombre de segments, rayon…). |
+| `effect.unknown` | erreur | Type d'effet de parcours inconnu. |
 | `shape.unknown_section`, `shape.unknown_twist`, `shape.cage_size`, `shape.radius_too_small`, `shape.no_turn` | erreur | Fonctions de forme : type de section ou rythme inconnu, cage mal dimensionnée, rayon sous 0,5 mm, spirale sans tour. |
 | `model.warning` | avertissement | `warn()` du modèle (son texte, sa ligne). |
 | `model.failure` | erreur | `fail()` du modèle. Aux bornes d'un paramètre, `fabweave check` tolère ce refus (combinaison impossible avec les autres valeurs par défaut, par exemple un trou plus grand que la pièce) ; aux valeurs par défaut, jamais. |

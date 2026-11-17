@@ -1,0 +1,214 @@
+format = "fabweave.model"
+version = 2
+
+[meta]
+name = { fr = "Vase à effets", en = "Effects vase" }
+category = { fr = "Vases et luminaires", en = "Vases & lamps" }
+description = { fr = "Un vase en spirale continue dont la buse trace elle-même la texture : vagues, trame, colonnes, picots, grain, dentelle ajourée ou gros boudin. L'effet s'applique sur une plage de hauteur, avec une entrée douce.", en = "A continuous spiral vase whose texture is drawn by the nozzle itself: waves, weave, columns, spikes, grain, open lace or a fat bead. The effect applies over a height range, with a soft entry." }
+author = "FabWeave"
+tags = ["vase", "spirale", "texture", "effet", "dentelle"]
+license = "GPL-3.0-or-later"
+recommended_nozzle = [0.4, 0.5, 0.6]
+
+[params.silhouette]
+type = "curve"
+label = { fr = "Silhouette", en = "Silhouette" }
+unit = "mm"
+help = { fr = "Rayon selon la hauteur ; l'effet s'ajoute à la paroi.", en = "Radius against height; the effect adds to the wall." }
+default = [[30, 0], [36, 40], [30, 100]]
+min = [10, 0]
+max = [100, 250]
+points = [2, 16]
+presets = [
+    { name = { fr = "Galbé", en = "Curved" }, points = [[30, 0], [36, 40], [30, 100]] },
+    { name = { fr = "Cylindre", en = "Cylinder" }, points = [[30, 0], [30, 100]] },
+    { name = { fr = "Abat-jour", en = "Shade" }, points = [[45, 0], [35, 60], [28, 110]] },
+]
+
+[params.effect]
+type = "choice"
+label = { fr = "Effet", en = "Effect" }
+help = { fr = "Texture tracée par la buse. Dentelle : arches ajourées, la paroi ne tient pas l'eau. Gros boudin : largeur et hauteur du boudin libres.", en = "Texture drawn by the nozzle. Lace: open arches, the wall does not hold water. Fat bead: free bead width and height." }
+default = "weave"
+options = [
+    { value = "waves", label = { fr = "Vagues", en = "Waves" } },
+    { value = "weave", label = { fr = "Trame", en = "Weave" } },
+    { value = "columns", label = { fr = "Colonnes", en = "Columns" } },
+    { value = "spikes", label = { fr = "Picots", en = "Spikes" } },
+    { value = "grain", label = { fr = "Grain", en = "Grain" } },
+    { value = "lace", label = { fr = "Dentelle", en = "Lace" } },
+    { value = "bead", label = { fr = "Gros boudin", en = "Fat bead" } },
+]
+
+[params.intensity]
+type = "float"
+label = { fr = "Intensité", en = "Intensity" }
+unit = "mm"
+help = { fr = "Amplitude de l'effet ; pour la dentelle, hauteur des arches.", en = "Effect amplitude; for lace, the arch height." }
+default = 1.2
+min = 0.2
+max = 6
+step = 0.1
+
+[params.repeats]
+type = "int"
+label = { fr = "Répétitions", en = "Repeats" }
+help = { fr = "Motifs par tour.", en = "Motifs per turn." }
+default = 24
+min = 2
+max = 120
+
+[params.effect_from]
+type = "float"
+label = { fr = "Effet dès", en = "Effect from" }
+unit = "mm"
+help = { fr = "Hauteur où l'effet commence.", en = "Height where the effect starts." }
+default = 5
+min = 0
+max = 250
+step = 1
+
+[params.effect_to]
+type = "float"
+label = { fr = "Effet jusqu'à", en = "Effect up to" }
+unit = "mm"
+default = 250
+min = 0
+max = 250
+step = 1
+
+[params.transition]
+type = "float"
+label = { fr = "Transition", en = "Transition" }
+unit = "mm"
+help = { fr = "Entrée et sortie douces de l'effet.", en = "Soft entry and exit of the effect." }
+default = 6
+min = 0
+max = 50
+step = 1
+
+[params.crest_speed]
+type = "float"
+label = { fr = "Vitesse crête", en = "Crest speed" }
+unit = "%"
+help = { fr = "Dentelle : vitesse au sommet des arches, pour que le fil refroidisse avant de redescendre.", en = "Lace: speed at the top of the arches, so the thread cools before coming down." }
+advanced = true
+default = 50
+min = 10
+max = 100
+step = 5
+
+[params.foot_shift]
+type = "float"
+label = { fr = "Recul du pied", en = "Foot shift" }
+unit = "mm"
+help = { fr = "Dentelle : rentre le pied des arches vers l'intérieur pour qu'il s'appuie mieux.", en = "Lace: pulls the foot of the arches inwards so it rests better." }
+advanced = true
+default = 0
+min = 0
+max = 3
+step = 0.1
+
+[params.bead_width]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+help = { fr = "Largeur du boudin, en multiple du diamètre de buse (gros boudin : jusqu'à 4 ×).", en = "Bead width, as a multiple of the nozzle diameter (fat bead: up to 4×)." }
+advanced = true
+default = 2
+min = 1
+max = 4
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+help = { fr = "Montée par tour, en multiple du diamètre de buse (sauf dentelle : la hauteur des arches).", en = "Rise per turn, as a multiple of the nozzle diameter (except lace: the arch height)." }
+advanced = true
+default = 0.5
+min = 0.2
+max = 0.8
+step = 0.05
+
+[params.bottom_layers]
+type = "int"
+label = { fr = "Fond (couches)", en = "Bottom layers" }
+advanced = true
+default = 2
+min = 0
+max = 4
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+advanced = true
+default = 30
+min = 5
+max = 120
+step = 1
+---
+// Vase à effets (FabWeave, R-021) : spirale par `revolve`, texture par
+// `print_effect` ; le fond reste lisse.
+
+let ew = printer.nozzle_diameter * params.bead_width;     // largeur du boudin
+let eh = printer.nozzle_diameter * params.height_factor;  // montée par tour
+let fh = printer.first_layer_height;
+let nb = params.bottom_layers;
+let lace = params.effect == "lace";
+// Gros boudin : cordon rond, aussi haut que 60 % de sa largeur.
+let bead = params.effect == "bead";
+if bead { eh = ew * 0.6; }
+let segs = max(180, params.repeats * 12).to_int();
+
+if params.effect_to <= params.effect_from {
+    fail(#{ fr: "La plage de l'effet est vide : « Effet jusqu'à » doit dépasser « Effet dès ».", en: "The effect range is empty: “Effect up to” must exceed “Effect from”." });
+}
+if lace && params.intensity < eh {
+    fail(#{ fr: "Dentelle : l'intensité (hauteur des arches) doit dépasser le pas vertical.", en: "Lace: the intensity (arch height) must exceed the rise per turn." });
+}
+
+let fx = effect(params.effect, #{
+    intensity: params.intensity,
+    repeats: params.repeats,
+    from: params.effect_from,
+    to: params.effect_to,
+    transition: params.transition,
+    crest_speed: params.crest_speed / 100.0,
+    foot_shift: params.foot_shift,
+    bead_width: ew,
+    bead_height: eh,
+});
+let shape = #{ profile: params.silhouette, pitch: if lace { params.intensity } else { eh }, segments: segs };
+
+let path = new_path();
+let fw = printer.nozzle_diameter * 1.125;
+for j in 0..nb {
+    let z = fh + j * eh;
+    let h = if j == 0 { fh } else { eh };
+    shape.start = z;
+    let contour = revolve_ring(shape, z);
+    path.travel_to(contour);
+    path.print_points(contour, ew, h);
+    if j == 0 {
+        path.note(#{ fr: "Fond : contour, puis anneaux", en: "Bottom: outline, then rings" });
+    }
+    for r in contour.fill_rings(fw, ew / 2 + fw * 0.35) {
+        path.travel_to(r);
+        path.print_points(r, fw, h);
+    }
+}
+
+shape.start = if nb == 0 { 0.8 * eh } else { fh + (nb - 1) * eh };
+if params.silhouette.max_z - shape.start < shape.pitch {
+    fail(#{ fr: "Silhouette trop basse pour une spirale : monter le dernier point.", en: "Silhouette too low for a spiral: raise the last point." });
+}
+let wall = revolve(shape);
+path.set_speed(params.speed / 2);
+path.travel_to(wall);
+path.note(#{ fr: "Départ de la spirale", en: "Spiral start" });
+path.print_effect(wall.slice(0, segs + 1), fx, ew, eh);
+path.set_speed(params.speed);
+path.print_effect(wall.slice(segs, wall.len()), fx, ew, eh);
+path

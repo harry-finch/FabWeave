@@ -626,3 +626,14 @@ Accès navigateur indisponible ; contrôle natif de Vivaldi refusé par l’outi
 **Catalogue.** « Forme libre » (CAT-30) : silhouette, section, côtés, profondeur, torsion et son rythme, resserrement, cage de 3 × 6 points (curseurs avancés), fond en anneaux à la section du pied. 112 600 points aux valeurs par défaut ; `check` : 70 calculs sans message bloquant.
 
 **Vérification.** Tests : lobes et profondeur de chaque section, rythmes, cage au repos nulle et douceur, torsion de 90° mesurée sur le dernier tour (à 1° près), cage au repos identique au parcours sans cage, refus à code stable. Documentation : WEAVE_FORMAT (fonctions, messages), prompt IA, FEATURES (API-20, CAT-30). R-012 renvoie à ces fonctions. **Non vérifié** : rendu dans l'interface, impression.
+
+
+## 2026-11-17 — R-021 : effets de parcours
+
+**Moteur.** `effects.rs` : `effect(type, opts)` (vagues, trame, colonnes, picots, grain, dentelle, gros boudin), `pts.with_effect(e)`, `path.print_effect(pts, e, w, h)` ; angle déroulé le long de la liste, plage de hauteur avec transition ; dentelle : arches décalées d'un demi-motif par tour, crête ralentie par un facteur de vitesse (`ScriptPath::push_scaled`), pied rentré ; gros boudin : section libre. Code `effect.unknown`. Aucun `E` ni température dans l'effet.
+
+**Catalogue.** « Vase à effets » (CAT-29) : silhouette, sept effets, intensité, répétitions, plage, transition, réglages de la dentelle ; `check` : 33 calculs, seule la plage vide refusée par le modèle (`fail`).
+
+**Mesure.** Banc : hélice native de 50 000 points avec la trame, script en 2,8 ms (critère : moins de 100 ms).
+
+**Vérification.** Tests : amplitude et nombre de motifs par tour (trame, colonnes, picots, vagues), demi-décalage de la trame, crête ralentie de la dentelle, plage, refus. **Non vérifié** : rendu dans l'interface, impression (dentelle surtout).

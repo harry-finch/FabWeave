@@ -33,7 +33,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
    Nouveau type de paramètre .weave : une silhouette modifiable en tirant des points, avec une galerie de silhouettes prêtes.
 5. **[R-023 Formes : sections vues de dessus, torsion et cage](roadmap/items/R-023-formes-sections-vues-de-dessus-torsion-et-cage.md)** · À tester · jalon v0.7
    Fonctions de forme natives (sections pétale, étoile, cannelé…, torsion rythmée, cage de déformation) et un modèle « Forme libre ».
-6. **[R-021 Bibliothèque d'effets de parcours](roadmap/items/R-021-bibliotheque-d-effets-de-parcours.md)** · Spécifiée · jalon v0.7
+6. **[R-021 Bibliothèque d'effets de parcours](roadmap/items/R-021-bibliotheque-d-effets-de-parcours.md)** · À tester · jalon v0.7
    Effets tracés par la buse (trame, grain, vagues, picots, dentelle, colonnes, gros boudin) en fonctions natives de l'API, et un « Vase à effets ».
 7. **[R-024 Débit en porte-à-faux et couches variables](roadmap/items/R-024-debit-en-porte-a-faux-et-couches-variables.md)** · Spécifiée · jalon v0.7
    Le moteur compense le débit des parois inclinées (compté et signalé) et les modèles choisissent une hauteur de couche selon la pente.
@@ -78,6 +78,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-018](roadmap/actions/A-018-imprimer-un-vase-a-silhouette-libre.md) Imprimer un vase à silhouette libre (tester, R-020)
 - [ ] [A-019](roadmap/actions/A-019-composer-trois-pieces-avec-forme-libre.md) Composer trois pièces avec « Forme libre » (tester, R-023)
 - [ ] [A-020](roadmap/actions/A-020-imprimer-une-piece-torsadee-et-deformee-par-la.md) Imprimer une pièce torsadée et déformée par la cage (tester, R-023)
+- [ ] [A-021](roadmap/actions/A-021-imprimer-le-vase-a-effets-avec-trois-effets-dont.md) Imprimer le « Vase à effets » avec trois effets, dont la dentelle (tester, R-021)
 
 ## Livré
 

@@ -53,6 +53,11 @@ fn main() {
             json!({ "points": 200000 }),
         ),
         (
+            "helix + effet (trame), 50 000".into(),
+            "crates/fabweave-core/tests/fixtures/bench_spiral_effect.weave".into(),
+            json!({ "points": 50000 }),
+        ),
+        (
             "helix + modulate_r, 50 000".into(),
             "crates/fabweave-core/tests/fixtures/bench_spiral_modulated.weave".into(),
             json!({ "points": 50000 }),

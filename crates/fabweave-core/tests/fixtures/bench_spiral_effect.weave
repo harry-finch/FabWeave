@@ -1,0 +1,30 @@
+# Modèle de mesure : hélice native et effet de parcours (R-021), nombre de
+# points réglable.
+[meta]
+name = "Banc d'essai : spirale native et effet"
+category = "Mesures"
+
+[params.points]
+type = "int"
+label = "Points"
+default = 50000
+min = 1000
+max = 1000000
+
+[params.radius]
+type = "float"
+label = "Rayon"
+unit = "mm"
+default = 30
+min = 5
+max = 80
+---
+// Même spirale que bench_spiral_native.weave, plus un effet de parcours
+// (trame) imprimé par print_effect (R-021).
+let turns = 200;
+let eh = 0.2;
+let h = helix(0, 0, 0.2, params.radius, params.radius, 0, turns, eh, params.points / turns);
+let fx = effect("weave", #{ intensity: 1.0, repeats: 24 });
+let path = new_path();
+path.print_effect(h, fx, 0.6, eh);
+path

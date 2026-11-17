@@ -442,6 +442,9 @@ const fr = {
       blob_without_position: 'Goutte sans position : placer la buse (travel_to, print_to…) avant blob().',
       invalid_blob: 'Goutte invalide ({detail}) : volume de 0 à 1 000 mm³, durée de 0 à 60 s.',
     },
+    effect: {
+      unknown: 'Type d’effet de parcours inconnu.',
+    },
     shape: {
       unknown_section: 'Type de section inconnu.',
       unknown_twist: 'Rythme de torsion inconnu.',

@@ -2,7 +2,7 @@
 id: R-021
 titre: "Bibliothèque d'effets de parcours"
 resume: "Effets tracés par la buse (trame, grain, vagues, picots, dentelle, colonnes, gros boudin) en fonctions natives de l'API, et un « Vase à effets »."
-statut: specifiee
+statut: a-tester
 jalon: v0.7
 cree: 2026-11-17
 maj: 2026-11-17
