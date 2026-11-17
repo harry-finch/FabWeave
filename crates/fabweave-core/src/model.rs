@@ -14,7 +14,9 @@ use crate::issue::{line_col, Issue};
 /// Identifiant du format, facultatif dans le fichier.
 pub const FORMAT: &str = "fabweave.model";
 /// Version du format lue et écrite par ce moteur.
-pub const VERSION: u32 = 1;
+/// Version 2 : paramètre `curve` (une silhouette en points). Un modèle qui
+/// s'en sert déclare `version = 2` ; les modèles de version 1 se lisent tels quels.
+pub const VERSION: u32 = 2;
 
 /// Texte affiché : une chaîne, ou une table par langue (`{ fr = "…", en = "…" }`).
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
@@ -107,6 +109,40 @@ pub enum ParamKind {
         default: String,
         options: Vec<ChoiceOption>,
     },
+    /// Silhouette `[rayon, hauteur]` (version 2 du format, `curve.rs`).
+    Curve {
+        default: Vec<[f64; 2]>,
+        /// `[rayon, hauteur]` minimaux et maximaux.
+        min: [f64; 2],
+        max: [f64; 2],
+        /// Nombre de points minimal et maximal.
+        points: [usize; 2],
+        /// Raccord lisse (sinon droit).
+        smooth: bool,
+        /// Silhouettes prêtes, proposées par l'interface.
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        presets: Vec<CurvePreset>,
+    },
+}
+
+impl ParamKind {
+    /// Bornes d'un paramètre `curve`.
+    pub fn curve_bounds(&self) -> Option<crate::curve::CurveBounds> {
+        match *self {
+            ParamKind::Curve {
+                min, max, points, ..
+            } => Some(crate::curve::CurveBounds { min, max, points }),
+            _ => None,
+        }
+    }
+}
+
+/// Silhouette nommée d'un paramètre `curve`.
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CurvePreset {
+    pub name: Text,
+    pub points: Vec<[f64; 2]>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -189,6 +225,10 @@ struct RawParam {
     max: Option<Spanned<toml::Value>>,
     step: Option<Spanned<toml::Value>>,
     options: Option<Spanned<Vec<RawOption>>>,
+    /// `curve` : nombre de points `[min, max]`, raccord, silhouettes prêtes.
+    points: Option<Spanned<toml::Value>>,
+    smooth: Option<Spanned<bool>>,
+    presets: Option<Spanned<Vec<CurvePreset>>>,
 }
 
 /// Option d'un paramètre `choice` : `"zigzag"` ou `{ value = "zigzag", label = … }`.
@@ -277,7 +317,8 @@ pub fn parse(source: &str) -> Result<Model, Vec<Issue>> {
         let id_pos = pos(id.span());
         let id = id.into_inner();
         let def_pos = pos(def.span());
-        match convert_param(&id, def.into_inner(), &pos) {
+        let version = raw.version.as_ref().map_or(1, |v| *v.get_ref());
+        match convert_param(&id, def.into_inner(), version, &pos) {
             Ok(d) => {
                 if !is_identifier(&id) {
                     issues.push(
@@ -350,6 +391,7 @@ fn integer(v: &toml::Value) -> Option<i64> {
 fn convert_param(
     id: &str,
     p: RawParam,
+    version: u32,
     pos: &dyn Fn(std::ops::Range<usize>) -> Option<(usize, usize)>,
 ) -> Result<ParamDef, Vec<Issue>> {
     let field = format!("params.{id}");
@@ -372,7 +414,24 @@ fn convert_param(
             issues.push(err("param.unexpected_field", o.span()).detail("options".to_string()));
         }
     }
+    if p.kind.get_ref() != "curve" {
+        let spans = [
+            p.points.as_ref().map(|v| (v.span(), "points")),
+            p.smooth.as_ref().map(|v| (v.span(), "smooth")),
+            p.presets.as_ref().map(|v| (v.span(), "presets")),
+        ];
+        for (span, name) in spans.into_iter().flatten() {
+            issues.push(err("param.unexpected_field", span).detail(name.to_string()));
+        }
+    }
     let kind = match p.kind.get_ref().as_str() {
+        "curve" => {
+            if version < 2 {
+                issues.push(err("param.requires_version", p.kind.span()).value(2.0));
+                return Err(issues);
+            }
+            convert_curve(&p, &err, &mut issues)
+        }
         "float" => {
             required(&p.min, "min", &mut issues);
             required(&p.max, "max", &mut issues);
@@ -518,6 +577,104 @@ fn convert_param(
     })
 }
 
+/// `[a, b]` de deux nombres finis (bornes d'une courbe).
+fn pair(v: &toml::Value) -> Option<[f64; 2]> {
+    match v.as_array()?.as_slice() {
+        [a, b] => {
+            let (a, b) = (number(a)?, number(b)?);
+            (a.is_finite() && b.is_finite()).then_some([a, b])
+        }
+        _ => None,
+    }
+}
+
+fn convert_curve(
+    p: &RawParam,
+    err: &dyn Fn(&'static str, std::ops::Range<usize>) -> Issue,
+    issues: &mut Vec<Issue>,
+) -> ParamKind {
+    use crate::curve::{check, points_from_json, CurveBounds, MAX_POINTS};
+    if let Some(s) = &p.step {
+        issues.push(err("param.unexpected_field", s.span()).detail("step".to_string()));
+    }
+    let mut bound = |v: &Option<Spanned<toml::Value>>, name: &str| match v {
+        None => {
+            issues.push(err("param.missing_field", p.kind.span()).detail(name.to_string()));
+            [0.0; 2]
+        }
+        Some(v) => pair(v.get_ref()).unwrap_or_else(|| {
+            issues.push(err("param.not_a_number", v.span()));
+            [0.0; 2]
+        }),
+    };
+    let (min, max) = (bound(&p.min, "min"), bound(&p.max, "max"));
+    let points = match &p.points {
+        None => [2, 32],
+        Some(v) => match pair(v.get_ref()) {
+            Some([a, b])
+                if a.fract() == 0.0
+                    && b.fract() == 0.0
+                    && a >= 1.0
+                    && a <= b
+                    && b <= MAX_POINTS as f64 =>
+            {
+                [a as usize, b as usize]
+            }
+            _ => {
+                issues.push(err("param.invalid_bounds", v.span()).detail("points".to_string()));
+                [2, 32]
+            }
+        },
+    };
+    if min[0] >= max[0] || min[1] >= max[1] {
+        issues.push(err(
+            "param.invalid_bounds",
+            p.max.as_ref().map_or(0..0, Spanned::span),
+        ));
+    }
+    let bounds = CurveBounds { min, max, points };
+    // Points par défaut et silhouettes : mêmes contrôles qu'une valeur.
+    let json = |v: &toml::Value| serde_json::to_value(v).ok();
+    let default = json(p.default.get_ref()).and_then(|v| points_from_json(&v));
+    let default = match default {
+        None => {
+            issues.push(err("param.not_a_number", p.default.span()));
+            Vec::new()
+        }
+        Some(d) => {
+            if issues.is_empty() {
+                if let Err(e) = check(&d, &bounds) {
+                    issues.push(
+                        err("param.default_out_of_range", p.default.span())
+                            .detail(e.code.to_string()),
+                    );
+                }
+            }
+            d
+        }
+    };
+    let presets = p
+        .presets
+        .as_ref()
+        .map_or_else(Vec::new, |v| v.get_ref().clone());
+    if issues.is_empty() {
+        for (i, pr) in presets.iter().enumerate() {
+            if check(&pr.points, &bounds).is_err() || pr.name.has_control() {
+                let span = p.presets.as_ref().map_or(0..0, Spanned::span);
+                issues.push(err("param.invalid_preset", span).count(i + 1));
+            }
+        }
+    }
+    ParamKind::Curve {
+        default,
+        min,
+        max,
+        points,
+        smooth: p.smooth.as_ref().is_none_or(|s| *s.get_ref()),
+        presets,
+    }
+}
+
 fn check_bounds(
     min: f64,
     max: f64,
@@ -659,5 +816,52 @@ p
         assert_eq!(e[0].code, "param.invalid_id");
         let e = parse(&format!("version = 9\n{MINIMAL}")).unwrap_err();
         assert_eq!(e[0].code, "model.unsupported_version");
+    }
+
+    #[test]
+    fn curve_parameters_need_version_2() {
+        let curve = "[params.profile]\ntype = \"curve\"\nlabel = \"Profil\"\ndefault = [[30, 0], [40, 50]]\nmin = [5, 0]\nmax = [80, 200]\npoints = [2, 6]\nsmooth = false\npresets = [{ name = { fr = \"Droit\", en = \"Straight\" }, points = [[30, 0], [30, 80]] }]\n\n[params.closed]";
+        let src = MINIMAL.replace("[params.closed]", curve);
+        let e = parse(&src).unwrap_err();
+        assert_eq!(e[0].code, "param.requires_version");
+        let m = parse(&format!("version = 2\n{src}")).unwrap();
+        match &m.params["profile"].kind {
+            ParamKind::Curve {
+                default,
+                points,
+                smooth,
+                presets,
+                ..
+            } => {
+                assert_eq!(default, &vec![[30.0, 0.0], [40.0, 50.0]]);
+                assert_eq!(*points, [2, 6]);
+                assert!(!smooth);
+                assert_eq!(presets[0].points[1], [30.0, 80.0]);
+            }
+            k => panic!("{k:?}"),
+        }
+        let v2 = |a: &str, b: &str| {
+            parse(&format!("version = 2\n{}", src.replace(a, b))).unwrap_err()[0].code
+        };
+        assert_eq!(
+            v2("[[30, 0], [40, 50]]", "[[30, 0], [40, 0]]"),
+            "param.default_out_of_range"
+        );
+        assert_eq!(
+            v2("[[30, 0], [40, 50]]", "[[30, 0], [90, 50]]"),
+            "param.default_out_of_range"
+        );
+        assert_eq!(
+            v2("points = [2, 6]", "points = [3, 2]"),
+            "param.invalid_bounds"
+        );
+        assert_eq!(
+            v2("[[30, 0], [30, 80]]", "[[30, 0], [30, 300]]"),
+            "param.invalid_preset"
+        );
+        assert_eq!(v2("min = [5, 0]", "min = [5]"), "param.not_a_number");
+        // Champs d'une courbe sur un autre type : refusés.
+        let e = parse(&MINIMAL.replace("default = 15", "default = 15\nsmooth = true")).unwrap_err();
+        assert_eq!(e[0].code, "param.unexpected_field");
     }
 }

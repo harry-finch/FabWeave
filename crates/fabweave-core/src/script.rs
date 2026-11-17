@@ -614,6 +614,7 @@ impl ScriptEngine {
             },
         );
         crate::points::register(&mut engine, limits.max_points);
+        crate::curve::register(&mut engine);
         let sink = |log: Rc<RefCell<Log>>| {
             move |s: &str| {
                 let mut l = log.borrow_mut();
@@ -690,6 +691,7 @@ impl ScriptEngine {
                 ParamValue::Int(i) => Dynamic::from_int(*i),
                 ParamValue::Bool(b) => Dynamic::from_bool(*b),
                 ParamValue::Choice(s) => Dynamic::from(s.clone()),
+                ParamValue::Curve(c) => Dynamic::from(c.clone()),
             };
             p.insert(k.as_str().into(), d);
         }

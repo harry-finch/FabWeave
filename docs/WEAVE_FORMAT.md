@@ -1,6 +1,6 @@
 # Format `.weave` et profils — spécification
 
-> **v0.2 (27/10/2026)** : premier jet validé à la v0.1 ; ajouts de la v0.2 (paramètres `choice`, messages du modèle, annotations, ponts, listes de points natives) validés le 24/10 ; ajoutés à l'étape 4 : remplissage d'un contour (`fill_lines`), `slice`, arrondis acceptant un entier. Format `fabweave.model`, version 1 (les ajouts sont compatibles). Décisions : [ADR-0002](adr/0002-format-weave-toml-et-rhai.md) (format), [ADR-0004](adr/0004-gabarits-g-code-en-expressions-rhai.md) (gabarits des profils).
+> **v0.2 (27/10/2026)** : premier jet validé à la v0.1 ; ajouts de la v0.2 (paramètres `choice`, messages du modèle, annotations, ponts, listes de points natives) validés le 24/10 ; ajoutés à l'étape 4 : remplissage d'un contour (`fill_lines`), `slice`, arrondis acceptant un entier. Format `fabweave.model`, version 1 (les ajouts sont compatibles) ; **version 2 (17/11/2026)** : paramètre `curve` (R-020), seul ajout qui demande de déclarer la version. Décisions : [ADR-0002](adr/0002-format-weave-toml-et-rhai.md) (format), [ADR-0004](adr/0004-gabarits-g-code-en-expressions-rhai.md) (gabarits des profils).
 
 Un modèle FabWeave est un fichier texte `.weave` qui décrit **où passe la buse** et **quelle section de matière elle dépose**. Il ne parle jamais de G-code, de valeur `E`, de températures, de rétraction ni de coordonnées du plateau : tout cela vient des profils imprimante et filament choisis dans l'application. Le même modèle s'imprime donc sur une Prusa MK4S en PLA comme sur une CORE One en PETG, sans retouche.
 
@@ -68,7 +68,7 @@ path
 | Clé | Type | Rôle |
 | --- | --- | --- |
 | `format` | texte | `"fabweave.model"` ; autre valeur : erreur `model.wrong_format`. Facultatif. |
-| `version` | entier | Version du format ; absent = 1. Une version plus récente que le moteur : `model.unsupported_version`. |
+| `version` | entier | Version du format ; absent = 1. **2** : paramètres `curve` (un modèle qui en a un déclare `version = 2`, sinon `param.requires_version`) ; les modèles de version 1 se lisent tels quels. Une version plus récente que le moteur : `model.unsupported_version`. |
 
 ### `[meta]`
 
@@ -93,7 +93,7 @@ path
 
 | Clé | Types | Obligatoire | Rôle |
 | --- | --- | --- | --- |
-| `type` | — | oui | `"float"`, `"int"`, `"bool"` ou `"choice"` |
+| `type` | — | oui | `"float"`, `"int"`, `"bool"`, `"choice"` ou `"curve"` (version 2) |
 | `label` | texte | oui | Libellé **court : 14 caractères au plus** (la colonne fait 100 px et accueille aussi ⓘ et ↺). Le détail va dans `help`. |
 | `unit` | chaîne | non | Unité affichée. `"mm"` : longueur (affichée en pouces si l'utilisateur le demande) ; `"°"` : angle ; sinon texte libre court (`"%"`, `"mm/s"`, `"×"`). |
 | `help` | texte | non | Infobulle : une ou deux phrases concrètes, vocabulaire d'atelier. |
@@ -101,10 +101,14 @@ path
 | `default` | nombre / booléen / chaîne | oui | Valeur par défaut, **imprimable telle quelle** sur une buse de 0,4 mm (pour `choice` : la `value` d'une option). |
 | `min`, `max` | nombre | oui (float, int) | Bornes du curseur. `min < max`, `min ≤ default ≤ max`. |
 | `step` | nombre | non (float, int) | Pas des flèches et nombre de décimales affichées (`0.05` → 2 décimales). |
+| `points` | `[min, max]` | non (curve) | Nombre de points permis (1 à 64 ; défaut `[2, 32]`). |
+| `smooth` | booléen | non (curve) | Raccord lisse (défaut `true`) ou droit entre les points. |
+| `presets` | liste | non (curve) | Galerie : `[{ name = { fr = "Boule", en = "Moon jar" }, points = [[28, 0], [48, 45], [24, 100]] }, …]`, chaque silhouette dans les bornes. |
 | `options` | liste | oui (choice) | Options : `["zigzag", "onde"]` ou `[{ value = "zigzag", label = { fr = "Zigzag", en = "Zigzag" } }, …]`. Deux options : sélecteur à côté du libellé ; trois : sélecteur pleine largeur ; davantage : liste déroulante. |
 
 - `float` accepte des valeurs entières (`default = 15`) ; `int` refuse `6.5`. `bool` et `choice` n'ont ni `min`, ni `max`, ni `step`.
 - `choice` : le script reçoit la chaîne `value` (`if params.pattern == "onde" { … }`) ; options uniques, non vides ; une valeur hors liste est l'erreur `param.unknown_option`.
+- `curve` : une silhouette `[rayon, hauteur]` en mm. `default` est la liste des points (hauteurs strictement croissantes) ; `min` et `max` sont des paires `[rayon, hauteur]` (le cadre de l'éditeur, à la même échelle dans les deux sens). Le rayon peut être un écart à un autre rayon (bornes négatives permises), si l'aide le dit. Le script reçoit un objet `Curve` : `c.at(z)` (rayon à la hauteur `z` ; raccord lisse par interpolation cubique monotone, qui ne dépasse jamais les points voisins ; hors des points, la courbe se prolonge à la verticale), `c.points()` (tableau de `[r, z]`), `c.len()`, `c.min_z`, `c.max_z`, `c.max_r`. Valeur refusée : nombre de points hors limites (`param.curve_point_count`), point hors cadre (`param.out_of_range`), hauteurs qui ne montent pas (`param.curve_not_increasing`). Dans l'interface : tracé à points déplaçables, saisie chiffrée du point choisi, galerie. En ligne de commande : `--set profil='[[30,0],[40,80]]'`.
 - Une valeur hors bornes envoyée au moteur n'est **jamais ramenée** dans l'intervalle : erreur `param.out_of_range`, parcours non calculé.
 - Les angles des paramètres sont en **degrés** ; convertir avec `rad()` dans le script.
 
@@ -312,6 +316,8 @@ Codes stables, traduits par l'interface. **Erreur** : rien n'est produit ; **ave
 | `model.warning` | avertissement | `warn()` du modèle (son texte, sa ligne). |
 | `model.failure` | erreur | `fail()` du modèle. Aux bornes d'un paramètre, `fabweave check` tolère ce refus (combinaison impossible avec les autres valeurs par défaut, par exemple un trou plus grand que la pièce) ; aux valeurs par défaut, jamais. |
 | `param.invalid_options`, `param.duplicate_option`, `param.unknown_option` | erreur | Paramètre `choice` mal défini, ou valeur hors liste. |
+| `param.requires_version`, `param.invalid_preset` | erreur | Paramètre `curve` dans un modèle sans `version = 2` ; silhouette de la galerie hors du cadre ou mal nommée (`count` : son rang). |
+| `param.curve_point_count`, `param.curve_not_increasing` | erreur | Courbe envoyée avec trop ou trop peu de points, ou des hauteurs qui ne montent pas (point fautif dans le détail). |
 | `path.empty` | erreur | Aucun mouvement ne dépose de matière. |
 | `path.out_of_bed`, `path.below_bed`, `path.too_high` | erreur | La pièce ne tient pas dans le volume d'impression. |
 | `path.excluded_zone` | erreur | La pièce passe dans une zone exclue du plateau (`field` : `printer.bed.exclude[i]`, `name` : nom de la zone par langue, `count` : segments en cause). |

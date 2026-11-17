@@ -15,6 +15,17 @@ export type ParamDef = {
   | { type: 'int'; default: number; min: number; max: number; step?: number }
   | { type: 'bool'; default: boolean }
   | { type: 'choice'; default: string; options: { value: string; label?: Text }[] }
+  | {
+      type: 'curve';
+      /** Points `[rayon, hauteur]` en mm. */
+      default: [number, number][];
+      min: [number, number];
+      max: [number, number];
+      /** Nombre de points minimal et maximal. */
+      points: [number, number];
+      smooth: boolean;
+      presets?: { name: Text; points: [number, number][] }[];
+    }
 );
 
 export interface ModelMeta {
@@ -37,7 +48,7 @@ export interface ModelInfo {
   params: Record<string, ParamDef>;
 }
 
-export type ParamValue = number | boolean | string;
+export type ParamValue = number | boolean | string | [number, number][];
 export type Values = Record<string, ParamValue>;
 
 export interface Issue {

@@ -215,7 +215,7 @@ fn ai_prompt_examples_run() {
         assert!(w.gcode(&ev).is_ok());
         n += 1;
     }
-    assert_eq!(n, 2);
+    assert_eq!(n, 3);
 }
 
 /// Modèles écrits par une IA à partir du seul prompt (essai du 24/10/2026,

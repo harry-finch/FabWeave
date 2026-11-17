@@ -295,6 +295,12 @@ fn param_text(v: &ParamValue) -> String {
         ParamValue::Int(i) => i.to_string(),
         ParamValue::Bool(b) => b.to_string(),
         ParamValue::Choice(s) => one_line(s),
+        ParamValue::Curve(c) => c
+            .points
+            .iter()
+            .map(|p| format!("{} {}", num(p[0], 2), num(p[1], 2)))
+            .collect::<Vec<_>>()
+            .join(", "),
     }
 }
 

@@ -38,6 +38,7 @@ import type {
   LoadResult,
   ModelInfo,
   NozzleSetup,
+  ParamValue,
   Placement,
   PrinterProfile,
   ProfileKind,
@@ -501,7 +502,7 @@ class Store {
     this.#restore(d);
   }
 
-  setValue(id: string, v: number | boolean | string) {
+  setValue(id: string, v: ParamValue) {
     this.edit((d) => {
       d.values[d.model] = { ...(d.values[d.model] ?? {}), [id]: v };
     }, `params.${id}`);
@@ -628,7 +629,7 @@ class Store {
     // Valeurs : seules celles qui diffèrent du modèle (chacune a son ↺).
     const defs = model.info?.params ?? {};
     const values: Values = {};
-    for (const [k, v] of Object.entries(p.values)) if (k in defs && defs[k].default !== v) values[k] = v;
+    for (const [k, v] of Object.entries(p.values)) if (k in defs && JSON.stringify(defs[k].default) !== JSON.stringify(v)) values[k] = v;
     const clean = <T extends object>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== null && v !== undefined)) as T;
     const id = model.id;
     this.edit((d) => {

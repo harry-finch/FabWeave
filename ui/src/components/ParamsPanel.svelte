@@ -9,6 +9,8 @@
   // Une valeur modifiée montre un ↺ qui revient à la valeur du modèle ; un
   // défilement du libellé est un geste (une étape d'annulation).
   import NumField from './NumField.svelte';
+  import CurveField from './CurveField.svelte';
+  import { sameCurve } from '../lib/curve';
   import Field from './Field.svelte';
   import Segmented from './Segmented.svelte';
   import Disclosure from './Disclosure.svelte';
@@ -16,7 +18,7 @@
   import { t } from '../lib/i18n.svelte';
   import { text } from '../lib/text';
   import { fmtLen, numTrim } from '../lib/format';
-  import type { Issue, ParamDef, Values } from '../lib/types';
+  import type { Issue, ParamDef, ParamValue, Values } from '../lib/types';
 
   let {
     params,
@@ -30,7 +32,7 @@
     params: Record<string, ParamDef>;
     values: Values;
     issues: Issue[];
-    onchange: (id: string, v: number | boolean | string) => void;
+    onchange: (id: string, v: ParamValue) => void;
     onreset: (id: string) => void;
     onbegin?: () => void;
     onend?: () => void;
@@ -47,6 +49,7 @@
   /** Valeur du modèle, telle qu'affichée (« 15 mm », « 0,6 in », « 10 % »). */
   function shownDefault(def: ParamDef): string {
     if (def.type === 'bool') return def.default ? t('model.on') : t('model.off');
+    if (def.type === 'curve') return '';
     if (def.type === 'choice') return text(def.options.find((o) => o.value === def.default)?.label) || def.default;
     if (def.unit === 'mm' && def.type === 'float') return fmtLen(def.default, ui.units, decimalsOf(def.step));
     return `${numTrim(def.default, decimalsOf(def.step))}${def.unit ? ` ${def.unit}` : ''}`;
@@ -54,7 +57,10 @@
 </script>
 
 {#snippet row(id: string, def: ParamDef)}
-  {#if def.type === 'bool'}
+  {#if def.type === 'curve'}
+    {@const v = (values[id] as [number, number][] | undefined) ?? def.default}
+    <CurveField {def} value={v} invalid={invalid.has(id)} modified={!sameCurve(v, def.default)} onchange={(p) => onchange(id, p)} onreset={() => onreset(id)} {onbegin} {onend} />
+  {:else if def.type === 'bool'}
     <Field label={text(def.label)} hint={text(def.help) || undefined}>
       <Segmented
         label={text(def.label)}

@@ -7,6 +7,7 @@ use indexmap::IndexMap;
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::curve::{self, Curve};
 use crate::issue::Issue;
 use crate::model::{ParamDef, ParamKind};
 
@@ -17,6 +18,8 @@ pub enum ParamValue {
     Int(i64),
     Bool(bool),
     Choice(String),
+    /// Silhouette d'un paramètre `curve` (écrite comme sa liste de points).
+    Curve(Curve),
 }
 
 impl ParamDef {
@@ -26,6 +29,11 @@ impl ParamDef {
             ParamKind::Int { default, .. } => ParamValue::Int(default),
             ParamKind::Bool { default } => ParamValue::Bool(default),
             ParamKind::Choice { ref default, .. } => ParamValue::Choice(default.clone()),
+            ParamKind::Curve {
+                ref default,
+                smooth,
+                ..
+            } => ParamValue::Curve(Curve::new(default.clone(), smooth)),
         }
     }
 }
@@ -90,6 +98,11 @@ fn check(kind: &ParamKind, v: &Value) -> Result<ParamValue, Issue> {
                 return Err(Issue::error("param.unknown_option").detail(s.to_string()));
             }
             Ok(ParamValue::Choice(s.to_string()))
+        }
+        ParamKind::Curve { smooth, .. } => {
+            let points = curve::points_from_json(v).ok_or_else(wrong)?;
+            curve::check(&points, &kind.curve_bounds().expect("courbe"))?;
+            Ok(ParamValue::Curve(Curve::new(points, smooth)))
         }
     }
 }

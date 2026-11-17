@@ -18,7 +18,7 @@ Périmètre fonctionnel de FabWeave, établi à partir de la conversation de rec
 | FMT-08 | Erreurs de lecture et de script avec ligne et colonne, code stable | v0.1 | fait |
 | FMT-09 | Spécification `docs/WEAVE_FORMAT.md` et prompt système pour IA `docs/PROMPT_MODELE_IA.md` | v0.1 / v0.2 | fait |
 | FMT-10 | Versionnement et migration des anciens formats | v0.2 | prévu |
-| FMT-11 | Paramètre `curve` : silhouette en points (bornes, nombre de points, raccord lisse ou droit), galerie de silhouettes nommées (R-020) | v0.7 | prévu |
+| FMT-11 | Paramètre `curve` (format version 2) : silhouette en points (bornes, nombre de points, raccord lisse ou droit), galerie de silhouettes nommées ; objet `Curve` dans le script (`at`, `points`, `max_z`…) ; éditeur à points dans le panneau Paramètres (R-020 ; éditeur non essayé dans un navigateur) | v0.7 | fait |
 | FMT-12 | Paramètre `image` : dessin SVG ou PNG transformé en contours fermés, enregistré dans le projet (R-025) | v0.7 | prévu |
 
 ## API du script (API)
@@ -128,7 +128,7 @@ Les ports de FullControl (GPL-3.0) citent leur source dans `[meta]`. L'ordre dan
 | CAT-26 | *Ajout* : photophore à vermicelles (paroi fine en spirale d'où la buse sort au hasard en petites boucles, qui retombent dans le vide) | Photo de l'utilisateur (28/10/2026), seconde lecture | Excursions aléatoires reproductibles, affaissement voulu | v0.3 | fait |
 | CAT-25 | *Ajout* : vase à écailles (polygone aux faces creusées, taille resserrée, écailles en quinconce) | Photo de l'utilisateur (28/10/2026) ; texture de FullControl « ripple texture » | Points à pas égal le long du contour, sortie selon la normale | v0.3 | fait |
 | CAT-27 | *Ajout* : lampe à coussins (coussins empilés imprimés à l'envers en une spirale le long de la surface ; chaque tour appuyé sur le précédent, couture qui remonte par-dessus en quinconce, bombée sur les flancs ; ajours facultatifs sur les flancs presque droits ; dessus en pente ; descente sous chaque coussin ; porte-à-faux ralentis ; dégagement du cône de la buse vérifié) | Vidéo de l'utilisateur (29/10/2026) | Méridien par arcs, spirale non planaire en descente, augmentations et diminutions de la couture, appui de chaque point vérifié | v0.4 | fait |
-| CAT-28 | Vase à silhouette libre (R-020) | v0.7 | prévu |
+| CAT-28 | Vase à silhouette libre ; silhouette facultative ajoutée au vase à ondulations, forme d'origine par défaut (R-020) | v0.7 | fait |
 | CAT-29 | Vase à effets (R-021) | v0.7 | prévu |
 | CAT-30 | Forme libre : section, torsion, cage (R-023) | v0.7 | prévu |
 | CAT-31 | Luminaires : suspension E27 / E14, rosace, applique, lampe à poser (R-022) | v0.7 | prévu |

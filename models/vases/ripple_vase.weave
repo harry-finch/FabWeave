@@ -1,5 +1,5 @@
 format = "fabweave.model"
-version = 1
+version = 2
 
 [meta]
 name = { fr = "Vase à ondulations", en = "Ripple vase" }
@@ -29,6 +29,22 @@ default = 40
 min = 5
 max = 150
 step = 1
+
+[params.silhouette]
+type = "curve"
+label = { fr = "Silhouette", en = "Silhouette" }
+unit = "mm"
+help = { fr = "Écart au rayon de base selon la hauteur, ajouté aux branches et aux ondulations. Une courbe à 0 : vase droit (forme d'origine).", en = "Offset from the base radius against height, added to the tips and ripples. A curve at 0: straight vase (original shape)." }
+default = [[0, 0], [0, 150]]
+min = [-15, 0]
+max = [40, 150]
+points = [2, 12]
+presets = [
+    { name = { fr = "Droit", en = "Straight" }, points = [[0, 0], [0, 150]] },
+    { name = { fr = "Boule", en = "Moon jar" }, points = [[0, 0], [14, 22], [8, 40], [0, 50]] },
+    { name = { fr = "Évasé", en = "Flared" }, points = [[0, 0], [4, 20], [16, 50]] },
+    { name = { fr = "Col étroit", en = "Narrow neck" }, points = [[4, 0], [8, 15], [-6, 35], [-4, 45]] },
+]
 
 [params.bottom]
 type = "choice"
@@ -194,7 +210,15 @@ let angle_at = |tv| tv * TAU * (1.0 + twist / layers) - TAU / 4;  // départ dev
 let radius_at = |tv, z, rip| params.inner_radius
     + rip * params.ripple_depth * (0.5 + 0.5 * cos(ripples * tv * TAU))
     + params.tip_length * pow(0.5 - 0.5 * cos(params.star_tips * tv * TAU), params.tip_pointiness)
-    + params.bulge * sin(z / params.height * 0.5 * TAU);
+    + params.bulge * sin(z / params.height * 0.5 * TAU)
+    + params.silhouette.at(z);
+
+// La silhouette ne doit pas creuser le vase jusqu'à l'axe.
+for q in params.silhouette.points() {
+    if params.inner_radius + q[0] < 3 {
+        fail(#{ fr: "Silhouette trop rentrée : le rayon descendrait sous 3 mm.", en: "Silhouette pulled in too far: the radius would drop below 3 mm." });
+    }
+}
 
 let path = new_path();
 

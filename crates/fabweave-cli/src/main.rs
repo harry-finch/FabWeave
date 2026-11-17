@@ -9,7 +9,7 @@
 //! fabweave export <modèle.weave> -o <sortie.gcode> [options]
 //!
 //! options : --printer <profil.toml>  --filament <profil.toml>
-//!           --set <id>=<valeur> (répétable)  --json
+//!           --set <id>=<valeur> (répétable ; courbe : --set profil='[[30,0],[40,80]]')  --json
 //!           --nozzle <mm>  --high-flow  --rotate <degrés>  --copies <NxM>
 //!           --at <x>,<y>  --brim <mm>  --raft <couches>
 //! ```
@@ -368,6 +368,10 @@ fn run() -> Result<bool, String> {
                     ParamKind::Bool { .. } => vec![json!(false), json!(true)],
                     ParamKind::Choice { options, .. } => {
                         options.iter().map(|o| json!(o.value)).collect()
+                    }
+                    // Courbe : chaque silhouette de la galerie.
+                    ParamKind::Curve { presets, .. } => {
+                        presets.iter().map(|p| json!(p.points)).collect()
                     }
                 };
                 for v in ends {

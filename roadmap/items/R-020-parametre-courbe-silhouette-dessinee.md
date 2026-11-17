@@ -2,7 +2,7 @@
 id: R-020
 titre: "Paramètre courbe : silhouette dessinée"
 resume: "Nouveau type de paramètre .weave : une silhouette modifiable en tirant des points, avec une galerie de silhouettes prêtes."
-statut: specifiee
+statut: a-tester
 jalon: v0.7
 cree: 2026-11-17
 maj: 2026-11-17

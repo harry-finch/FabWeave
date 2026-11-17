@@ -131,6 +131,10 @@ fn every_model_survives_its_parameter_bounds() {
                 ParamKind::Choice { ref options, .. } => {
                     options.iter().map(|o| json!(o.value)).collect()
                 }
+                // Courbe : chaque silhouette de la galerie.
+                ParamKind::Curve { ref presets, .. } => {
+                    presets.iter().map(|p| json!(p.points)).collect()
+                }
             };
             for v in ends {
                 let mut values = Map::new();

@@ -29,7 +29,7 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
    Garde-buse, qualité des segments et contrôles du parcours, avec la gravité de l'ADR-0008 à valider.
 3. **[R-007 v0.6 — Bureau et projets (jalon 6)](roadmap/items/R-007-v0-6-bureau-et-projets-jalon-6.md)** · En cours · jalon v0.6
    Application de bureau Tauri 2 avec dossier de modèles surveillé, projet .fabweave.json et CLI complète.
-4. **[R-020 Paramètre courbe : silhouette dessinée](roadmap/items/R-020-parametre-courbe-silhouette-dessinee.md)** · Spécifiée · jalon v0.7
+4. **[R-020 Paramètre courbe : silhouette dessinée](roadmap/items/R-020-parametre-courbe-silhouette-dessinee.md)** · À tester · jalon v0.7
    Nouveau type de paramètre .weave : une silhouette modifiable en tirant des points, avec une galerie de silhouettes prêtes.
 5. **[R-023 Formes : sections vues de dessus, torsion et cage](roadmap/items/R-023-formes-sections-vues-de-dessus-torsion-et-cage.md)** · Spécifiée · jalon v0.7
    Fonctions de forme natives (sections pétale, étoile, cannelé…, torsion rythmée, cage de déformation) et un modèle « Forme libre ».
@@ -74,6 +74,8 @@ La source fonctionnelle est l'inventaire de [docs/FEATURES.md](docs/FEATURES.md)
 - [ ] [A-014](roadmap/actions/A-014-essayer-le-dossier-surveille-les-fichiers.md) Essayer le dossier surveillé, les fichiers récents et Enregistrer sous dans l'application macOS (tester, R-007)
 - [ ] [A-015](roadmap/actions/A-015-lancer-le-workflow-linux-et-essayer-l-appimage.md) Lancer le workflow Linux et essayer l'AppImage (tester, R-007)
 - [ ] [A-016](roadmap/actions/A-016-donner-les-cotes-des-douilles-e27-et-e14-du.md) Donner les cotes des douilles E27 et E14 du fablab (fournir, R-022)
+- [ ] [A-017](roadmap/actions/A-017-dessiner-une-silhouette-dans-l-editeur-de-courbe.md) Dessiner une silhouette dans l'éditeur de courbe (tester, R-020)
+- [ ] [A-018](roadmap/actions/A-018-imprimer-un-vase-a-silhouette-libre.md) Imprimer un vase à silhouette libre (tester, R-020)
 
 ## Livré
 

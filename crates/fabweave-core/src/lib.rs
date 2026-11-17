@@ -9,6 +9,7 @@
 #![allow(clippy::result_large_err)]
 
 pub mod adhesion;
+pub mod curve;
 pub mod fill;
 pub mod format;
 pub mod gcode;

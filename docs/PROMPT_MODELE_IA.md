@@ -30,7 +30,7 @@ Les textes affichés s'écrivent en français et en anglais : `name = { fr = "Ab
 
 | Clé | Rôle |
 | --- | --- |
-| `type` | `"float"`, `"int"`, `"bool"` ou `"choice"` |
+| `type` | `"float"`, `"int"`, `"bool"`, `"choice"` ou `"curve"` (silhouette ; exige `version = 2` en tête) |
 | `label` | Libellé **de 14 caractères au plus**, en `{ fr, en }` |
 | `unit` | `"mm"`, `"°"`, `"%"`, `"mm/s"`, `"×"`… (court) |
 | `help` | Infobulle d'une ou deux phrases concrètes, en `{ fr, en }` |
@@ -38,9 +38,10 @@ Les textes affichés s'écrivent en français et en anglais : `name = { fr = "Ab
 | `default` | Valeur par défaut, **imprimable telle quelle avec une buse de 0,4 mm** |
 | `min`, `max` | Obligatoires pour `float` et `int` ; `min < max`, `min ≤ default ≤ max` |
 | `step` | Pas (`float`, `int`) : `0.5`, `0.05`… |
+| `points`, `smooth`, `presets` | Pour `curve` : nombre de points `[min, max]`, raccord lisse (`true`) ou droit, galerie `[{ name = { fr, en }, points = [[r, z], …] }]` |
 | `options` | Pour `choice` : `[{ value = "zigzag", label = { fr = "Zigzag", en = "Zigzag" } }, …]` ; `default` est une `value` |
 
-`int` exige des entiers (`default = 6`, jamais `6.0`). `bool` et `choice` n'ont ni `min`, ni `max`, ni `step`. Les angles des paramètres sont en degrés. Expose 5 à 10 paramètres qui changent la forme ; le reste en `advanced`.
+`int` exige des entiers (`default = 6`, jamais `6.0`). `bool` et `choice` n'ont ni `min`, ni `max`, ni `step`. `curve` : `default = [[30, 0], [40, 50], [25, 100]]` (points `[rayon, hauteur]` en mm, hauteurs croissantes), `min` et `max` en paires `[rayon, hauteur]` ; dans le script, `params.silhouette.at(z)` donne le rayon à la hauteur `z` et `params.silhouette.max_z` la hauteur du dernier point. Préfère une `curve` à plusieurs curseurs quand l'utilisateur doit dessiner une silhouette. Les angles des paramètres sont en degrés. Expose 5 à 10 paramètres qui changent la forme ; le reste en `advanced`.
 
 ## 3. Script (langage Rhai)
 
@@ -149,6 +150,49 @@ let wall = helix(0, 0, printer.first_layer_height, params.radius, params.radius,
 path.travel_to(wall);
 path.note(#{ fr: "Départ de la spirale", en: "Spiral start" });
 path.print_points(wall, w, h);
+path
+```
+
+### Vase à silhouette dessinée (paramètre `curve`)
+
+```weave
+format = "fabweave.model"
+version = 2
+
+[meta]
+name = { fr = "Vase dessiné", en = "Drawn vase" }
+category = { fr = "Essais", en = "Tests" }
+description = { fr = "Vase en spirale continue dont l'utilisateur dessine la silhouette.", en = "Continuous spiral vase whose silhouette the user draws." }
+tags = ["vase", "spirale", "silhouette"]
+recommended_nozzle = [0.4, 0.6]
+
+[params.silhouette]
+type = "curve"
+label = { fr = "Silhouette", en = "Silhouette" }
+unit = "mm"
+help = { fr = "Rayon selon la hauteur ; le vase est aussi haut que le dernier point.", en = "Radius against height; the vase is as tall as the last point." }
+default = [[25, 0], [35, 30], [20, 70], [24, 80]]
+min = [8, 0]
+max = [80, 200]
+points = [2, 12]
+presets = [
+    { name = { fr = "Droit", en = "Straight" }, points = [[25, 0], [25, 80]] },
+    { name = { fr = "Évasé", en = "Flared" }, points = [[20, 0], [45, 90]] },
+]
+---
+let s = params.silhouette;
+let h = printer.layer_height;
+let w = printer.nozzle_diameter * 1.5;
+let segs = 120;
+let turns = floor((s.max_z - printer.first_layer_height) / h).to_int();
+let path = new_path();
+path.set_speed(20);
+for t in 0..=turns * segs {
+    let tv = t / segs.to_float();
+    let z = printer.first_layer_height + tv * h;
+    path.print_polar(s.at(z), tv * TAU, z, w, h);
+    if t == 0 { path.note(#{ fr: "Départ de la spirale", en: "Spiral start" }); }
+}
 path
 ```
 

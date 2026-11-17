@@ -1,0 +1,146 @@
+format = "fabweave.model"
+version = 2
+
+[meta]
+name = { fr = "Vase à silhouette libre", en = "Free silhouette vase" }
+category = { fr = "Vases et luminaires", en = "Vases & lamps" }
+description = { fr = "Dessinez la silhouette en tirant ses points, ou partez d'une silhouette de la galerie : le vase suit la courbe en une spirale continue, d'un seul boudin large, sur un fond plein en anneaux. Côtes verticales en option.", en = "Draw the silhouette by dragging its points, or start from one in the gallery: the vase follows the curve as one continuous spiral of a single wide bead, on a solid ring bottom. Optional vertical ribs." }
+author = "FabWeave"
+tags = ["vase", "spirale", "silhouette", "courbe"]
+license = "GPL-3.0-or-later"
+recommended_nozzle = [0.4, 0.5, 0.6]
+
+[params.silhouette]
+type = "curve"
+label = { fr = "Silhouette", en = "Silhouette" }
+unit = "mm"
+help = { fr = "Rayon (horizontal) selon la hauteur (vertical). La hauteur du vase est celle du dernier point. Pentes de plus de 45° : porte-à-faux signalés par le moteur.", en = "Radius (horizontal) against height (vertical). The vase is as tall as the last point. Slopes beyond 45°: overhangs reported by the engine." }
+default = [[30, 0], [42, 35], [30, 85], [22, 110], [26, 120]]
+min = [8, 0]
+max = [100, 250]
+points = [2, 16]
+smooth = true
+presets = [
+    { name = { fr = "Amphore", en = "Amphora" }, points = [[30, 0], [42, 35], [30, 85], [22, 110], [26, 120]] },
+    { name = { fr = "Boule", en = "Moon jar" }, points = [[28, 0], [48, 45], [40, 85], [24, 100], [24, 108]] },
+    { name = { fr = "Tulipe", en = "Tulip" }, points = [[22, 0], [30, 30], [44, 90], [52, 120]] },
+    { name = { fr = "Bouteille", en = "Bottle" }, points = [[32, 0], [34, 70], [20, 100], [12, 120], [12, 150]] },
+    { name = { fr = "Cylindre", en = "Cylinder" }, points = [[30, 0], [30, 100]] },
+]
+
+[params.ribs]
+type = "int"
+label = { fr = "Côtes", en = "Ribs" }
+help = { fr = "Côtes verticales autour du vase ; 0 : paroi lisse.", en = "Vertical ribs around the vase; 0: smooth wall." }
+default = 0
+min = 0
+max = 60
+
+[params.rib_depth]
+type = "float"
+label = { fr = "Profondeur côtes", en = "Rib depth" }
+unit = "mm"
+default = 1.5
+min = 0.2
+max = 5
+step = 0.1
+
+[params.bottom_layers]
+type = "int"
+label = { fr = "Couches du fond", en = "Bottom layers" }
+help = { fr = "Couches pleines (anneaux) sous la spirale ; 0 : manchon ouvert.", en = "Solid layers (rings) under the spiral; 0: open sleeve." }
+default = 2
+min = 0
+max = 4
+
+[params.speed]
+type = "float"
+label = { fr = "Vitesse", en = "Speed" }
+unit = "mm/s"
+help = { fr = "Vitesse de la paroi ; le moteur la plafonne au débit du filament.", en = "Wall speed; the engine caps it at the filament's flow." }
+advanced = true
+default = 30
+min = 5
+max = 120
+step = 1
+
+[params.width_factor]
+type = "float"
+label = { fr = "Largeur boudin", en = "Bead width" }
+unit = "×"
+help = { fr = "Largeur d'extrusion, en multiple du diamètre de buse.", en = "Extrusion width, as a multiple of the nozzle diameter." }
+advanced = true
+default = 2
+min = 1
+max = 3
+step = 0.1
+
+[params.height_factor]
+type = "float"
+label = { fr = "Pas vertical", en = "Rise per turn" }
+unit = "×"
+help = { fr = "Montée par tour, en multiple du diamètre de buse.", en = "Rise per turn, as a multiple of the nozzle diameter." }
+advanced = true
+default = 0.5
+min = 0.2
+max = 0.8
+step = 0.05
+---
+// Vase à silhouette libre (FabWeave) : le rayon suit la courbe
+// `params.silhouette` (rayon selon la hauteur), en une spirale continue.
+
+let s = params.silhouette;
+let ew = printer.nozzle_diameter * params.width_factor;   // largeur du boudin
+let eh = printer.nozzle_diameter * params.height_factor;  // montée par tour
+let fh = printer.first_layer_height;
+let nb = params.bottom_layers;
+let segs = 120;                                           // points par tour
+if params.ribs > 0 { segs = max(120, params.ribs * 8).to_int(); }
+
+// Rayon au tour `tv` (angle) et à la hauteur `z` de la silhouette.
+let radius_at = |tv, z| s.at(z)
+    + if params.ribs > 0 { params.rib_depth * (0.5 + 0.5 * cos(params.ribs * tv * TAU)) } else { 0.0 };
+
+let path = new_path();
+
+// Fond : contour puis anneaux, au rayon du pied (sans les côtes, pour ne pas
+// dépasser de la paroi).
+let fw = printer.nozzle_diameter * 1.125;
+for j in 0..nb {
+    let z = fh + j * eh;
+    let h = if j == 0 { fh } else { eh };
+    let contour = circle(0, 0, z, s.at(0) - ew / 2, -PI / 2, segs);
+    path.travel_to(contour);
+    path.print_points(contour, ew, h);
+    if j == 0 {
+        path.note(#{ fr: "Fond : contour, puis anneaux", en: "Bottom: outline, then rings" });
+    }
+    for r in contour.fill_rings(fw, ew / 2 + fw * 0.35) {
+        path.travel_to(r);
+        path.print_points(r, fw, h);
+    }
+}
+
+// Spirale : la buse monte de `eh` par tour jusqu'au dernier point de la
+// courbe ; la hauteur de la silhouette est celle au-dessus du plateau.
+let z0 = if nb == 0 { 0.8 * eh } else { fh + (nb - 1) * eh };
+let turns = floor((s.max_z - z0) / eh).to_int();
+if turns < 1 {
+    fail(#{ fr: "Silhouette trop basse pour une spirale : monter le dernier point.", en: "Silhouette too low for a spiral: raise the last point." });
+}
+path.set_speed(params.speed / 2);
+let total = turns * segs;
+for t in 0..=total {
+    let tv = t / segs.to_float();
+    let z = z0 + tv * eh;
+    // Premier tour : sur le fond, le boudin part de presque rien (la buse
+    // quitte la dernière couche) ; sur le plateau, premier tour écrasé.
+    let h = if tv >= 1.0 || nb == 0 { eh } else { eh * max(tv, 0.1) };
+    if t == segs { path.set_speed(params.speed); }
+    path.print_polar(radius_at.call(tv, z), tv * TAU - TAU / 4, z, ew, h);
+    if t == 0 {
+        path.note(#{ fr: "Départ de la spirale", en: "Spiral start" });
+    }
+}
+
+path
